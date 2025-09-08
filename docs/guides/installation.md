@@ -41,7 +41,7 @@ Point these subdomains to your server IP:
 ```
 yourdomain.com        → Your Server IP
 n8n.yourdomain.com    → Your Server IP  
-api.yourdomain.com    → Your Server IP
+supabase.yourdomain.com    → Your Server IP
 studio.yourdomain.com → Your Server IP
 ```
 
@@ -167,7 +167,7 @@ Open these URLs in your browser:
 
 - **🧠 AI Workflows**: `https://n8n.yourdomain.com`
 - **📊 Database Admin**: `https://studio.yourdomain.com`  
-- **🔍 API Access**: `https://api.yourdomain.com`
+- **🔍 API Access**: `https://supabase.yourdomain.com`
 
 ---
 
@@ -200,7 +200,7 @@ Open these URLs in your browser:
 
 - **N8N Workflows**: `https://n8n.yourdomain.com`
 - **Supabase Studio**: `https://studio.yourdomain.com`
-- **Supabase API**: `https://api.yourdomain.com`
+- **Supabase API**: `https://supabase.yourdomain.com`
 
 **Generated Passwords:**
 
@@ -288,7 +288,7 @@ nano src/app/page.tsx  # Next.js customization
 
 ### Step 3: API Access (For Developers)
 
-1. Visit `https://api.yourdomain.com`
+1. Visit `https://supabase.yourdomain.com`
 2. Note the API endpoints and documentation
 3. Use these APIs to integrate with external applications
 

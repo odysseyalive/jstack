@@ -81,7 +81,7 @@ EMAIL=admin@mycompany.com
 
 # Subdomain prefixes (optional - use defaults)
 N8N_SUBDOMAIN=n8n          # Creates: n8n.mycompany.com
-SUPABASE_SUBDOMAIN=api     # Creates: api.mycompany.com  
+SUPABASE_SUBDOMAIN=supabase     # Creates: supabase.mycompany.com  
 STUDIO_SUBDOMAIN=studio    # Creates: studio.mycompany.com
 ```
 

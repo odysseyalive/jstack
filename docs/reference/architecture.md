@@ -153,7 +153,7 @@ Isolated Network:
 Required DNS Records:
   yourdomain.com:           A → Server IP
   n8n.yourdomain.com:       A → Server IP  
-  api.yourdomain.com:       A → Server IP
+  supabase.yourdomain.com:       A → Server IP
   studio.yourdomain.com:    A → Server IP
 
 Optional Records:

@@ -169,7 +169,7 @@ services:
   nextjs-app:
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://api.mybusiness.com
+      - NEXT_PUBLIC_API_URL=https://supabase.mybusiness.com
       - DATABASE_URL=${DATABASE_URL}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}

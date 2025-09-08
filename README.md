@@ -38,13 +38,13 @@ curl -fsSL https://get.docker.com | sh  # Install Docker if needed
 yourdomain.com          → Your Server IP
 n8n.yourdomain.com      → Your Server IP  
 studio.yourdomain.com   → Your Server IP
-api.yourdomain.com      → Your Server IP
+supabase.yourdomain.com      → Your Server IP
 
 # Example if your server IP is 203.0.113.1:
 # yourdomain.com          A    203.0.113.1
 # n8n.yourdomain.com      A    203.0.113.1
 # studio.yourdomain.com   A    203.0.113.1  
-# api.yourdomain.com      A    203.0.113.1
+# supabase.yourdomain.com      A    203.0.113.1
 ```
 
 **⏱️ DNS Propagation**: Allow 15 minutes to 24 hours for DNS changes to take effect.
@@ -56,7 +56,7 @@ api.yourdomain.com      → Your Server IP
 dig +short yourdomain.com
 dig +short n8n.yourdomain.com
 dig +short studio.yourdomain.com
-dig +short api.yourdomain.com
+dig +short supabase.yourdomain.com
 # All should return your server IP
 ```
 
@@ -95,7 +95,7 @@ Once deployment completes, visit:
 
 - **🧠 AI Workflows**: `https://n8n.your-domain.com` - Build and manage automations
 - **📊 Database Studio**: `https://studio.your-domain.com` - Manage your PostgreSQL database
-- **🔍 API Access**: `https://api.your-domain.com` - REST API for integrations
+- **🔍 API Access**: `https://supabase.your-domain.com` - REST API for integrations
 
 $1
 
@@ -155,7 +155,7 @@ Choose your documentation path:
 ### 🧠 **AI Second Brain Components**
 
 - **N8N Workflow Engine** (`n8n.yourdomain.com`) - Visual automation builder with 400+ integrations
-- **Supabase API Server** (`api.yourdomain.com`) - PostgreSQL database with real-time APIs and authentication  
+- **Supabase API Server** (`supabase.yourdomain.com`) - PostgreSQL database with real-time APIs and authentication  
 - **Supabase Studio** (`studio.yourdomain.com`) - Web-based database admin interface (like phpMyAdmin for PostgreSQL)
 - **Chrome Browser Automation** - Headless browser for web interactions and automation
 
