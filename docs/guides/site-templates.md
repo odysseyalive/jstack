@@ -11,8 +11,9 @@ jstack includes three production-ready site templates that integrate seamlessly 
 - **💼 [LAMP WebApp](#lamp-webapp-template)** - PHP applications with MariaDB database
 
 All templates include:
+
 - ✅ **Automatic SSL certificates**
-- ✅ **NGINX reverse proxy integration** 
+- ✅ **NGINX reverse proxy integration**
 - ✅ **Security compliance monitoring**
 - ✅ **Docker containerization**
 - ✅ **Production optimizations**
@@ -44,6 +45,7 @@ cp -r templates/nextjs-business/ ~/my-site/
 ### 3. Access Your New Site
 
 Once deployed, your site will be available at:
+
 - **🌐 Your Site**: `https://yourdomain.com`
 - **🔒 SSL Certificate**: Automatically configured
 - **📊 Monitoring**: Integrated with JStack compliance dashboard
@@ -57,6 +59,7 @@ Once deployed, your site will be available at:
 **Perfect for**: Business websites, web applications, e-commerce
 
 **Features**:
+
 - Next.js 14 with App Router
 - TypeScript configuration
 - Tailwind CSS integration
@@ -64,6 +67,7 @@ Once deployed, your site will be available at:
 - Built-in API routes support
 
 **Directory Structure**:
+
 ```
 templates/nextjs-business/
 ├── site.json              # Site configuration
@@ -75,6 +79,7 @@ templates/nextjs-business/
 ```
 
 **Customization**:
+
 - Edit `site.json` for basic settings (domain, SSL, environment)
 - Modify `src/` directory for your application code
 - Update `docker-compose.yml` for advanced configuration
@@ -88,6 +93,7 @@ templates/nextjs-business/
 **Perfect for**: Blogs, portfolios, documentation sites, marketing sites
 
 **Features**:
+
 - Hugo static site generator
 - Native Tailwind CSS integration
 - Lightning-fast builds (<30 seconds)
@@ -95,6 +101,7 @@ templates/nextjs-business/
 - CDN-ready static files
 
 **Directory Structure**:
+
 ```
 templates/hugo-portfolio/
 ├── site.json              # Site configuration
@@ -106,6 +113,7 @@ templates/hugo-portfolio/
 ```
 
 **Customization**:
+
 - Edit `config.toml` for site settings
 - Add content in `content/` directory (Markdown files)
 - Customize theme in `themes/` directory
@@ -119,6 +127,7 @@ templates/hugo-portfolio/
 **Perfect for**: PHP applications, WordPress, custom web applications
 
 **Features**:
+
 - PHP 8.2 with Apache
 - MariaDB 10.11 database
 - Modern PHP configuration
@@ -126,6 +135,7 @@ templates/hugo-portfolio/
 - Multi-container orchestration
 
 **Directory Structure**:
+
 ```
 templates/lamp-webapp/
 ├── site.json              # Site configuration
@@ -137,6 +147,7 @@ templates/lamp-webapp/
 ```
 
 **Customization**:
+
 - Place PHP application in `web/` directory
 - Add database schema in `database/init.sql`
 - Configure PHP settings in `config/php.ini`
@@ -205,6 +216,7 @@ Before deployment, validate your template:
 ### NGINX Reverse Proxy
 
 All templates automatically integrate with jstack's NGINX setup:
+
 - SSL termination and certificate management
 - Security headers and rate limiting
 - Compression and caching
@@ -213,6 +225,7 @@ All templates automatically integrate with jstack's NGINX setup:
 ### Database Integration
 
 Templates can access jstack's PostgreSQL database:
+
 - Connection details auto-injected via environment variables
 - Supabase API access for modern applications
 - Database Studio access for management
@@ -220,6 +233,7 @@ Templates can access jstack's PostgreSQL database:
 ### Monitoring and Compliance
 
 All deployed sites include:
+
 - Security compliance monitoring (SOC2, GDPR, ISO 27001)
 - Performance monitoring and alerts
 - Automated backup integration
@@ -232,6 +246,7 @@ All deployed sites include:
 ### Common Issues
 
 **Site not loading after deployment**:
+
 ```bash
 # Check container status:
 docker ps | grep your-domain
@@ -244,6 +259,7 @@ docker logs container-name
 ```
 
 **SSL certificate issues**:
+
 ```bash
 # Regenerate certificates:
 ./jstack.sh --renew-ssl your-domain.com
@@ -253,6 +269,7 @@ docker logs container-name
 ```
 
 **Template deployment failed**:
+
 ```bash
 # Run with verbose output:
 ./jstack.sh --add-site your-domain.com --template nextjs-business --verbose
@@ -265,7 +282,7 @@ docker logs container-name
 
 - **📋 [Common Issues →](troubleshooting.md#site-templates)**
 - **💬 [Community Forum](https://www.skool.com/ai-productivity-hub)**
-- **🐛 [Report Bug](https://github.com/your-repo/issues)**
+- **🐛 [Report Bug](https://github.com/odysseyalive/jstack/issues)**
 
 ---
 
@@ -280,3 +297,4 @@ docker logs container-name
 ---
 
 **Need a custom template?** Check out our [Template Development Guide](../reference/template-development.md) to create your own.
+

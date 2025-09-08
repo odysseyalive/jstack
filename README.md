@@ -63,7 +63,7 @@ dig +short api.yourdomain.com
 ### Step 1: Get jstack ⬇️
 
 ```bash
-git clone https://github.com/your-repo/jstack.git
+git clone https://github.com/odysseyalive/jstack.git
 cd jstack
 ```
 
@@ -194,7 +194,7 @@ Something broken? Try these first:
 
 ### 📞 **Get Support**
 
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/your-repo/issues)
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/odysseyalive/jstack/issues)
 - **💬 Community**: [AI Productivity Hub](https://www.skool.com/ai-productivity-hub)
 - **📖 Documentation**: All guides linked above
 - **📧 Enterprise Support**: <enterprise@jstack.com>
