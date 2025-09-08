@@ -20,7 +20,7 @@ export_config
 validate_domain_resolution() {
     log_section "Validating Domain Resolution"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would validate domain resolution for ${DOMAIN}"
         return 0
     fi
@@ -106,7 +106,7 @@ check_existing_certificates() {
 create_temporary_certificates() {
     log_section "Creating Temporary Self-Signed Certificates"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create temporary self-signed certificates"
         return 0
     fi
@@ -176,7 +176,7 @@ EOF
 setup_letsencrypt_certificates() {
     log_section "Setting up Let's Encrypt Certificates"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup Let's Encrypt certificates for ${DOMAIN} and subdomains"
         return 0
     fi
@@ -334,7 +334,7 @@ copy_certificates_to_nginx() {
 update_nginx_ssl_config() {
     log_section "Updating NGINX SSL Configuration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would update NGINX SSL configurations"
         return 0
     fi
@@ -390,7 +390,7 @@ update_nginx_ssl_config() {
 validate_ssl_setup() {
     log_section "Validating SSL Setup"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would validate SSL setup"
         return 0
     fi
@@ -446,7 +446,7 @@ validate_ssl_setup() {
 setup_certificate_renewal() {
     log_section "Setting up Automatic Certificate Renewal"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup automatic certificate renewal"
         return 0
     fi
@@ -568,7 +568,7 @@ EOF
 start_nginx_with_ssl() {
     log_section "Starting NGINX with SSL Certificates"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would start NGINX with SSL certificates"
         return 0
     fi
@@ -671,7 +671,7 @@ configure_ssl_certificates() {
 renew_ssl_certificates() {
     log_section "SSL Certificate Renewal"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would renew SSL certificates"
         return 0
     fi

@@ -56,7 +56,7 @@ wait_for_postgres_ready() {
 initialize_supabase_schema() {
     log_section "Initializing Supabase Database Schema"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would initialize Supabase database schema"
         return 0
     fi
@@ -112,7 +112,7 @@ initialize_supabase_schema() {
 setup_n8n_database() {
     log_section "Setting up N8N Database"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup N8N database"
         return 0
     fi
@@ -200,7 +200,7 @@ setup_n8n_database() {
 setup_database_security() {
     log_section "Setting up Database Security and Roles"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup database security"
         return 0
     fi
@@ -255,7 +255,7 @@ setup_database_security() {
 setup_database_performance() {
     log_section "Setting up Database Performance Optimizations"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup database performance optimizations"
         return 0
     fi

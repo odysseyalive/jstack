@@ -19,7 +19,7 @@ export_config
 install_chrome_dependencies() {
     log_section "Installing Chrome Dependencies"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would install Chrome dependencies"
         return 0
     fi
@@ -124,7 +124,7 @@ install_chrome_debian() {
 setup_puppeteer_environment() {
     log_section "Setting up Puppeteer Environment"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup Puppeteer environment"
         return 0
     fi
@@ -190,7 +190,7 @@ EOF
 create_browser_automation_monitoring() {
     log_section "Creating Browser Automation Monitoring"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create browser automation monitoring"
         return 0
     fi
@@ -316,7 +316,7 @@ EOF
 test_browser_automation_integration() {
     log_section "Testing Browser Automation Integration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would test browser automation integration"
         return 0
     fi
@@ -363,7 +363,7 @@ test_browser_automation_integration() {
 install_puppeteer_in_n8n() {
     log_section "Installing Puppeteer Integration in N8N Container"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would install Puppeteer in N8N container"
         return 0
     fi
@@ -527,7 +527,7 @@ EOF
 validate_puppeteer_security() {
     log_section "Validating Puppeteer Security Configuration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would validate Puppeteer security"
         return 0
     fi
@@ -584,7 +584,7 @@ validate_puppeteer_security() {
 test_n8n_chrome_communication() {
     log_section "Testing N8N → Chrome Container Communication"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would test N8N Chrome communication"
         return 0
     fi
@@ -643,7 +643,7 @@ test_n8n_chrome_communication() {
 setup_n8n_workflow_templates() {
     log_section "Setting up N8N Workflow Templates and Browser Automation Examples"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup N8N workflow templates"
         return 0
     fi
@@ -1557,7 +1557,7 @@ EOF
 implement_browser_performance_optimization() {
     log_section "Implementing Browser Performance Optimization with Monitoring Baselines"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would implement browser performance optimization"
         return 0
     fi
@@ -2427,7 +2427,7 @@ EOF
 extend_health_monitoring_framework() {
     log_section "Extending Health Monitoring Framework for Browser Containers"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would extend health monitoring framework"
         return 0
     fi
@@ -3820,7 +3820,7 @@ EOF
 implement_production_scaling_optimization() {
     log_section "Implementing Production Scaling and Optimization Configuration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would implement production scaling and optimization"
         return 0
     fi
@@ -5358,7 +5358,7 @@ EOF
 setup_n8n_container() {
     log_section "Setting up N8N Container with Enhanced Puppeteer Integration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup N8N container"
         return 0
     fi
@@ -5599,7 +5599,7 @@ EOF
 setup_resource_monitoring_limits() {
     log_section "Setting up Enhanced Resource Monitoring and Limits"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup enhanced resource monitoring and limits"
         return 0
     fi
@@ -6083,7 +6083,7 @@ EOF
 configure_browser_network_isolation() {
     log_section "Configuring Browser Network Isolation"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would configure browser network isolation"
         return 0
     fi

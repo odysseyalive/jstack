@@ -17,7 +17,7 @@ export_config
 setup_threat_response() {
     log_section "Setting up Automated Threat Response System"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup automated threat response system"
         return 0
     fi

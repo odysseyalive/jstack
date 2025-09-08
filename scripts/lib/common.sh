@@ -187,7 +187,7 @@ safe_execute() {
     shift
     local command=("$@")
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would execute: $description"
         log_info "[DRY-RUN] Command: ${command[*]}"
         return 0
@@ -209,7 +209,7 @@ execute_cmd() {
     local cmd="$1"
     local description="$2"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would execute: $description"
         log_info "[DRY-RUN] Command: $cmd"
         return 0
@@ -231,7 +231,7 @@ docker_cmd() {
     local cmd="$1"
     local description="${2:-Docker command}"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would execute docker command: $description"
         log_info "[DRY-RUN] Command: $cmd"
         return 0
@@ -307,7 +307,7 @@ safe_mv() {
     local src="$1"
     local dst="$2"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would move $src to $dst"
         return 0
     fi
@@ -326,7 +326,7 @@ safe_chmod() {
     local permissions="$1"
     local file="$2"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would set permissions $permissions on $file"
         return 0
     fi
@@ -345,7 +345,7 @@ safe_chown() {
     local ownership="$1"
     local file="$2"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would set ownership $ownership on $file"
         return 0
     fi

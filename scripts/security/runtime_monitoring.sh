@@ -17,7 +17,7 @@ export_config
 setup_falco_monitoring() {
     log_section "Setting up Falco Runtime Security Monitoring"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup Falco runtime security monitoring"
         return 0
     fi
@@ -333,7 +333,7 @@ EOF
 setup_security_metrics() {
     log_section "Setting up Security Metrics Collection"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup security metrics collection"
         return 0
     fi

@@ -17,7 +17,7 @@ export_config
 setup_centralized_logging() {
     log_section "Setting up Centralized Security Logging System"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup centralized security logging"
         return 0
     fi

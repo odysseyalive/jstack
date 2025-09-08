@@ -200,7 +200,7 @@ recover_failed_service() {
     
     log_section "Attempting to Recover Failed Service: $service_name"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would attempt to recover service: $service_name"
         return 0
     fi

@@ -20,7 +20,7 @@ export_config
 cleanup_containers() {
     log_section "Stopping and Removing All Containers"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would stop and remove all JStack containers"
         return 0
     fi
@@ -77,7 +77,7 @@ cleanup_containers() {
 cleanup_docker_volumes() {
     log_section "Removing Docker Volumes"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would remove Docker volumes"
         return 0
     fi
@@ -122,7 +122,7 @@ cleanup_docker_volumes() {
 cleanup_docker_networks() {
     log_section "Removing Docker Networks"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would remove Docker networks"
         return 0
     fi
@@ -161,7 +161,7 @@ cleanup_docker_networks() {
 cleanup_docker_images() {
     log_section "Removing Docker Images"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would remove JStack Docker images"
         return 0
     fi
@@ -211,7 +211,7 @@ cleanup_docker_images() {
 cleanup_systemd_services() {
     log_section "Removing Systemd Services and Timers"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would remove systemd services and timers"
         return 0
     fi
@@ -256,7 +256,7 @@ cleanup_systemd_services() {
 cleanup_firewall_rules() {
     log_section "Removing Firewall Rules"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would remove firewall rules"
         return 0
     fi
@@ -275,7 +275,7 @@ cleanup_firewall_rules() {
 cleanup_ssl_certificates() {
     log_section "Removing SSL Certificates and Let's Encrypt Configuration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would remove SSL certificates and Let's Encrypt config"
         return 0
     fi
@@ -322,7 +322,7 @@ cleanup_ssl_certificates() {
 cleanup_service_user() {
     log_section "Removing Service User and Directories"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would remove service user and directories"
         return 0
     fi
@@ -372,7 +372,7 @@ cleanup_service_user() {
 cleanup_browser_automation() {
     log_section "Cleaning up Browser Automation Components"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would clean up browser automation components"
         return 0
     fi
@@ -439,7 +439,7 @@ cleanup_browser_automation() {
 cleanup_system_configurations() {
     log_section "Cleaning up System-wide Configurations"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would clean up system configurations"
         return 0
     fi
@@ -498,7 +498,7 @@ preserve_backups() {
         if [[ $backup_count -gt 0 ]]; then
             log_info "Found $backup_count backup(s) to preserve"
             
-            if [[ "$DRY_RUN" == "true" ]]; then
+            if [[ "${DRY_RUN:-false}" == "true" ]]; then
                 log_info "[DRY-RUN] Would preserve backups to: $backup_preserve"
                 return 0
             fi

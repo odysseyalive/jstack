@@ -17,7 +17,7 @@ export_config
 setup_trivy_scanner() {
     log_section "Setting up Trivy Container Vulnerability Scanner"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would install Trivy vulnerability scanner"
         return 0
     fi
@@ -75,7 +75,7 @@ setup_trivy_scanner() {
 setup_docker_bench_security() {
     log_section "Setting up Docker Bench Security"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup Docker Bench Security"
         return 0
     fi
@@ -105,7 +105,7 @@ setup_docker_bench_security() {
 create_enhanced_apparmor_profiles() {
     log_section "Creating Enhanced AppArmor Profiles"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create enhanced AppArmor profiles"
         return 0
     fi
@@ -236,7 +236,7 @@ EOF
 run_container_security_scan() {
     log_section "Running Container Security Scan"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would run container security scans"
         return 0
     fi
@@ -291,7 +291,7 @@ run_container_security_scan() {
 create_container_security_configs() {
     log_section "Creating Enhanced Container Security Configurations"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create enhanced container security configs"
         return 0
     fi

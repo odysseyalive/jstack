@@ -59,7 +59,7 @@ docker_cmd() {
     local cmd="$1"
     local description="$2"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would execute: $cmd"
         return 0
     fi

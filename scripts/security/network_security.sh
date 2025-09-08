@@ -17,7 +17,7 @@ export_config
 setup_fail2ban() {
     log_section "Setting up fail2ban Web Application Protection"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup fail2ban web application protection"
         return 0
     fi
@@ -248,7 +248,7 @@ EOF
 create_advanced_rate_limiting() {
     log_section "Creating Advanced NGINX Rate Limiting Configuration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create advanced NGINX rate limiting"
         return 0
     fi
@@ -430,7 +430,7 @@ EOF
 setup_geographic_filtering() {
     log_section "Setting up Geographic IP Filtering"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup geographic IP filtering"
         return 0
     fi

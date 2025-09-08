@@ -20,7 +20,7 @@ export_config
 create_secure_chrome_container() {
     log_section "Creating Secure Chrome Container Configuration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create secure Chrome container configuration"
         return 0
     fi
@@ -203,7 +203,7 @@ EOF
 update_n8n_chrome_integration() {
     log_section "Updating N8N for Secure Chrome Integration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would update N8N Chrome integration"
         return 0
     fi
@@ -285,7 +285,7 @@ EOF
 create_secure_browser_monitoring() {
     log_section "Creating Secure Browser Automation Monitoring"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create secure browser monitoring"
         return 0
     fi
@@ -449,7 +449,7 @@ EOF
 test_secure_chrome_integration() {
     log_section "Testing Secure Chrome Integration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would test secure Chrome integration"
         return 0
     fi

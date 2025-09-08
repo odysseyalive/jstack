@@ -160,7 +160,7 @@ start_service_with_dependencies() {
     
     log_section "Starting Service with Dependencies: $service_name"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would start $service_name and its dependencies"
         return 0
     fi
@@ -368,7 +368,7 @@ stop_individual_service() {
 start_all_services() {
     log_section "Starting All Services with Dependency Management"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would start all services in dependency order"
         return 0
     fi
@@ -427,7 +427,7 @@ start_all_services() {
 stop_all_services() {
     log_section "Stopping All Services"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would stop all services"
         return 0
     fi

@@ -110,7 +110,14 @@ show_progress() {
 }
 
 # Check if required tools are available
+# Check if required tools are available
 check_prerequisites() {
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Would check prerequisites: curl, sha256sum/shasum"
+        log_info "[DRY-RUN] Prerequisites check: simulated success"
+        return 0
+    fi
+    
     local missing_tools=()
     
     if ! command -v curl &> /dev/null; then
@@ -131,7 +138,15 @@ check_prerequisites() {
 }
 
 # Test internet connectivity to GitHub
+# Test internet connectivity to GitHub
 test_connectivity() {
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Would test connectivity to GitHub repository"
+        log_info "[DRY-RUN] URL to test: $RAW_BASE_URL/README.md"
+        log_info "[DRY-RUN] Connectivity test: simulated success"
+        return 0
+    fi
+    
     log_info "Testing connectivity to GitHub..."
     
     if ! curl -s --max-time 10 --head "$RAW_BASE_URL/README.md" >/dev/null 2>&1; then
@@ -145,6 +160,7 @@ test_connectivity() {
 }
 
 # Create directory structure
+# Create directory structure
 create_directories() {
     local directories=(
         "scripts/core"
@@ -153,6 +169,14 @@ create_directories() {
         "scripts/utils"
         "docs"
     )
+    
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Would create directory structure:"
+        for dir in "${directories[@]}"; do
+            log_info "[DRY-RUN]   Directory: $PROJECT_ROOT/$dir"
+        done
+        return 0
+    fi
     
     for dir in "${directories[@]}"; do
         local full_path="$PROJECT_ROOT/$dir"
@@ -164,11 +188,22 @@ create_directories() {
 }
 
 # Download a single file with error handling
+# Download a single file with error handling
 download_file() {
     local file_path="$1"
     local url="$RAW_BASE_URL/$file_path"
     local local_path="$PROJECT_ROOT/$file_path"
     local temp_file="${local_path}.tmp"
+    
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Would download file: $file_path"
+        log_info "[DRY-RUN]   From: $url"
+        log_info "[DRY-RUN]   To: $local_path"
+        log_info "[DRY-RUN]   Temp file: $temp_file"
+        log_info "[DRY-RUN]   Would create directory: $(dirname "$local_path")"
+        log_info "[DRY-RUN] Download: simulated success"
+        return 0
+    fi
     
     # Create directory if it doesn't exist
     local dir_path=$(dirname "$local_path")
@@ -207,10 +242,22 @@ file_needs_update() {
 }
 
 # Backup existing file before update
+# Backup existing file before update
 backup_file() {
     local file_path="$1"
     local local_path="$PROJECT_ROOT/$file_path"
     local backup_path="${local_path}.backup.$(date +%Y%m%d_%H%M%S)"
+    
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        if [[ -f "$local_path" ]]; then
+            log_info "[DRY-RUN] Would backup existing file: $(basename "$file_path")"
+            log_info "[DRY-RUN]   From: $local_path"
+            log_info "[DRY-RUN]   To: $backup_path"
+        else
+            log_info "[DRY-RUN] No existing file to backup: $file_path"
+        fi
+        return 0
+    fi
     
     if [[ -f "$local_path" ]]; then
         cp "$local_path" "$backup_path"
@@ -223,6 +270,7 @@ backup_file() {
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Sync all files from the manifest
+# Sync all files from the manifest
 sync_files() {
     local mode="$1" # "install" or "update"
     local total_files=${#SYNC_MANIFEST[@]}
@@ -234,6 +282,12 @@ sync_files() {
     log_section "Syncing Files from Repository"
     log_info "Repository: $REPO_URL"
     log_info "Files to sync: $total_files"
+    log_info "Mode: $mode"
+    
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Sync operation simulation - no files will be modified"
+    fi
+    
     echo ""
     
     for file_path in "${SYNC_MANIFEST[@]}"; do
@@ -249,26 +303,46 @@ sync_files() {
             fi
         fi
         
-        # Check if file needs updating
-        if file_needs_update "$file_path"; then
-            # Backup existing file if in update mode
-            if [[ "$mode" == "update" ]]; then
-                backup_file "$file_path"
-            fi
-            
-            # Download the file
-            if download_file "$file_path"; then
-                updated_files+=("$file_path")
-                
-                # Make scripts executable
-                if [[ "$file_path" == *.sh ]]; then
-                    chmod +x "$PROJECT_ROOT/$file_path"
+        if [[ "${DRY_RUN:-false}" == "true" ]]; then
+            # Dry-run simulation logic
+            if file_needs_update "$file_path"; then
+                if [[ "$mode" == "update" ]]; then
+                    # Would backup existing file
+                    local local_path="$PROJECT_ROOT/$file_path"
+                    if [[ -f "$local_path" ]]; then
+                        updated_files+=("$file_path (would backup existing)")
+                    else
+                        updated_files+=("$file_path (new file)")
+                    fi
+                else
+                    updated_files+=("$file_path")
                 fi
             else
-                failed_files+=("$file_path")
+                skipped_files+=("$file_path (no update needed)")
             fi
         else
-            skipped_files+=("$file_path (no update needed)")
+            # Actual sync logic
+            # Check if file needs updating
+            if file_needs_update "$file_path"; then
+                # Backup existing file if in update mode
+                if [[ "$mode" == "update" ]]; then
+                    backup_file "$file_path"
+                fi
+                
+                # Download the file
+                if download_file "$file_path"; then
+                    updated_files+=("$file_path")
+                    
+                    # Make scripts executable
+                    if [[ "$file_path" == *.sh ]]; then
+                        chmod +x "$PROJECT_ROOT/$file_path"
+                    fi
+                else
+                    failed_files+=("$file_path")
+                fi
+            else
+                skipped_files+=("$file_path (no update needed)")
+            fi
         fi
     done
     
@@ -279,16 +353,33 @@ sync_files() {
     # Report results
     log_section "Sync Results"
     
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Sync simulation completed - no actual changes made"
+        echo ""
+    fi
+    
     if [[ ${#updated_files[@]} -gt 0 ]]; then
-        log_success "Updated files (${#updated_files[@]}):"
+        if [[ "${DRY_RUN:-false}" == "true" ]]; then
+            log_success "Would update files (${#updated_files[@]}):"
+        else
+            log_success "Updated files (${#updated_files[@]}):"
+        fi
         for file in "${updated_files[@]}"; do
-            echo "  ✅ $file"
+            if [[ "${DRY_RUN:-false}" == "true" ]]; then
+                echo "  📝 $file"
+            else
+                echo "  ✅ $file"
+            fi
         done
         echo ""
     fi
     
     if [[ ${#skipped_files[@]} -gt 0 ]]; then
-        log_info "Skipped files (${#skipped_files[@]}):"
+        if [[ "${DRY_RUN:-false}" == "true" ]]; then
+            log_info "Would skip files (${#skipped_files[@]}):"
+        else
+            log_info "Skipped files (${#skipped_files[@]}):"
+        fi
         for file in "${skipped_files[@]}"; do
             echo "  ⏭️  $file"
         done
@@ -296,18 +387,26 @@ sync_files() {
     fi
     
     if [[ ${#failed_files[@]} -gt 0 ]]; then
-        log_warning "Failed to download (${#failed_files[@]}):"
+        if [[ "${DRY_RUN:-false}" == "true" ]]; then
+            log_warning "Would fail to download (simulated failures: ${#failed_files[@]}):"
+        else
+            log_warning "Failed to download (${#failed_files[@]}):"
+        fi
         for file in "${failed_files[@]}"; do
             echo "  ❌ $file"
         done
         echo ""
         
-        log_warning "Some files failed to download. This might be due to:"
-        echo "  - Network connectivity issues"
-        echo "  - Files not yet available in the repository"
-        echo "  - Repository structure changes"
-        echo ""
-        echo "You can retry the sync later or check the repository manually."
+        if [[ "${DRY_RUN:-false}" == "false" ]]; then
+            log_warning "Some files failed to download. This might be due to:"
+            echo "  - Network connectivity issues"
+            echo "  - Files not yet available in the repository"
+            echo "  - Repository structure changes"
+            echo ""
+            echo "You can retry the sync later or check the repository manually."
+        else
+            log_info "[DRY-RUN] In actual run, failures could be due to network/repository issues"
+        fi
     fi
     
     # Return success if at least some files were updated and no critical failures
@@ -319,9 +418,14 @@ sync_files() {
 }
 
 # Initialize a new installation from repository
+# Initialize a new installation from repository
 run_initial_sync() {
     log_section "🚀 COMPASS Stack - Initial Setup"
     log_info "Downloading and setting up the complete modular architecture"
+    
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Initial sync simulation - no files will be modified"
+    fi
     
     # Check prerequisites
     if ! check_prerequisites; then
@@ -338,9 +442,15 @@ run_initial_sync() {
     
     # Sync all files
     if sync_files "install"; then
-        log_success "Initial setup completed successfully!"
-        echo ""
-        log_info "Next steps:"
+        if [[ "${DRY_RUN:-false}" == "true" ]]; then
+            log_success "Initial setup simulation completed successfully!"
+            echo ""
+            log_info "[DRY-RUN] In actual run, next steps would be:"
+        else
+            log_success "Initial setup completed successfully!"
+            echo ""
+            log_info "Next steps:"
+        fi
         echo "  1. Copy configuration template:    cp jstack.config.default jstack.config"
         echo "  2. Edit your settings:             nano jstack.config"
         echo "  3. Start installation:             ./jstack.sh"
@@ -348,15 +458,24 @@ run_initial_sync() {
         echo "  For detailed configuration help, see: README.md"
         return 0
     else
-        log_error "Initial setup failed"
+        if [[ "${DRY_RUN:-false}" == "true" ]]; then
+            log_error "Initial setup simulation indicated failures"
+        else
+            log_error "Initial setup failed"
+        fi
         return 1
     fi
 }
 
 # Update existing installation
+# Update existing installation
 run_update() {
     log_section "🔄 COMPASS Stack - Update System"
     log_info "Updating existing installation from repository"
+    
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Update simulation - no files will be modified"
+    fi
     
     # Check prerequisites
     if ! check_prerequisites; then
@@ -370,16 +489,28 @@ run_update() {
     
     # Sync files with backup
     if sync_files "update"; then
-        log_success "Update completed successfully!"
-        echo ""
-        log_info "Your existing jstack.config has been preserved"
-        log_info "Updated files have been backed up with timestamps"
-        echo ""
-        log_info "If you experience issues, you can restore backed up files:"
-        echo "  find . -name '*.backup.*' -type f"
+        if [[ "${DRY_RUN:-false}" == "true" ]]; then
+            log_success "Update simulation completed successfully!"
+            echo ""
+            log_info "[DRY-RUN] In actual run:"
+            log_info "[DRY-RUN]   - Your existing jstack.config would be preserved"
+            log_info "[DRY-RUN]   - Updated files would be backed up with timestamps"
+        else
+            log_success "Update completed successfully!"
+            echo ""
+            log_info "Your existing jstack.config has been preserved"
+            log_info "Updated files have been backed up with timestamps"
+            echo ""
+            log_info "If you experience issues, you can restore backed up files:"
+            echo "  find . -name '*.backup.*' -type f"
+        fi
         return 0
     else
-        log_error "Update failed"
+        if [[ "${DRY_RUN:-false}" == "true" ]]; then
+            log_error "Update simulation indicated failures"
+        else
+            log_error "Update failed"
+        fi
         return 1
     fi
 }

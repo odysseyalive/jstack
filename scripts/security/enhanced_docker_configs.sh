@@ -17,7 +17,7 @@ export_config
 create_enhanced_n8n_config() {
     log_section "Creating Enhanced N8N Container Security Configuration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create enhanced N8N security configuration"
         return 0
     fi
@@ -131,7 +131,7 @@ EOF
 create_enhanced_postgres_config() {
     log_section "Creating Enhanced PostgreSQL Container Security Configuration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create enhanced PostgreSQL security configuration"
         return 0
     fi
@@ -249,7 +249,7 @@ EOF
 create_enhanced_nginx_config() {
     log_section "Creating Enhanced NGINX Container Security Configuration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create enhanced NGINX security configuration"
         return 0
     fi
@@ -369,7 +369,7 @@ EOF
 create_security_validation_script() {
     log_section "Creating Container Security Validation Scripts"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create security validation scripts"
         return 0
     fi

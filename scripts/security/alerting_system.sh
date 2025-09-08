@@ -17,7 +17,7 @@ export_config
 setup_alerting_system() {
     log_section "Setting up Multi-Channel Security Alerting System"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup multi-channel security alerting"
         return 0
     fi

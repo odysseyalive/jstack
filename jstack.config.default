@@ -156,7 +156,8 @@ AUDIT_LOGGING="true"
 
 # DEBUG CONFIGURATION
 ENABLE_DEBUG_LOGS="false"
-DRY_RUN="false"
+# Don't override DRY_RUN if already set (preserves command-line flags)
+DRY_RUN="${DRY_RUN:-false}"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 🛡️ COMPLIANCE MONITORING CONFIGURATION

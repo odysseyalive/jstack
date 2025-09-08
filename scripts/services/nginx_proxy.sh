@@ -19,7 +19,7 @@ export_config
 setup_nginx_container() {
     log_section "Setting up NGINX Container"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup NGINX container"
         return 0
     fi
@@ -378,7 +378,7 @@ EOF
 start_nginx_service() {
     log_section "Starting NGINX Service"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would start NGINX service"
         return 0
     fi
@@ -405,7 +405,7 @@ start_nginx_service() {
 stop_nginx_service() {
     log_section "Stopping NGINX Service"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would stop NGINX service"
         return 0
     fi
@@ -426,7 +426,7 @@ stop_nginx_service() {
 reload_nginx_config() {
     log_section "Reloading NGINX Configuration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would reload NGINX config"
         return 0
     fi

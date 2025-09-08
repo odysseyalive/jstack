@@ -20,7 +20,7 @@ export_config
 harden_host_os() {
     log_section "Host OS Security Hardening"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would perform OS hardening"
         return 0
     fi
@@ -183,7 +183,7 @@ EOF
 setup_service_user() {
     log_section "Service User Setup"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup service user: $SERVICE_USER"
         return 0
     fi
@@ -268,7 +268,7 @@ EOF
 setup_container_environment() {
     log_section "Container Environment Setup"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup container environment"
         return 0
     fi
@@ -434,7 +434,7 @@ EOF
 setup_system_timezone() {
     log_section "Configuring System Timezone"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would configure timezone to: $N8N_TIMEZONE"
         return 0
     fi
@@ -483,7 +483,7 @@ setup_system_timezone() {
 setup_compliance_monitoring() {
     log_section "Compliance Monitoring Setup"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup compliance monitoring system"
         return 0
     fi

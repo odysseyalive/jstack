@@ -19,7 +19,7 @@ export_config
 setup_supabase_containers() {
     log_section "Setting up Supabase Containers"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup Supabase containers"
         return 0
     fi
@@ -539,7 +539,7 @@ EOF
 install_chrome_dependencies() {
     log_section "Installing Chrome Dependencies for Debian 12"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would install Chrome dependencies"
         return 0
     fi
@@ -588,7 +588,7 @@ install_chrome_dependencies() {
 setup_puppeteer_environment() {
     log_section "Setting up Puppeteer Environment"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup Puppeteer environment"
         return 0
     fi
@@ -654,7 +654,7 @@ EOF
 create_browser_automation_monitoring() {
     log_section "Creating Browser Automation Monitoring"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create browser automation monitoring"
         return 0
     fi
@@ -822,7 +822,7 @@ test_browser_automation_integration() {
 setup_n8n_container() {
     log_section "Setting up N8N Container"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup N8N container"
         return 0
     fi
@@ -1048,7 +1048,7 @@ EOF
 setup_nginx_container() {
     log_section "Setting up NGINX Container"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup NGINX container"
         return 0
     fi

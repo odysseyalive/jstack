@@ -20,6 +20,19 @@ export_config
 init_backup_encryption() {
     local encryption_key_file="$BASE_DIR/config/backup.key"
     
+    
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Would initialize backup encryption"
+        if [[ "$BACKUP_ENCRYPTION" == "true" ]]; then
+            log_info "[DRY-RUN] Would create config directory: $BASE_DIR/config"
+            log_info "[DRY-RUN] Would generate encryption key: $encryption_key_file"
+            log_info "[DRY-RUN] Would set permissions 600 on encryption key"
+        else
+            log_info "[DRY-RUN] Backup encryption disabled"
+        fi
+        return 0
+    fi
+
     if [[ "$BACKUP_ENCRYPTION" == "true" ]]; then
         log_info "Initializing backup encryption"
         
@@ -30,7 +43,7 @@ init_backup_encryption() {
         if [[ ! -f "$encryption_key_file" ]]; then
             log_info "Generating new backup encryption key"
             execute_cmd "sudo -u $SERVICE_USER openssl rand -base64 32 > $encryption_key_file" "Generate encryption key"
-            safe_chmod "600" "$encryption_key_file" "Secure encryption key"
+            safe_chmod "600" "$encryption_key_file"
         fi
         
         log_success "Backup encryption initialized"
@@ -96,7 +109,7 @@ decrypt_backup() {
 backup_databases() {
     log_section "Creating Database Backup"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would backup databases"
         return 0
     fi
@@ -149,7 +162,7 @@ backup_databases() {
 restore_databases() {
     log_section "Restoring Database Backup"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would restore databases"
         return 0
     fi
@@ -249,7 +262,7 @@ restore_databases() {
 backup_configurations_and_volumes() {
     log_section "Backing up Configurations and Volumes"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would backup configurations and volumes"
         return 0
     fi
@@ -324,7 +337,7 @@ backup_configurations_and_volumes() {
 restore_configurations_and_volumes() {
     log_section "Restoring Configurations and Volumes"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would restore configurations and volumes"
         return 0
     fi
@@ -412,8 +425,14 @@ create_system_backup() {
     
     log_section "Creating Complete System Backup: $backup_name"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create system backup: $backup_name"
+        log_info "[DRY-RUN] Backup components would include:"
+        log_info "[DRY-RUN]   • Database dumps (PostgreSQL)"
+        log_info "[DRY-RUN]   • Configuration files (jstack.config, SSL certs)"
+        log_info "[DRY-RUN]   • Docker volumes (persistent data)"
+        log_info "[DRY-RUN]   • Service logs and system state"
+        log_info "[DRY-RUN] Final backup file: $BASE_DIR/backups/backup_${backup_name}.tar.gz"
         return 0
     fi
     
@@ -430,8 +449,9 @@ create_system_backup() {
     
     execute_cmd "sudo -u $SERVICE_USER mkdir -p $backup_root $backup_temp_dir" "Create backup directories"
     
-    # Create backup manifest
-    cat > "$backup_temp_dir/backup_manifest.json" << EOF
+    # Create backup manifest (dry-run safe)
+    if [[ "$DRY_RUN" != "true" ]]; then
+        cat > "$backup_temp_dir/backup_manifest.json" << EOF
 {
   "backup_name": "$backup_name",
   "timestamp": "$(date -Iseconds)",
@@ -449,6 +469,9 @@ create_system_backup() {
   }
 }
 EOF
+    else
+        log_info "Would create backup manifest at: $backup_temp_dir/backup_manifest.json"
+    fi
     
     # Perform backup components
     if backup_databases "$backup_temp_dir" && \
@@ -519,7 +542,7 @@ restore_system_backup() {
     
     log_section "Restoring Complete System from Backup"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would restore system from: $backup_file"
         return 0
     fi

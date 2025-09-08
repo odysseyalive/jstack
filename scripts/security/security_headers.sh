@@ -17,7 +17,7 @@ export_config
 create_security_headers_config() {
     log_section "Creating Comprehensive Security Headers Configuration"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create comprehensive security headers"
         return 0
     fi
@@ -238,7 +238,7 @@ EOF
 create_waf_rules() {
     log_section "Creating Web Application Firewall Rules"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would create WAF rules"
         return 0
     fi

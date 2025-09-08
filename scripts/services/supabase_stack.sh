@@ -19,7 +19,7 @@ export_config
 setup_supabase_containers() {
     log_section "Setting up Supabase Containers"
     
-    if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would setup Supabase containers"
         return 0
     fi
