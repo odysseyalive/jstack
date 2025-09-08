@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  nextjs-business:
+    build:
+      context: ../src
+      dockerfile: ../docker/Dockerfile
+    container_name: "nextjs-business-${DOMAIN_SAFE}"
+    restart: unless-stopped
+    networks:
+      - jarvisjr-private
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - PORT=3000
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ../src:/app:ro
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    user: "1001:1001"
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextjs-business-${DOMAIN_SAFE}.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.nextjs-business-${DOMAIN_SAFE}.tls=true"
+      - "traefik.http.routers.nextjs-business-${DOMAIN_SAFE}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.nextjs-business-${DOMAIN_SAFE}.loadbalancer.server.port=3000"
+      - "com.jarvisjr.template=nextjs-business"
+      - "com.jarvisjr.version=1.0.0"
+
+networks:
+  jarvisjr-private:
+    external: true

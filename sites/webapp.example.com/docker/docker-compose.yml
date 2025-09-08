@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  lamp-webapp:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+    container_name: "lamp-webapp-webapp_example_com"
+    restart: unless-stopped
+    networks:
+      - jarvisjr-private
+    environment:
+      - APACHE_RUN_USER=www-data
+      - APACHE_RUN_GROUP=www-data
+      - DOMAIN=webapp.example.com
+      - DB_HOST=lamp-database-webapp_example_com
+      - DB_NAME=${DB_NAME:-webapp}
+      - DB_USER=${DB_USER:-webuser}
+      - DB_PASS=82705f266f93f58b3391adc6b930b0fa
+    volumes:
+      - ../src:/var/www/html:rw
+      - ./apache:/etc/apache2/sites-available:ro
+    depends_on:
+      - lamp-database
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    user: "www-data"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lamp-webapp-webapp_example_com.rule=Host(`webapp.example.com`)"
+      - "traefik.http.routers.lamp-webapp-webapp_example_com.tls=true"
+      - "traefik.http.routers.lamp-webapp-webapp_example_com.tls.certresolver=letsencrypt"
+      - "traefik.http.services.lamp-webapp-webapp_example_com.loadbalancer.server.port=80"
+      - "com.jarvisjr.template=lamp-webapp"
+      - "com.jarvisjr.version=1.0.0"
+
+  lamp-database:
+    image: mariadb:10.11
+    container_name: "lamp-database-webapp_example_com"
+    restart: unless-stopped
+    networks:
+      - jarvisjr-private
+    environment:
+      - MYSQL_ROOT_PASSWORD=a0eb93fb4ab1f5185224981d3ef54629
+      - MYSQL_DATABASE=${DB_NAME:-webapp}
+      - MYSQL_USER=${DB_USER:-webuser}
+      - MYSQL_PASSWORD=82705f266f93f58b3391adc6b930b0fa
+      - MYSQL_CHARSET=utf8mb4
+      - MYSQL_COLLATION=utf8mb4_unicode_ci
+    volumes:
+      - lamp_database_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+      - ./mysql/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
+    security_opt:
+      - no-new-privileges:true
+    user: "mysql"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pa0eb93fb4ab1f5185224981d3ef54629"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.jarvisjr.template=lamp-webapp"
+      - "com.jarvisjr.component=database"
+
+volumes:
+  lamp_database_data:
+    name: "lamp-database-data-webapp_example_com"
+    labels:
+      - "com.jarvisjr.template=lamp-webapp"
+      - "com.jarvisjr.component=database"
+
+networks:
+  jarvisjr-private:
+    external: true

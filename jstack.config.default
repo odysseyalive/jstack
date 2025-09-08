@@ -157,3 +157,37 @@ AUDIT_LOGGING="true"
 # DEBUG CONFIGURATION
 ENABLE_DEBUG_LOGS="false"
 DRY_RUN="false"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 🛡️ COMPLIANCE MONITORING CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Site Management Configuration
+ENABLE_MULTI_SITE="false"
+SITE_REGISTRY_PATH="${BASE_DIR}/config/sites.json"
+DEFAULT_COMPLIANCE_PROFILE="default"
+
+# Compliance Framework Configuration
+COMPLIANCE_FRAMEWORKS="SOC2,GDPR,ISO27001"
+COMPLIANCE_MONITORING_ENABLED="true"
+COMPLIANCE_AUDIT_RETENTION="90d"
+COMPLIANCE_REPORT_SCHEDULE="0 2 * * 0"  # Weekly on Sundays at 2:00 AM
+COMPLIANCE_ALERT_EMAIL="${EMAIL}"
+
+# Dynamic Documentation Configuration
+AUTO_UPDATE_DOCS="true"
+DOCS_GENERATION_PATH="${BASE_DIR}/docs/generated"
+COMPLIANCE_DOCS_PATH="${BASE_DIR}/compliance/documentation"
+
+# Site Registry Configuration
+SITE_REGISTRY_BACKUP="true"
+SITE_REGISTRY_BACKUP_RETENTION="30"
+SITE_REGISTRY_VALIDATION="strict"
+
+# Compliance Directory Structure
+COMPLIANCE_BASE_DIR="/opt/jarvis-security"
+COMPLIANCE_DIR="${COMPLIANCE_BASE_DIR}/compliance"
+AUDIT_DIR="${COMPLIANCE_BASE_DIR}/audit"
+POLICIES_DIR="${COMPLIANCE_BASE_DIR}/policies"
+EVIDENCE_DIR="${COMPLIANCE_BASE_DIR}/evidence"
+REPORTS_DIR="${COMPLIANCE_BASE_DIR}/compliance-reports"

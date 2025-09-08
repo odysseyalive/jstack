@@ -1,0 +1,97 @@
+{
+  "name": "LAMP WebApp Template",
+  "version": "1.0.0",
+  "description": "Traditional LAMP stack with PHP 8.2, Apache, and MariaDB 10.11 for dynamic web applications",
+  "type": "dynamic",
+  "technology_stack": {
+    "primary": "php",
+    "runtime": "php",
+    "database": "mariadb",
+    "dependencies": ["apache2", "composer", "php-extensions"]
+  },
+  "docker": {
+    "image": "php:8.2-apache",
+    "build_context": ".",
+    "ports": [
+      {
+        "internal": 80,
+        "protocol": "http",
+        "description": "Apache web server"
+      }
+    ],
+    "volumes": [
+      {
+        "host": "./src",
+        "container": "/var/www/html",
+        "type": "bind"
+      },
+      {
+        "host": "./config/apache",
+        "container": "/etc/apache2/sites-available",
+        "type": "bind"
+      }
+    ],
+    "environment": {
+      "APACHE_RUN_USER": "www-data",
+      "APACHE_RUN_GROUP": "www-data",
+      "APACHE_LOG_DIR": "/var/log/apache2",
+      "APACHE_PID_FILE": "/var/run/apache2/apache2.pid",
+      "APACHE_RUN_DIR": "/var/run/apache2",
+      "APACHE_LOCK_DIR": "/var/lock/apache2",
+      "PHP_INI_DIR": "/usr/local/etc/php"
+    },
+    "security": {
+      "user": "www-data:www-data",
+      "read_only": false,
+      "no_new_privileges": true
+    }
+  },
+  "nginx": {
+    "template": "php",
+    "root_path": "/var/www/html",
+    "index_files": ["index.php", "index.html"],
+    "locations": [
+      {
+        "path": "/",
+        "config": "try_files $uri $uri/ /index.php?$query_string;"
+      },
+      {
+        "path": "~ \\.php$",
+        "config": "fastcgi_pass lamp_webapp_upstream; fastcgi_index index.php; fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; include fastcgi_params;"
+      },
+      {
+        "path": "~* \\.(css|js|jpg|jpeg|png|gif|ico|svg)$",
+        "config": "expires 30d; add_header Cache-Control 'public'; access_log off;"
+      }
+    ],
+    "security_headers": true,
+    "rate_limiting": {
+      "enabled": true,
+      "rate": "10r/s",
+      "burst": 30
+    }
+  },
+  "ssl": {
+    "enabled": true,
+    "certificate_type": "letsencrypt",
+    "hsts": true
+  },
+  "compliance": {
+    "profile": "strict",
+    "monitoring": true,
+    "backup": true
+  },
+  "setup": {
+    "post_install": [
+      "composer install --no-dev --optimize-autoloader",
+      "php artisan config:cache || true",
+      "apache2-foreground"
+    ],
+    "health_check": {
+      "path": "/health.php",
+      "interval": "30s",
+      "timeout": "10s",
+      "retries": 3
+    }
+  }
+}

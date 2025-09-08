@@ -196,8 +196,64 @@ Open these URLs in your browser:
 ./jstack.sh --show-credentials
 
 # Or check the deployment log
-cat /home/jarvis/jarvis-stack/logs/setup_*.log | grep -i password
+$1
+
+---
+
+## 🌐 Deploy Websites (Optional)
+
+Now that JarvisJR is running, you can deploy production websites using built-in templates:
+
+### 🚀 **Quick Site Deployment**
+
+```bash
+# Deploy a Next.js business site:
+./jstack.sh --add-site mybusiness.com --template nextjs-business
+
+# Deploy a Hugo portfolio:
+./jstack.sh --add-site myportfolio.com --template hugo-portfolio
+
+# Deploy a LAMP web application:
+./jstack.sh --add-site myapp.com --template lamp-webapp
 ```
+
+### 📚 **Available Templates**
+
+| Template | Best For | Tech Stack | Deploy Time |
+|----------|----------|------------|-------------|
+| **nextjs-business** | Business sites, web apps | Next.js, React, Node.js | ~3 minutes |
+| **hugo-portfolio** | Blogs, portfolios, docs | Hugo, Tailwind CSS | ~2 minutes |
+| **lamp-webapp** | PHP apps, WordPress, CMSs | PHP 8.2, Apache, MariaDB | ~4 minutes |
+
+### ⚙️ **Custom Site Deployment**
+
+```bash
+# Copy template for customization:
+cp -r templates/nextjs-business/ ~/my-custom-site/
+
+# Edit configuration and code:
+cd ~/my-custom-site/
+nano site.json  # Basic settings
+nano src/app/page.tsx  # Next.js customization
+
+# Deploy customized template:
+./jstack.sh --add-site mysite.com --template ~/my-custom-site/
+```
+
+### 🔍 **Template Management**
+
+```bash
+# List all deployed sites:
+./jstack.sh --list-sites
+
+# Remove a site:
+./jstack.sh --remove-site old-site.com
+
+# Validate template before deployment:
+./jstack.sh --validate-template templates/nextjs-business/
+```
+
+**📚 Learn More**: [Complete Site Templates Guide →](site-templates.md)
 
 ---
 

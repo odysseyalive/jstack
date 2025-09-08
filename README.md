@@ -97,7 +97,24 @@ Once deployment completes, visit:
 - **📊 Database Studio**: `https://studio.your-domain.com` - Manage your PostgreSQL database
 - **🔍 API Access**: `https://api.your-domain.com` - REST API for integrations
 
-**🎯 Success Indicator**: You can log into all three services without errors.
+$1
+
+### 🌐 Want to Deploy Websites Too?
+
+JarvisJR now includes **site templates** for rapid website deployment:
+
+```bash
+# Deploy a Next.js business site:
+./jstack.sh --add-site mybusiness.com --template nextjs-business
+
+# Deploy a Hugo portfolio:
+./jstack.sh --add-site myportfolio.com --template hugo-portfolio
+
+# Deploy a LAMP web app:
+./jstack.sh --add-site myapp.com --template lamp-webapp
+```
+
+**📚 [Complete Site Templates Guide →](docs/guides/site-templates.md)**
 
 ---
 

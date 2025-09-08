@@ -477,6 +477,99 @@ setup_system_timezone() {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 🛡️ COMPLIANCE MONITORING SETUP
+# ═══════════════════════════════════════════════════════════════════════════════
+
+setup_compliance_monitoring() {
+    log_section "Compliance Monitoring Setup"
+    
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log_info "[DRY-RUN] Would setup compliance monitoring system"
+        return 0
+    fi
+    
+    # Check if compliance monitoring is enabled
+    if [[ "${COMPLIANCE_MONITORING_ENABLED:-true}" != "true" ]]; then
+        log_info "Compliance monitoring disabled by configuration - skipping"
+        return 0
+    fi
+    
+    start_section_timer "Compliance Setup"
+    
+    # Install jq if not present (required for site registry management)
+    if ! command -v jq &> /dev/null; then
+        log_info "Installing jq for JSON processing"
+        execute_cmd "sudo apt-get update -y" "Update package lists for jq"
+        execute_cmd "sudo apt-get install -y jq" "Install jq JSON processor"
+    else
+        log_info "jq already installed"
+    fi
+    
+    # Setup compliance monitoring system
+    log_info "Initializing compliance monitoring system"
+    if bash "${PROJECT_ROOT}/scripts/security/compliance_monitoring.sh" setup; then
+        log_success "Compliance monitoring system initialized"
+    else
+        log_warning "Compliance monitoring setup encountered issues - continuing installation"
+        # Don't fail the entire setup if compliance setup has issues
+    fi
+    
+    # Generate initial compliance documentation if auto-update is enabled
+    if [[ "${AUTO_UPDATE_DOCS:-true}" == "true" ]]; then
+        log_info "Generating initial compliance documentation"
+        if bash "${PROJECT_ROOT}/scripts/security/compliance_monitoring.sh" generate-docs; then
+            log_success "Initial compliance documentation generated"
+        else
+            log_warning "Failed to generate initial compliance documentation"
+        fi
+    fi
+    
+    # Initialize site registry with primary domain if configured
+    if [[ -n "${DOMAIN:-}" ]] && [[ "$DOMAIN" != "test.example.com" ]]; then
+        log_info "Registering primary domain in site registry: $DOMAIN"
+        
+        # Source common.sh to get site registry functions
+        source "${PROJECT_ROOT}/scripts/lib/common.sh"
+        
+        if add_site_to_registry "$DOMAIN" "${DEFAULT_COMPLIANCE_PROFILE:-default}"; then
+            log_success "Primary domain registered in site registry"
+            
+            # Update compliance documentation for the new site
+            if [[ "${AUTO_UPDATE_DOCS:-true}" == "true" ]]; then
+                if bash "${PROJECT_ROOT}/scripts/security/compliance_monitoring.sh" update-site-docs add "$DOMAIN"; then
+                    log_success "Compliance documentation updated for primary domain"
+                else
+                    log_warning "Failed to update compliance documentation for primary domain"
+                fi
+            fi
+        else
+            log_warning "Failed to register primary domain in site registry"
+        fi
+    else
+        log_info "No domain configured or using default - skipping site registry"
+    fi
+    
+    # Set up compliance monitoring cron job if enabled and not in container
+    if [[ "${COMPLIANCE_MONITORING_ENABLED:-true}" == "true" ]] && [[ ! -f /.dockerenv ]]; then
+        log_info "Setting up compliance monitoring cron job"
+        
+        local cron_schedule="${COMPLIANCE_REPORT_SCHEDULE:-0 2 * * 0}"
+        local cron_job="$cron_schedule cd ${PROJECT_ROOT} && bash scripts/security/compliance_monitoring.sh regenerate-reports >> /var/log/compliance-monitoring.log 2>&1"
+        
+        # Add cron job for jarvis user
+        if sudo -u "$SERVICE_USER" crontab -l 2>/dev/null | grep -q "compliance_monitoring.sh"; then
+            log_info "Compliance monitoring cron job already exists"
+        else
+            (sudo -u "$SERVICE_USER" crontab -l 2>/dev/null || true; echo "$cron_job") | sudo -u "$SERVICE_USER" crontab -
+            log_success "Compliance monitoring cron job added"
+        fi
+    fi
+    
+    end_section_timer "Compliance Setup"
+    log_success "Compliance monitoring setup completed"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # 🚀 MAIN SETUP ORCHESTRATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -494,6 +587,7 @@ run_setup() {
        harden_host_os && \
        setup_service_user && \
        setup_container_environment && \
+       setup_compliance_monitoring && \
        setup_system_timezone; then
         
         log_success "System setup completed successfully"
@@ -519,6 +613,9 @@ main() {
         "docker")
             setup_container_environment
             ;;
+        "compliance")
+            setup_compliance_monitoring
+            ;;
         "timezone")
             setup_system_timezone
             ;;
@@ -526,7 +623,7 @@ main() {
             validate_environment && validate_user_configuration && check_prerequisites
             ;;
         *)
-            echo "Usage: $0 [setup|harden|user|docker|timezone|validate]"
+            echo "Usage: $0 [setup|harden|user|docker|compliance|timezone|validate]"
             exit 1
             ;;
     esac

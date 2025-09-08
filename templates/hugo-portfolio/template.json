@@ -1,0 +1,92 @@
+{
+  "name": "Hugo Portfolio Template",
+  "version": "1.0.0",
+  "description": "Blazing fast Hugo static site generator with Tailwind CSS for personal portfolios and blogs",
+  "type": "static",
+  "technology_stack": {
+    "primary": "hugo",
+    "runtime": "static",
+    "database": "none",
+    "dependencies": ["tailwindcss", "postcss", "autoprefixer", "hugo-modules"]
+  },
+  "docker": {
+    "image": "hugomods/hugo:base",
+    "build_context": ".",
+    "ports": [
+      {
+        "internal": 80,
+        "protocol": "http",
+        "description": "NGINX static file server"
+      }
+    ],
+    "volumes": [
+      {
+        "host": "./src",
+        "container": "/src",
+        "type": "bind"
+      },
+      {
+        "host": "./public",
+        "container": "/usr/share/nginx/html",
+        "type": "bind"
+      }
+    ],
+    "environment": {
+      "HUGO_ENV": "production",
+      "HUGO_ENABLEGITINFO": "true",
+      "NODE_ENV": "production"
+    },
+    "security": {
+      "user": "nginx:nginx",
+      "read_only": true,
+      "no_new_privileges": true
+    }
+  },
+  "nginx": {
+    "template": "static",
+    "root_path": "/usr/share/nginx/html",
+    "index_files": ["index.html"],
+    "locations": [
+      {
+        "path": "/",
+        "config": "try_files $uri $uri/ =404;"
+      },
+      {
+        "path": "~* \\.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2)$",
+        "config": "expires 1y; add_header Cache-Control 'public, immutable'; access_log off;"
+      },
+      {
+        "path": "~* \\.(html|xml|json)$",
+        "config": "expires 1h; add_header Cache-Control 'public';"
+      }
+    ],
+    "security_headers": true,
+    "rate_limiting": {
+      "enabled": true,
+      "rate": "30r/s",
+      "burst": 60
+    }
+  },
+  "ssl": {
+    "enabled": true,
+    "certificate_type": "letsencrypt",
+    "hsts": true
+  },
+  "compliance": {
+    "profile": "default",
+    "monitoring": true,
+    "backup": true
+  },
+  "setup": {
+    "post_install": [
+      "hugo --gc --minify --cleanDestinationDir",
+      "nginx -g 'daemon off;'"
+    ],
+    "health_check": {
+      "path": "/",
+      "interval": "30s",
+      "timeout": "5s",
+      "retries": 3
+    }
+  }
+}

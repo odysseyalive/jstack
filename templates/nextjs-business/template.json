@@ -1,0 +1,86 @@
+{
+  "name": "Next.js Business Template",
+  "version": "1.0.0",
+  "description": "Production-ready Next.js 14 business website template with TypeScript and Tailwind CSS",
+  "type": "ssr",
+  "technology_stack": {
+    "primary": "nextjs",
+    "runtime": "nodejs",
+    "database": "none",
+    "dependencies": ["typescript", "tailwindcss", "eslint", "prettier"]
+  },
+  "docker": {
+    "image": "node:22-alpine",
+    "build_context": ".",
+    "ports": [
+      {
+        "internal": 3000,
+        "protocol": "http",
+        "description": "Next.js application server"
+      }
+    ],
+    "volumes": [
+      {
+        "host": "./src",
+        "container": "/app",
+        "type": "bind"
+      }
+    ],
+    "environment": {
+      "NODE_ENV": "production",
+      "NEXT_TELEMETRY_DISABLED": "1",
+      "PORT": "3000"
+    },
+    "security": {
+      "user": "node:node",
+      "read_only": false,
+      "no_new_privileges": true
+    }
+  },
+  "nginx": {
+    "template": "proxy",
+    "locations": [
+      {
+        "path": "/",
+        "config": "proxy_pass http://nextjs_business_upstream;"
+      },
+      {
+        "path": "/_next/static/",
+        "config": "proxy_pass http://nextjs_business_upstream; proxy_cache static_cache; proxy_cache_valid 200 1y;"
+      },
+      {
+        "path": "/api/",
+        "config": "proxy_pass http://nextjs_business_upstream; proxy_cache off;"
+      }
+    ],
+    "security_headers": true,
+    "rate_limiting": {
+      "enabled": true,
+      "rate": "20r/s",
+      "burst": 50
+    }
+  },
+  "ssl": {
+    "enabled": true,
+    "certificate_type": "letsencrypt",
+    "hsts": true
+  },
+  "compliance": {
+    "profile": "default",
+    "monitoring": true,
+    "backup": true
+  },
+  "setup": {
+    "post_install": [
+      "npm ci --production",
+      "npm run build",
+      "npm run start"
+    ],
+    "health_check": {
+      "path": "/api/health",
+      "interval": "30s",
+      "timeout": "10s",
+      "retries": 3
+    }
+  }
+}

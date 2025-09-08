@@ -1,0 +1,269 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JarvisJR Stack Template Metadata",
+  "description": "Schema for template.json configuration files",
+  "type": "object",
+  "required": [
+    "name",
+    "version",
+    "type",
+    "technology_stack",
+    "docker",
+    "nginx"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Template display name",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "description": "Template version (semantic versioning)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Template description"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["static", "dynamic", "spa", "ssr"],
+      "description": "Site type for deployment optimization"
+    },
+    "technology_stack": {
+      "type": "object",
+      "required": ["primary", "runtime"],
+      "properties": {
+        "primary": {
+          "type": "string",
+          "enum": ["nextjs", "hugo", "php", "react", "vue", "angular", "static"],
+          "description": "Primary technology/framework"
+        },
+        "runtime": {
+          "type": "string",
+          "enum": ["nodejs", "php", "static", "python", "go"],
+          "description": "Runtime environment"
+        },
+        "database": {
+          "type": "string",
+          "enum": ["none", "mysql", "postgresql", "mariadb", "sqlite"],
+          "description": "Database requirement"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional dependencies or services"
+        }
+      }
+    },
+    "docker": {
+      "type": "object",
+      "required": ["image", "ports"],
+      "properties": {
+        "image": {
+          "type": "string",
+          "description": "Base Docker image"
+        },
+        "build_context": {
+          "type": "string",
+          "description": "Docker build context path",
+          "default": "."
+        },
+        "ports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["internal", "protocol"],
+            "properties": {
+              "internal": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "protocol": {
+                "type": "string",
+                "enum": ["http", "https", "tcp", "udp"]
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["host", "container"],
+            "properties": {
+              "host": {
+                "type": "string"
+              },
+              "container": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["bind", "volume", "tmpfs"],
+                "default": "bind"
+              }
+            }
+          }
+        },
+        "environment": {
+          "type": "object",
+          "description": "Environment variables"
+        },
+        "security": {
+          "type": "object",
+          "properties": {
+            "user": {
+              "type": "string",
+              "description": "Container user (rootless required)"
+            },
+            "read_only": {
+              "type": "boolean",
+              "default": false
+            },
+            "no_new_privileges": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      }
+    },
+    "nginx": {
+      "type": "object",
+      "required": ["template", "locations"],
+      "properties": {
+        "template": {
+          "type": "string",
+          "enum": ["proxy", "static", "php", "spa"],
+          "description": "NGINX configuration template to use"
+        },
+        "root_path": {
+          "type": "string",
+          "description": "Document root path in container"
+        },
+        "index_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["index.html", "index.php"]
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "config"],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "config": {
+                "type": "string",
+                "description": "NGINX location configuration"
+              }
+            }
+          }
+        },
+        "security_headers": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable security headers"
+        },
+        "rate_limiting": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "rate": {
+              "type": "string",
+              "default": "10r/s"
+            },
+            "burst": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        }
+      }
+    },
+    "ssl": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "certificate_type": {
+          "type": "string",
+          "enum": ["letsencrypt", "self-signed", "custom"],
+          "default": "letsencrypt"
+        },
+        "hsts": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "compliance": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "type": "string",
+          "enum": ["default", "strict", "enterprise", "healthcare", "financial"],
+          "default": "default"
+        },
+        "monitoring": {
+          "type": "boolean",
+          "default": true
+        },
+        "backup": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "setup": {
+      "type": "object",
+      "properties": {
+        "post_install": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Commands to run after installation"
+        },
+        "health_check": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "default": "/"
+            },
+            "interval": {
+              "type": "string",
+              "default": "30s"
+            },
+            "timeout": {
+              "type": "string",
+              "default": "10s"
+            },
+            "retries": {
+              "type": "integer",
+              "default": 3
+            }
+          }
+        }
+      }
+    }
+  }
+}

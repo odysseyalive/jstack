@@ -150,21 +150,68 @@ run_ssl_configuration() {
     fi
 }
 
+# Compliance check workflow
+run_compliance_check() {
+    log_section "Running Compliance Check"
+    
+    if ! bash "${PROJECT_ROOT}/scripts/security/compliance_monitoring.sh" validate; then
+        log_error "Compliance validation failed"
+        return 1
+    fi
+    
+    if bash "${PROJECT_ROOT}/scripts/security/compliance_monitoring.sh" regenerate-reports; then
+        log_success "Compliance check completed successfully"
+        log_info "Reports available in: ${BASE_DIR}/opt/jarvis-security/compliance-reports/"
+    else
+        log_error "Compliance report generation failed"
+        return 1
+    fi
+}
+
 # Site management workflows
 add_site() {
     local site_path="$1"
+    local template_name="$2"
+    
     log_section "Adding Site"
-    log_info "Adding site from: $site_path"
-    # Will be: bash "${PROJECT_ROOT}/scripts/core/containers.sh" add-site "$site_path"
-    log_info "Site management will be implemented in scripts/core/containers.sh"
+    
+    # Handle template-based deployment
+    if [[ -n "$template_name" ]]; then
+        log_info "Adding site using template: $template_name"
+        log_info "Target domain/path: $site_path"
+        
+        # Execute template-based site addition via containers.sh
+        if bash "${PROJECT_ROOT}/scripts/core/containers.sh" add-site "$site_path" --template "$template_name"; then
+            log_success "Template-based site addition completed successfully"
+        else
+            log_error "Template-based site addition failed"
+            return 1
+        fi
+    else
+        log_info "Adding site from: $site_path"
+        
+        # Execute standard site addition via containers.sh
+        if bash "${PROJECT_ROOT}/scripts/core/containers.sh" add-site "$site_path"; then
+            log_success "Site addition completed successfully"
+        else
+            log_error "Site addition failed"
+            return 1
+        fi
+    fi
 }
 
 remove_site() {
     local site_path="$1"
     log_section "Removing Site"
     log_info "Removing site: $site_path"
-    # Will be: bash "${PROJECT_ROOT}/scripts/core/containers.sh" remove-site "$site_path"
-    log_info "Site management will be implemented in scripts/core/containers.sh"
+    
+    # Execute site removal via containers.sh
+    if bash "${PROJECT_ROOT}/scripts/core/containers.sh" remove-site "$site_path"; then
+        log_success "Site removal completed successfully"
+    else
+        log_error "Site removal failed"
+        return 1
+    fi
 }
 
 # List backups
@@ -284,6 +331,7 @@ OPTIONS:
   --sync             Update system files from repository (preserves config)
   --dry-run          Run in dry-run mode (no actual changes)
   --configure-ssl    Configure SSL certificates and start NGINX
+  --compliance-check Run compliance validation and generate reports
   --add-site PATH    Add a site from specified path
   --remove-site PATH Remove a site from specified path
   --enable-debug     Enable debug logging
@@ -301,6 +349,7 @@ EXAMPLES:
   $0 --sync          # Update scripts from repository (preserves config)
   $0 --add-site sites/example.com    # Add a site from config
   $0 --remove-site sites/example.com # Remove a site
+  $0 --compliance-check # Run compliance validation and reports
   $0 --dry-run       # Test run without making changes
   $0 --configure-ssl # Configure SSL certificates and start NGINX
 
@@ -395,13 +444,26 @@ main() {
                 run_ssl_configuration
                 exit 0
                 ;;
+            --compliance-check)
+                run_compliance_check
+                exit 0
+                ;;
             --add-site)
                 if [[ -z "$2" ]]; then
-                    echo "Error: --add-site requires a path to site configuration"
+                    echo "Error: --add-site requires a path or domain"
                     echo "Usage: $0 --add-site /path/to/site/directory"
+                    echo "       $0 --add-site domain.com --template template-name"
                     exit 1
                 fi
-                add_site "$2"
+                
+                # Check for template flag
+                if [[ "$3" == "--template" && -n "$4" ]]; then
+                    add_site "$2" "$4"
+                    shift 4
+                else
+                    add_site "$2"
+                    shift 2
+                fi
                 exit 0
                 ;;
             --remove-site)

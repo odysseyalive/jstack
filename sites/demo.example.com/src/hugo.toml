@@ -1,0 +1,162 @@
+baseURL = "https://example.com"
+languageCode = "en-us"
+title = "Portfolio"
+theme = "portfolio-theme"
+
+# Hugo configuration
+enableGitInfo = true
+enableEmoji = true
+enableRobotsTXT = true
+canonifyURLs = true
+disableHugoGeneratorInject = true
+
+# Content and publishing
+contentDir = "content"
+layoutDir = "layouts"
+staticDir = "static"
+dataDir = "data"
+archetypeDir = "archetypes"
+publishDir = "public"
+
+# Pagination
+paginate = 6
+paginatePath = "page"
+
+# Taxonomies
+[taxonomies]
+  tag = "tags"
+  category = "categories"
+  series = "series"
+
+# Markup configuration
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = false
+      hardWraps = false
+    [markup.goldmark.parser]
+      autoHeadingID = true
+      autoHeadingIDType = "github"
+    [markup.goldmark.extensions]
+      typographer = true
+      strikethrough = true
+      linkify = true
+      taskList = true
+  
+  [markup.highlight]
+    style = "github"
+    lineNos = true
+    codeFences = true
+    guessSyntax = true
+    tabWidth = 2
+
+# Image processing
+[imaging]
+  quality = 85
+  resampleFilter = "lanczos"
+  anchor = "smart"
+
+# Privacy configuration
+[privacy]
+  [privacy.disqus]
+    disable = true
+  [privacy.googleAnalytics]
+    disable = false
+    respectDoNotTrack = true
+    anonymizeIP = true
+  [privacy.instagram]
+    disable = true
+  [privacy.twitter]
+    disable = false
+    enableDNT = true
+  [privacy.vimeo]
+    disable = true
+  [privacy.youtube]
+    disable = false
+    privacyEnhanced = true
+
+# Performance and optimization
+[caches]
+  [caches.getjson]
+    dir = ":cacheDir/:project"
+    maxAge = "1h"
+  [caches.getcsv]
+    dir = ":cacheDir/:project"
+    maxAge = "1h"
+  [caches.images]
+    dir = ":resourceDir/_gen"
+    maxAge = "720h"
+  [caches.assets]
+    dir = ":resourceDir/_gen"
+    maxAge = "720h"
+
+# Minification
+[minify]
+  disableCSS = false
+  disableHTML = false
+  disableJS = false
+  disableJSON = false
+  disableSVG = false
+  disableXML = false
+  [minify.tdewolff]
+    [minify.tdewolff.html]
+      keepDefaultAttrVals = false
+      keepDocumentTags = true
+      keepEndTags = true
+      keepQuotes = false
+      keepWhitespace = false
+
+# Output formats
+[outputFormats]
+  [outputFormats.RSS]
+    mediatype = "application/rss"
+    baseName = "feed"
+
+# Site parameters
+[params]
+  description = "A modern portfolio built with Hugo and Tailwind CSS"
+  author = "Your Name"
+  email = "your.email@example.com"
+  
+  # Social media
+  github = "yourusername"
+  linkedin = "yourusername"
+  twitter = "yourusername"
+  
+  # Site settings
+  showReadingTime = true
+  showShareButtons = true
+  showToc = true
+  tocOpen = false
+  
+  # Footer
+  copyright = "© 2024 Your Name. All rights reserved."
+  
+# Menu configuration
+[menu]
+  [[menu.main]]
+    name = "Home"
+    url = "/"
+    weight = 10
+  [[menu.main]]
+    name = "About"
+    url = "/about/"
+    weight = 20
+  [[menu.main]]
+    name = "Projects"
+    url = "/projects/"
+    weight = 30
+  [[menu.main]]
+    name = "Blog"
+    url = "/blog/"
+    weight = 40
+  [[menu.main]]
+    name = "Contact"
+    url = "/contact/"
+    weight = 50
+
+# Module configuration for Hugo Modules
+[module]
+  [module.hugoVersion]
+    extended = false
+    min = "0.120.0"
