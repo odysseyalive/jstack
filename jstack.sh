@@ -72,6 +72,11 @@ run_installation() {
 run_uninstallation() {
     log_section "Starting JStack Uninstallation"
     
+    # Load configuration first to ensure variables are available for dry-run
+    source "${PROJECT_ROOT}/scripts/settings/config.sh"
+    load_config
+    export_config
+    
     if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "[DRY-RUN] Would completely remove JStack installation including:"
         log_info "[DRY-RUN]   • All Docker containers and volumes"
