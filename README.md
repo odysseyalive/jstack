@@ -32,6 +32,7 @@ curl -fsSL https://get.docker.com | sh  # Install Docker if needed
 ### Step 1.5: DNS Setup (Required!) 🌐
 
 **Create these DNS A records BEFORE installation:**
+
 ```bash
 # Point these subdomains to your server IP:
 yourdomain.com          → Your Server IP
@@ -49,6 +50,7 @@ api.yourdomain.com      → Your Server IP
 **⏱️ DNS Propagation**: Allow 15 minutes to 24 hours for DNS changes to take effect.
 
 **✅ Test DNS Setup:**
+
 ```bash
 # Test each subdomain resolves to your server:
 dig +short yourdomain.com
@@ -58,30 +60,14 @@ dig +short api.yourdomain.com
 # All should return your server IP
 ```
 
-### Step 1.6: Firewall Configuration 🛡️
-
-**Configure iptables to allow required ports:**
-```bash
-# Allow HTTP and HTTPS traffic
-sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT
-sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT
-sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT
-
-# Save iptables rules (method depends on your distribution)
-# Ubuntu/Debian:
-sudo iptables-save > /etc/iptables/rules.v4
-# CentOS/RHEL:
-sudo service iptables save
-```
-
-### Step 2: Get JarvisJR ⬇️
+### Step 1: Get JarvisJR ⬇️
 
 ```bash
 git clone https://github.com/your-repo/JarvisJR_Stack.git
 cd JarvisJR_Stack
 ```
 
-### Step 3: Configure (2 minutes) ⚙️
+### Step 2: Configure (2 minutes) ⚙️
 
 ```bash
 # Copy and edit your configuration:
@@ -93,7 +79,7 @@ nano jstack.config
 # EMAIL=your-email@domain.com
 ```
 
-### Step 4: Deploy 🚀
+### Step 3: Deploy 🚀
 
 ```bash
 # Deploy complete AI infrastructure:
@@ -103,7 +89,7 @@ nano jstack.config
 # Watch the progress with colored logs
 ```
 
-### Step 5: Access Your AI Second Brain 🎉
+### Step 4: Access Your AI Second Brain 🎉
 
 Once deployment completes, visit:
 
@@ -324,4 +310,3 @@ graph TB
 *🎯 **One AI that runs everything. Deploy your AI Second Brain in 15 minutes.***
 
 **[⬆️ Back to Quick Start](#-quick-start---new-to-ai-automation)**
-
