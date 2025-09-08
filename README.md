@@ -83,7 +83,7 @@ nano jstack.config
 
 ```bash
 # Deploy complete AI infrastructure:
-./jstack.sh
+./jstack.sh --install
 
 # ☕ Grab coffee - this takes 5-10 minutes
 # Watch the progress with colored logs
