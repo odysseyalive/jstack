@@ -98,13 +98,18 @@ validate_environment() {
         validation_errors+=("Script should not be run as root. Run as a regular user with sudo access.")
     fi
     
-    # Check for required commands
-    local required_commands=("docker" "docker-compose" "curl" "dig" "openssl" "gpg")
+    # Check for required commands (excluding docker-compose which has dual compatibility)
+    local required_commands=("docker" "curl" "dig" "openssl" "gpg")
     for cmd in "${required_commands[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
             validation_errors+=("Required command not found: $cmd")
         fi
     done
+    
+    # Check Docker Compose availability (accept either variant)
+    if ! docker compose version &> /dev/null && ! command -v docker-compose &> /dev/null; then
+        validation_errors+=("Docker Compose not available - install Docker Desktop or standalone version")
+    fi
     
     # Check disk space (require at least 10GB free)
     local available_space=$(df / | awk 'NR==2 {print $4}')
