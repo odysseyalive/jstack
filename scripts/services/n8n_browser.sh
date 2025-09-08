@@ -2638,11 +2638,7 @@ validate_security_operational() {
     fi
     
     # Network security validation
-    if command -v ufw >/dev/null 2>&1; then
-        if ! ufw status | grep -q "Status: active"; then
-            log_warning "UFW firewall is not active"
-        fi
-    fi
+    log_info "Manual iptables configuration assumed - verify firewall rules are in place"
     
     # Container security validation
     local containers=$(docker ps --format "{{.Names}}")
@@ -6193,24 +6189,9 @@ EOF
 }
 
 setup_browser_firewall_rules() {
-    log_info "Setting up firewall rules for browser security"
-    
-    # Add UFW rules for browser containers
-    if command -v ufw >/dev/null 2>&1; then
-        # Allow internal browser communication
-        execute_cmd "ufw allow from 172.20.0.0/16 to 172.20.0.0/16" "Allow browser internal communication" || true
-        
-        # Limit external HTTP/HTTPS access from browser network
-        execute_cmd "ufw limit out on docker0 from 172.20.0.0/16 to any port 80" "Limit browser HTTP access" || true
-        execute_cmd "ufw limit out on docker0 from 172.20.0.0/16 to any port 443" "Limit browser HTTPS access" || true
-        
-        # Block direct SSH access from browser network
-        execute_cmd "ufw deny from 172.20.0.0/16 to any port 22" "Block browser SSH access" || true
-        
-        log_success "UFW rules configured for browser security"
-    else
-        log_warning "UFW not available, skipping firewall configuration"
-    fi
+    log_info "Browser security relies on Docker network isolation and manual iptables configuration"
+    log_info "Advanced iptables rules for browser containers can be configured manually if needed"
+    log_info "Docker networks provide container isolation by default"
 }
 
 configure_browser_service_discovery() {

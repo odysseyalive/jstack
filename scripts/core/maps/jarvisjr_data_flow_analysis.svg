@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="610" height="377" xmlns="http://www.w3.org/2000/svg">
+  <!-- Memory-optimized grid -->
+  <defs>
+    <pattern id="grid8" width="8" height="8" patternUnits="userSpaceOnUse">
+      <path d="M 8 0 L 0 0 0 8" fill="none" stroke="#f0f0f0" stroke-width="0.5"/>
+    </pattern>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#666"/>
+    </marker>
+    <marker id="security-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#d32f2f"/>
+    </marker>
+    <marker id="flow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#1976d2"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#grid8)"/>
+  
+  <!-- Title -->
+  <text x="305" y="34" font-family="Arial" font-size="21" text-anchor="middle" font-weight="bold">JarvisJR Stack - Data Flow Analysis</text>
+  <text x="305" y="55" font-family="Arial" font-size="13" text-anchor="middle" fill="#666">Configuration • Security • Network • Validation • Recovery</text>
+  
+  <!-- Configuration Flow Chain (Top Tier) -->
+  <g id="config-flow">
+    <text x="34" y="100" font-family="Arial" font-size="14" font-weight="bold" fill="#2e7d32">Configuration Flow</text>
+    
+    <!-- jstack.config.default -->
+    <rect x="34" y="110" width="89" height="34" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1"/>
+    <text x="39" y="125" font-family="Arial" font-size="11" font-weight="bold">jstack.config</text>
+    <text x="39" y="138" font-family="Arial" font-size="10">.default</text>
+    
+    <!-- Arrow to user config -->
+    <line x1="123" y1="127" x2="144" y2="127" stroke="#2e7d32" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- jstack.config (user) -->
+    <rect x="155" y="110" width="89" height="34" fill="#fff3e0" stroke="#ff9800" stroke-width="1"/>
+    <text x="160" y="125" font-family="Arial" font-size="11" font-weight="bold">jstack.config</text>
+    <text x="160" y="138" font-family="Arial" font-size="10">user override</text>
+    
+    <!-- Arrow to env vars -->
+    <line x1="244" y1="127" x2="265" y2="127" stroke="#ff9800" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- Environment Variables -->
+    <rect x="276" y="110" width="89" height="34" fill="#e3f2fd" stroke="#1976d2" stroke-width="1"/>
+    <text x="281" y="125" font-family="Arial" font-size="11" font-weight="bold">env vars</text>
+    <text x="281" y="138" font-family="Arial" font-size="10">export_config()</text>
+    
+    <!-- Arrow to containers -->
+    <line x1="365" y1="127" x2="386" y2="127" stroke="#1976d2" stroke-width="2" marker-end="url(#flow-arrow)"/>
+    
+    <!-- Docker Containers -->
+    <rect x="397" y="110" width="89" height="34" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1"/>
+    <text x="402" y="125" font-family="Arial" font-size="11" font-weight="bold">containers</text>
+    <text x="402" y="138" font-family="Arial" font-size="10">runtime</text>
+  </g>
+  
+  <!-- Security Token Management (Second Tier) -->
+  <g id="security-tokens">
+    <text x="34" y="180" font-family="Arial" font-size="14" font-weight="bold" fill="#d32f2f">Security Token Flow</text>
+    
+    <!-- Secret Generation -->
+    <rect x="34" y="190" width="89" height="34" fill="#ffebee" stroke="#d32f2f" stroke-width="1"/>
+    <text x="39" y="205" font-family="Arial" font-size="11" font-weight="bold">generate_secret</text>
+    <text x="39" y="218" font-family="Arial" font-size="10">JWT/passwords</text>
+    
+    <!-- Arrow to distribution -->
+    <line x1="123" y1="207" x2="144" y2="207" stroke="#d32f2f" stroke-width="2" marker-end="url(#security-arrow)"/>
+    
+    <!-- Token Distribution -->
+    <rect x="155" y="190" width="89" height="34" fill="#fff8e1" stroke="#f57c00" stroke-width="1"/>
+    <text x="160" y="205" font-family="Arial" font-size="11" font-weight="bold">.env files</text>
+    <text x="160" y="218" font-family="Arial" font-size="10">per service</text>
+    
+    <!-- Arrow to SSL -->
+    <line x1="244" y1="207" x2="265" y2="207" stroke="#f57c00" stroke-width="2" marker-end="url(#security-arrow)"/>
+    
+    <!-- SSL Certificates -->
+    <rect x="276" y="190" width="89" height="34" fill="#e0f2f1" stroke="#00695c" stroke-width="1"/>
+    <text x="281" y="205" font-family="Arial" font-size="11" font-weight="bold">SSL certs</text>
+    <text x="281" y="218" font-family="Arial" font-size="10">Let's Encrypt</text>
+    
+    <!-- Arrow to validation -->
+    <line x1="365" y1="207" x2="386" y2="207" stroke="#00695c" stroke-width="2" marker-end="url(#security-arrow)"/>
+    
+    <!-- Security Validation -->
+    <rect x="397" y="190" width="89" height="34" fill="#fce4ec" stroke="#ad1457" stroke-width="1"/>
+    <text x="402" y="205" font-family="Arial" font-size="11" font-weight="bold">validation</text>
+    <text x="402" y="218" font-family="Arial" font-size="10">domain/DNS</text>
+  </g>
+  
+  <!-- Network Traffic Patterns (Third Tier) -->
+  <g id="network-flow">
+    <text x="34" y="260" font-family="Arial" font-size="14" font-weight="bold" fill="#1976d2">Network Traffic Flow</text>
+    
+    <!-- Internet -->
+    <rect x="34" y="270" width="89" height="34" fill="#e3f2fd" stroke="#1976d2" stroke-width="1"/>
+    <text x="39" y="285" font-family="Arial" font-size="11" font-weight="bold">Internet</text>
+    <text x="39" y="298" font-family="Arial" font-size="10">HTTPS:443</text>
+    
+    <!-- Arrow to NGINX -->
+    <line x1="123" y1="287" x2="144" y2="287" stroke="#1976d2" stroke-width="2" marker-end="url(#flow-arrow)"/>
+    
+    <!-- NGINX Proxy -->
+    <rect x="155" y="270" width="89" height="34" fill="#fff3e0" stroke="#ff9800" stroke-width="1"/>
+    <text x="160" y="285" font-family="Arial" font-size="11" font-weight="bold">NGINX</text>
+    <text x="160" y="298" font-family="Arial" font-size="10">reverse proxy</text>
+    
+    <!-- Arrow to services -->
+    <line x1="244" y1="287" x2="265" y2="287" stroke="#ff9800" stroke-width="2" marker-end="url(#flow-arrow)"/>
+    
+    <!-- Private Network -->
+    <rect x="276" y="270" width="89" height="34" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1"/>
+    <text x="281" y="285" font-family="Arial" font-size="11" font-weight="bold">private_tier</text>
+    <text x="281" y="298" font-family="Arial" font-size="10">internal only</text>
+    
+    <!-- Arrow to database -->
+    <line x1="365" y1="287" x2="386" y2="287" stroke="#2e7d32" stroke-width="2" marker-end="url(#flow-arrow)"/>
+    
+    <!-- Database -->
+    <rect x="397" y="270" width="89" height="34" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1"/>
+    <text x="402" y="285" font-family="Arial" font-size="11" font-weight="bold">PostgreSQL</text>
+    <text x="402" y="298" font-family="Arial" font-size="10">isolated</text>
+  </g>
+  
+  <!-- Error Recovery Flow (Bottom) -->
+  <g id="recovery-flow">
+    <text x="34" y="340" font-family="Arial" font-size="14" font-weight="bold" fill="#d84315">Error Recovery Flow</text>
+    
+    <!-- Monitor -->
+    <rect x="34" y="350" width="89" height="21" fill="#ffebee" stroke="#d84315" stroke-width="1"/>
+    <text x="39" y="362" font-family="Arial" font-size="10" font-weight="bold">health_check()</text>
+    
+    <!-- Diagnose -->
+    <rect x="155" y="350" width="89" height="21" fill="#fff3e0" stroke="#f57c00" stroke-width="1"/>
+    <text x="160" y="362" font-family="Arial" font-size="10" font-weight="bold">diagnostics</text>
+    
+    <!-- Recover -->
+    <rect x="276" y="350" width="89" height="21" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1"/>
+    <text x="281" y="362" font-family="Arial" font-size="10" font-weight="bold">auto_recover()</text>
+    
+    <!-- Backup Restore -->
+    <rect x="397" y="350" width="89" height="21" fill="#e3f2fd" stroke="#1976d2" stroke-width="1"/>
+    <text x="402" y="362" font-family="Arial" font-size="10" font-weight="bold">restore_backup</text>
+    
+    <!-- Recovery arrows -->
+    <line x1="123" y1="360" x2="144" y2="360" stroke="#d84315" stroke-width="1" marker-end="url(#arrow)"/>
+    <line x1="244" y1="360" x2="265" y2="360" stroke="#f57c00" stroke-width="1" marker-end="url(#arrow)"/>
+    <line x1="365" y1="360" x2="386" y2="360" stroke="#2e7d32" stroke-width="1" marker-end="url(#arrow)"/>
+  </g>
+  
+  <!-- Cross-tier Integration Points -->
+  <g id="integration-points">
+    <!-- Config to Security integration -->
+    <line x1="320" y1="144" x2="320" y2="190" stroke="#666" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrow)"/>
+    
+    <!-- Security to Network integration -->  
+    <line x1="441" y1="224" x2="441" y2="270" stroke="#666" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrow)"/>
+    
+    <!-- Network to Recovery integration -->
+    <line x1="200" y1="304" x2="200" y2="350" stroke="#666" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrow)"/>
+  </g>
+  
+  <!-- Enhancement Focus Areas -->
+  <g id="enhancement-areas">
+    <text x="520" y="110" font-family="Arial" font-size="12" font-weight="bold" fill="#d32f2f">Critical Gaps</text>
+    
+    <!-- fail2ban -->
+    <rect x="520" y="115" width="80" height="18" fill="#ffebee" stroke="#d32f2f" stroke-width="1"/>
+    <text x="525" y="127" font-family="Arial" font-size="10">fail2ban (65%)</text>
+    
+    <!-- container security -->
+    <rect x="520" y="138" width="80" height="18" fill="#ffebee" stroke="#d32f2f" stroke-width="1"/>
+    <text x="525" y="150" font-family="Arial" font-size="10">security (40%)</text>
+    
+    <!-- monitoring -->
+    <rect x="520" y="161" width="80" height="18" fill="#fff3e0" stroke="#ff9800" stroke-width="1"/>
+    <text x="525" y="173" font-family="Arial" font-size="10">monitor (70%)</text>
+  </g>
+  
+  <!-- Memory-efficient legend -->
+  <g id="legend">
+    <text x="520" y="210" font-family="Arial" font-size="12" font-weight="bold" fill="#666">Data Flow Types</text>
+    
+    <!-- Config flow -->
+    <line x1="520" y1="220" x2="540" y2="220" stroke="#2e7d32" stroke-width="2"/>
+    <text x="545" y="224" font-family="Arial" font-size="10">Config</text>
+    
+    <!-- Security flow -->
+    <line x1="520" y1="235" x2="540" y2="235" stroke="#d32f2f" stroke-width="2"/>
+    <text x="545" y="239" font-family="Arial" font-size="10">Security</text>
+    
+    <!-- Network flow -->
+    <line x1="520" y1="250" x2="540" y2="250" stroke="#1976d2" stroke-width="2"/>
+    <text x="545" y="254" font-family="Arial" font-size="10">Network</text>
+    
+    <!-- Integration -->
+    <line x1="520" y1="265" x2="540" y2="265" stroke="#666" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="545" y="269" font-family="Arial" font-size="10">Integration</text>
+  </g>
+  
+  <!-- Generation metadata -->
+  <text x="305" y="368" font-family="Arial" font-size="8" text-anchor="middle" fill="#999">Generated by COMPASS Data Flow Analyst - Memory Optimized Analysis</text>
+</svg>

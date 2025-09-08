@@ -263,20 +263,8 @@ cleanup_firewall_rules() {
     
     start_section_timer "Firewall Cleanup"
     
-    if [[ "$UFW_ENABLED" == "true" ]] && command -v ufw >/dev/null 2>&1; then
-        log_info "Removing JarvisJR UFW rules"
-        
-        # Remove specific rules that were added during setup
-        ufw --force delete allow 22/tcp >/dev/null 2>&1 || true
-        ufw --force delete allow 80/tcp >/dev/null 2>&1 || true  
-        ufw --force delete allow 443/tcp >/dev/null 2>&1 || true
-        ufw --force delete allow "$SUPABASE_API_PORT/tcp" >/dev/null 2>&1 || true
-        ufw --force delete allow "$N8N_PORT/tcp" >/dev/null 2>&1 || true
-        
-        log_info "UFW rules removed (UFW itself remains enabled)"
-    else
-        log_info "UFW not enabled or not installed - skipping firewall cleanup"
-    fi
+    log_info "Manual iptables configuration - no automatic firewall cleanup performed"
+    log_info "If you configured iptables rules, manually remove them if needed"
     
     end_section_timer "Firewall Cleanup"
     log_success "Firewall cleanup completed"

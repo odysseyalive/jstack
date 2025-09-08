@@ -81,6 +81,7 @@ CONTAINER_NO_NEW_PRIVS="true"
 CONTAINER_READ_ONLY_ROOT="false"
 
 # FIREWALL CONFIGURATION
+# Note: UFW provides automated firewall management
 UFW_ENABLED="true"
 
 # BACKUP CONFIGURATION

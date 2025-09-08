@@ -37,20 +37,15 @@ harden_host_os() {
     log_info "Installing security packages"
     execute_cmd "sudo apt-get install -y ufw fail2ban apparmor apparmor-utils auditd" "Install security packages"
     
-    # Configure UFW firewall if enabled
-    if [[ "$UFW_ENABLED" == "true" ]]; then
-        log_info "Configuring UFW firewall"
-        execute_cmd "sudo ufw --force reset" "Reset UFW"
-        execute_cmd "sudo ufw default deny incoming" "Set default deny incoming"
-        execute_cmd "sudo ufw default allow outgoing" "Set default allow outgoing"
-        execute_cmd "sudo ufw allow ssh" "Allow SSH"
-        execute_cmd "sudo ufw allow 80/tcp" "Allow HTTP"
-        execute_cmd "sudo ufw allow 443/tcp" "Allow HTTPS"
-        execute_cmd "sudo ufw --force enable" "Enable UFW"
-        log_success "UFW firewall configured and enabled"
-    else
-        log_info "UFW firewall disabled by configuration"
-    fi
+    # Configure UFW firewall
+    log_info "Configuring UFW firewall"
+    execute_cmd "sudo ufw --force reset" "Reset UFW to defaults"
+    execute_cmd "sudo ufw default deny incoming" "Set default deny incoming"
+    execute_cmd "sudo ufw default allow outgoing" "Set default allow outgoing"
+    execute_cmd "sudo ufw allow ssh" "Allow SSH"
+    execute_cmd "sudo ufw allow 80" "Allow HTTP"
+    execute_cmd "sudo ufw allow 443" "Allow HTTPS"
+    execute_cmd "sudo ufw --force enable" "Enable UFW"
     
     # Configure fail2ban
     log_info "Configuring fail2ban"
