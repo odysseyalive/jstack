@@ -1,4 +1,4 @@
-# JarvisJR Stack - Configuration
+# JStack - Configuration
 # This file contains all configuration for the stack deployment
 # 
 # IMPORTANT: You MUST customize the DOMAIN and EMAIL variables below
@@ -32,15 +32,15 @@ SERVICE_GROUP="jarvis"
 SERVICE_SHELL="/bin/bash"
 
 # DIRECTORY CONFIGURATION
-BASE_DIR="/home/${SERVICE_USER}/jarvis-stack"
+BASE_DIR="/home/${SERVICE_USER}/jstack"
 BACKUP_RETENTION_DAYS="1"
 LOG_RETENTION_DAYS="14"
 CONFIG_BACKUP_RETENTION="1"
 
 # NETWORK CONFIGURATION
-JARVIS_NETWORK="jarvis_network"
-PUBLIC_TIER="public_tier"
-PRIVATE_TIER="private_tier"
+JSTACK_NETWORK="jstack_network"
+PUBLIC_TIER="jstack-public"
+PRIVATE_TIER="jstack-private"
 
 # SERVICE PORTS (Internal Docker networking)
 SUPABASE_API_PORT="8000"
@@ -123,7 +123,7 @@ CHROME_DEPENDENCIES="fonts-liberation libappindicator3-1 libasound2 libatk-bridg
 CHROME_SECURITY_ARGS="--disable-dev-shm-usage --disable-gpu --headless=new --disable-extensions --disable-plugins --disable-background-timer-throttling --disable-renderer-backgrounding --disable-default-apps --disable-sync --disable-translate --hide-scrollbars --mute-audio --disable-background-networking"
 
 # Puppeteer Configuration  
-PUPPETEER_CACHE_DIR="/home/${SERVICE_USER}/jarvis-stack/puppeteer"
+PUPPETEER_CACHE_DIR="/home/${SERVICE_USER}/jstack/puppeteer"
 PUPPETEER_EXECUTABLE_PATH="/usr/bin/google-chrome"
 PUPPETEER_DOWNLOAD_HOST="https://storage.googleapis.com"
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD="true"
@@ -185,7 +185,7 @@ SITE_REGISTRY_BACKUP_RETENTION="30"
 SITE_REGISTRY_VALIDATION="strict"
 
 # Compliance Directory Structure
-COMPLIANCE_BASE_DIR="/opt/jarvis-security"
+COMPLIANCE_BASE_DIR="/opt/jstack-security"
 COMPLIANCE_DIR="${COMPLIANCE_BASE_DIR}/compliance"
 AUDIT_DIR="${COMPLIANCE_BASE_DIR}/audit"
 POLICIES_DIR="${COMPLIANCE_BASE_DIR}/policies"

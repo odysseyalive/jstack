@@ -1,8 +1,8 @@
-# 🏗️ JarvisJR Stack Technical Architecture
+# 🏗️ jstack Technical Architecture
 
 **🔴 Advanced Users** | **⏱️ 30+ minutes reading**
 
-> **Comprehensive technical documentation covering the complete system architecture, design patterns, and implementation details of the JarvisJR Stack.**
+> **Comprehensive technical documentation covering the complete system architecture, design patterns, and implementation details of jstack.**
 
 ## 📋 Table of Contents
 
@@ -20,7 +20,7 @@
 ## 🎯 System Overview
 
 ### **Design Philosophy**
-JarvisJR Stack is built on four core principles:
+jstack is built on four core principles:
 
 1. **🛡️ Security-First Architecture** - Every component designed with enterprise security as the foundation
 2. **📦 Modular Containerization** - Isolated services with clear boundaries and minimal dependencies
@@ -560,7 +560,7 @@ jstack.config             # User overrides (git-ignored)
 ## 📚 Related Documentation
 
 ### **For Developers**
-- **[Developer Guide](developer-guide.md)** - Extend and customize JarvisJR
+- **[Developer Guide](developer-guide.md)** - Extend and customize jstack
 - **[API Reference](api-reference.md)** - Complete API documentation
 - **[Database Schema](database-schema.md)** - Complete data model
 

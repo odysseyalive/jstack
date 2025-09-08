@@ -1,5 +1,5 @@
 #!/bin/bash
-# N8N + Browser Automation Service Module for JarvisJR Stack
+# N8N + Browser Automation Service Module for JStack
 # Handles N8N workflow automation with integrated Puppeteer/Chrome browser support
 
 # Set script directory and source dependencies
@@ -687,7 +687,7 @@ setup_template_storage_system() {
     cat > /tmp/template-catalog.json << EOF
 {
   "catalog": {
-    "name": "JarvisJR Stack - N8N Browser Automation Templates",
+    "name": "JStack - N8N Browser Automation Templates",
     "version": "1.0.0",
     "description": "Production-ready workflow templates for browser automation and web scraping",
     "categories": [
@@ -734,7 +734,7 @@ setup_template_storage_system() {
         "chrome": ">=120.0.0"
       },
       "setup_instructions": [
-        "Ensure browser automation is enabled in JarvisJR Stack configuration",
+        "Ensure browser automation is enabled in JStack configuration",
         "Verify Chrome and Puppeteer are properly installed in N8N container",
         "Configure appropriate resource limits for browser operations",
         "Test browser connectivity before deploying workflows"
@@ -849,7 +849,7 @@ create_price_monitoring_template() {
         "fromEmail": "alerts@jarvisstack.com",
         "toEmail": "user@example.com",
         "subject": "Price Alert: {{$json.name}}",
-        "text": "Great news! The price for {{$json.name}} has dropped to ${{$json.currentPrice}}.\n\nTarget Price: ${{$json.targetPrice}}\nCurrent Price: ${{$json.currentPrice}}\nSavings: ${{$json.targetPrice - $json.currentPrice}}\n\nProduct URL: {{$json.url}}\n\nHappy shopping!\n- JarvisJR Stack"
+        "text": "Great news! The price for {{$json.name}} has dropped to ${{$json.currentPrice}}.\n\nTarget Price: ${{$json.targetPrice}}\nCurrent Price: ${{$json.currentPrice}}\nSavings: ${{$json.targetPrice - $json.currentPrice}}\n\nProduct URL: {{$json.url}}\n\nHappy shopping!\n- JStack"
       },
       "name": "Send Alert Email",
       "type": "n8n-nodes-base.emailSend",
@@ -1110,7 +1110,7 @@ create_form_automation_template() {
         "fromEmail": "leads@jarvisstack.com",
         "toEmail": "={{$json.email}}",
         "subject": "Welcome! Your information has been submitted",
-        "text": "Dear {{$json.firstName}} {{$json.lastName}},\n\nThank you for your interest in our services. We have successfully received your information and will be in touch within 24 hours.\n\nSubmitted Information:\n- Company: {{$json.company}}\n- Industry: {{$json.industry}}\n- Phone: {{$json.phone}}\n\nOur team will review your request and provide personalized recommendations.\n\nBest regards,\nJarvisJR Stack Team"
+        "text": "Dear {{$json.firstName}} {{$json.lastName}},\n\nThank you for your interest in our services. We have successfully received your information and will be in touch within 24 hours.\n\nSubmitted Information:\n- Company: {{$json.company}}\n- Industry: {{$json.industry}}\n- Phone: {{$json.phone}}\n\nOur team will review your request and provide personalized recommendations.\n\nBest regards,\nJStack Team"
       },
       "name": "Send Welcome Email",
       "type": "n8n-nodes-base.emailSend",
@@ -1647,12 +1647,12 @@ EOF
     
     # Create optimized Puppeteer launch configuration
     cat > /tmp/puppeteer-optimized-config.js << 'EOF'
-// Optimized Puppeteer Configuration for JarvisJR Stack
+// Optimized Puppeteer Configuration for JStack
 const fs = require('fs');
 const path = require('path');
 
 // Load performance configuration
-const configPath = process.env.CHROME_PERFORMANCE_CONFIG || '/home/jarvis/jarvis-stack/config/chrome-performance.json';
+const configPath = process.env.CHROME_PERFORMANCE_CONFIG || '${BASE_DIR}/config/chrome-performance.json';
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8')).chromeOptimization;
 
 class OptimizedPuppeteerLauncher {
@@ -2551,7 +2551,7 @@ validate_infrastructure_operational() {
     
     # Network connectivity validation
     if ! docker network ls | grep -q "${JARVIS_NETWORK}"; then
-        log_error "JarvisJR network not found"
+        log_error "jstack network not found"
         ((failures++))
     fi
     
@@ -3579,7 +3579,7 @@ generate_health_dashboard() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JarvisJR Stack - Browser Health Dashboard</title>
+    <title>JStack - Browser Health Dashboard</title>
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -3652,7 +3652,7 @@ generate_health_dashboard() {
 </head>
 <body>
     <div class="container">
-        <h1>🚀 JarvisJR Stack - Browser Health Dashboard</h1>
+        <h1>🚀 JStack - Browser Health Dashboard</h1>
 DASHEOF
     
     # Add dynamic content based on health data
@@ -4851,7 +4851,7 @@ validate_deterministic_behavior() {
     
     # Create deterministic validation test
     local test_script='
-    const DeterministicController = require("/home/jarvis/jarvis-stack/config/deterministic-puppeteer.js");
+    const DeterministicController = require("${BASE_DIR}/config/deterministic-puppeteer.js");
     
     (async () => {
         const controller = new DeterministicController();
@@ -5118,9 +5118,9 @@ validate_network_integration() {
     # Test Docker network existence
     if docker network ls --format "{{.Name}}" | grep -q "${JARVIS_NETWORK}"; then
         score=$((score + 25))
-        log_success "JarvisJR network exists"
+        log_success "jstack network exists"
     else
-        log_error "JarvisJR network not found"
+        log_error "jstack network not found"
         return $score
     fi
     
@@ -5389,7 +5389,7 @@ setup_n8n_container() {
     
     # Create enhanced N8N environment file with Puppeteer support
     cat > /tmp/n8n.env << EOF
-# N8N Configuration for JarvisJR Stack with Puppeteer Integration
+# N8N Configuration for JStack with Puppeteer Integration
 N8N_HOST=0.0.0.0
 N8N_PORT=5678
 N8N_PROTOCOL=https

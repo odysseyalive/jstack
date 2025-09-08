@@ -1,6 +1,6 @@
-# JarvisJR Stack Site Templates User Guide
+# COMPASS Stack Site Templates User Guide
 
-This guide explains how to use the JarvisJR Stack template system to quickly deploy websites and web applications.
+This guide explains how to use the COMPASS Stack template system to quickly deploy websites and web applications.
 
 ## Table of Contents
 
@@ -14,7 +14,7 @@ This guide explains how to use the JarvisJR Stack template system to quickly dep
 
 ## Overview
 
-The JarvisJR Stack template system provides pre-configured, production-ready website templates that can be deployed instantly with proper security, SSL certificates, and monitoring.
+The COMPASS Stack template system provides pre-configured, production-ready website templates that can be deployed instantly with proper security, SSL certificates, and monitoring.
 
 ### Key Features
 
@@ -22,14 +22,14 @@ The JarvisJR Stack template system provides pre-configured, production-ready web
 - **Automatic SSL**: Let's Encrypt SSL certificates configured automatically
 - **Security hardened**: All templates follow security best practices
 - **Production ready**: Optimized Docker configurations for production
-- **Compliance monitoring**: Integrated with JarvisJR Stack compliance system
+- **Compliance monitoring**: Integrated with COMPASS Stack compliance system
 - **Backup support**: Automatic backup and restore capabilities
 
 ### Prerequisites
 
 Before using templates, ensure you have:
 
-- JarvisJR Stack installed and configured
+- COMPASS Stack installed and configured
 - Domain pointing to your server
 - Email configured in `jstack.config` for SSL certificates
 - Docker and Docker Compose installed
@@ -280,7 +280,7 @@ Update template sites:
 
 ```bash
 # Update template files
-git pull  # Update JarvisJR Stack
+git pull  # Update COMPASS Stack
 
 # Rebuild containers
 cd sites/yourdomain.com/docker/
@@ -302,7 +302,7 @@ sudo certbot renew --dry-run
 
 ### Backups
 
-Template sites are included in JarvisJR Stack backups:
+Template sites are included in COMPASS Stack backups:
 
 ```bash
 # Create backup including all sites
@@ -443,7 +443,7 @@ docker system prune -f
 
 If you need assistance:
 
-1. Check JarvisJR Stack logs: `tail -f logs/setup_*.log`
+1. Check COMPASS Stack logs: `tail -f logs/setup_*.log`
 2. Validate template: Use `--dry-run` flag
 3. Check Docker status: `docker ps -a`
 4. Review NGINX configuration: `sudo nginx -t`

@@ -2,7 +2,7 @@
 
 **⏱️ 10 minutes** | **🟢 Beginner Friendly**
 
-> **Learn how to safely edit JarvisJR configuration files to customize your AI Second Brain setup.**
+> **Learn how to safely edit jstack configuration files to customize your AI Second Brain setup.**
 
 ## 🎯 What You'll Learn
 
@@ -16,7 +16,7 @@ After this guide, you'll be able to:
 
 ## 📋 The Two-File Configuration System
 
-JarvisJR uses a smart two-file approach:
+jstack uses a smart two-file approach:
 
 ```
 jstack.config.default  ← Version-controlled defaults (don't edit!)
@@ -165,7 +165,7 @@ ENABLE_METRICS=true
 
 ### ✅ **Safe to Customize**
 - `jstack.config` - Your personal configuration
-- Files in `/home/jarvis/jarvis-stack/` after deployment
+- Files in `/home/jarvis/jstack/` after deployment
 
 ### 🔐 **Security Best Practices**
 1. **Use Strong Passwords**: If setting manual passwords, use 20+ random characters
@@ -308,7 +308,7 @@ These changes are applied immediately:
 **Configuration Complete! 🎉**
 
 ### What's Next?
-1. **🚀 [Deploy JarvisJR](installation.md#step-4-deploy)** - Run the installation
+1. **🚀 [Deploy jstack](installation.md#step-4-deploy)** - Run the installation
 2. **🧠 [Create First Workflow](first-workflow.md)** - Build your first automation
 3. **🛡️ [Service Management](service-management.md)** - Learn to manage your system
 

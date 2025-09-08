@@ -1,5 +1,5 @@
 #!/bin/bash
-# Error Handling and Recovery System for JarvisJR Stack
+# Error Handling and Recovery System for COMPASS Stack
 # Implements comprehensive error recovery, service restoration, and system diagnostics
 
 # Set script directory and source dependencies
@@ -23,7 +23,7 @@ run_system_diagnostics() {
     local diagnostics_file="/tmp/jarvis_diagnostics_$(date +%Y%m%d_%H%M%S).log"
     
     {
-        echo "JarvisJR Stack System Diagnostics Report"
+        echo "COMPASS Stack System Diagnostics Report"
         echo "========================================"
         echo "Timestamp: $(date)"
         echo "Hostname: $(hostname)"
@@ -56,7 +56,7 @@ run_system_diagnostics() {
         echo "CPU load: $(uptime || echo 'Unable to get load info')"
         
         echo ""
-        echo "JarvisJR Stack Services:"
+        echo "COMPASS Stack Services:"
         echo "-----------------------"
         diagnose_service_health
         
@@ -575,7 +575,7 @@ main() {
             fi
             ;;
         *)
-            echo "JarvisJR Stack Error Handling and Recovery System"
+            echo "COMPASS Stack Error Handling and Recovery System"
             echo ""
             echo "Usage: $0 [COMMAND] [OPTIONS]"
             echo ""
@@ -596,7 +596,7 @@ main() {
             echo "  $0 system-recovery backup_file.tar.gz   # Complete system recovery"
             echo ""
             echo "This script provides comprehensive error handling and recovery capabilities"
-            echo "for the JarvisJR Stack infrastructure."
+            echo "for the COMPASS Stack infrastructure."
             exit 1
             ;;
     esac

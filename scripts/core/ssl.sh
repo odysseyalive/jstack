@@ -1,5 +1,5 @@
 #!/bin/bash
-# SSL Certificate Management for JarvisJR Stack
+# SSL Certificate Management for COMPASS Stack
 # Handles Let's Encrypt certificates, domain validation, and NGINX SSL configuration
 
 # Set script directory and source dependencies
@@ -456,7 +456,7 @@ setup_certificate_renewal() {
     # Create renewal script
     cat > /tmp/renew-certificates.sh << 'EOF'
 #!/bin/bash
-# SSL Certificate Renewal Script for JarvisJR Stack
+# SSL Certificate Renewal Script for COMPASS Stack
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$(dirname "$(dirname "${SCRIPT_DIR}")")"))"
@@ -513,7 +513,7 @@ EOF
         # Create service file
         cat > /tmp/jarvis-ssl-renewal.service << EOF
 [Unit]
-Description=JarvisJR Stack SSL Certificate Renewal
+Description=COMPASS Stack SSL Certificate Renewal
 After=docker.service
 Requires=docker.service
 
@@ -528,7 +528,7 @@ EOF
         # Create timer file
         cat > /tmp/jarvis-ssl-renewal.timer << EOF
 [Unit]
-Description=Run JarvisJR Stack SSL renewal twice daily
+Description=Run COMPASS Stack SSL renewal twice daily
 Requires=jarvis-ssl-renewal.service
 
 [Timer]

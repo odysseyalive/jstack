@@ -1,5 +1,5 @@
 #!/bin/bash
-# Container Runtime Security Monitoring for JarvisJR Stack
+# Container Runtime Security Monitoring for JStack Stack
 # Implements real-time security monitoring, anomaly detection, and automated response
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -44,7 +44,7 @@ setup_falco_monitoring() {
         esac
     fi
     
-    # Configure Falco for JarvisJR Stack
+    # Configure Falco for JStack Stack
     create_falco_configuration
     
     end_section_timer "Falco Setup"
@@ -131,26 +131,26 @@ create_falco_configuration() {
     local falco_config_dir="$monitoring_dir/falco"
     execute_cmd "sudo -u $SERVICE_USER mkdir -p $falco_config_dir" "Create Falco config directory"
     
-    # Custom Falco rules for JarvisJR Stack
+    # Custom Falco rules for JStack Stack
     cat > /tmp/jarvis_security_rules.yaml << 'EOF'
-# JarvisJR Stack Custom Security Rules for Falco
+# JStack Stack Custom Security Rules for Falco
 
 # Container Security Rules
-- rule: JarvisJR Container Running as Root
-  desc: Detect JarvisJR containers running as root user
+- rule: JStack Container Running as Root
+  desc: Detect JStack containers running as root user
   condition: >
     spawned_process and
     container and
     container.name matches (n8n|supabase|nginx) and
     proc.uid = 0
   output: >
-    JarvisJR container running as root detected 
+    JStack container running as root detected 
     (container=%container.name uid=%proc.uid command=%proc.cmdline)
   priority: CRITICAL
   tags: [container, security, jarvis]
 
-- rule: JarvisJR Suspicious Network Activity
-  desc: Detect suspicious network connections from JarvisJR containers
+- rule: JStack Suspicious Network Activity
+  desc: Detect suspicious network connections from JStack containers
   condition: >
     outbound and
     container and
@@ -158,13 +158,13 @@ create_falco_configuration() {
     not fd.sip matches (127.0.0.1|172.20.0.0/16|172.21.0.0/16|172.22.0.0/16) and
     not fd.sport in (80, 443, 53, 5432, 5678, 8000, 3000)
   output: >
-    Suspicious outbound connection from JarvisJR container 
+    Suspicious outbound connection from JStack container 
     (container=%container.name dest=%fd.sip:%fd.sport command=%proc.cmdline)
   priority: WARNING
   tags: [network, security, jarvis]
 
-- rule: JarvisJR File System Tampering
-  desc: Detect unauthorized file modifications in JarvisJR containers
+- rule: JStack File System Tampering
+  desc: Detect unauthorized file modifications in JStack containers
   condition: >
     open_write and
     container and
@@ -173,13 +173,13 @@ create_falco_configuration() {
      fd.name startswith /usr/bin/ or
      fd.name startswith /bin/)
   output: >
-    File system tampering detected in JarvisJR container 
+    File system tampering detected in JStack container 
     (container=%container.name file=%fd.name command=%proc.cmdline)
   priority: HIGH
   tags: [filesystem, security, jarvis]
 
-- rule: JarvisJR Privilege Escalation Attempt
-  desc: Detect privilege escalation attempts in JarvisJR containers
+- rule: JStack Privilege Escalation Attempt
+  desc: Detect privilege escalation attempts in JStack containers
   condition: >
     spawned_process and
     container and
@@ -187,13 +187,13 @@ create_falco_configuration() {
     (proc.name in (sudo, su, passwd, chsh, newgrp, setuid, setgid) or
      proc.cmdline contains chmod and proc.cmdline contains +s)
   output: >
-    Privilege escalation attempt detected in JarvisJR container 
+    Privilege escalation attempt detected in JStack container 
     (container=%container.name command=%proc.cmdline uid=%proc.uid)
   priority: CRITICAL
   tags: [privilege, security, jarvis]
 
 # Database Security Rules
-- rule: JarvisJR Database Suspicious Query
+- rule: JStack Database Suspicious Query
   desc: Detect suspicious database queries from N8N
   condition: >
     spawned_process and
@@ -208,7 +208,7 @@ create_falco_configuration() {
   tags: [database, security, jarvis]
 
 # Browser Automation Security Rules
-- rule: JarvisJR Chrome Sandbox Escape
+- rule: JStack Chrome Sandbox Escape
   desc: Detect Chrome sandbox escape attempts
   condition: >
     spawned_process and
@@ -223,7 +223,7 @@ create_falco_configuration() {
   tags: [browser, security, jarvis]
 
 # System Security Rules
-- rule: JarvisJR Container Escape Attempt
+- rule: JStack Container Escape Attempt
   desc: Detect container escape attempts
   condition: >
     spawned_process and
@@ -244,7 +244,7 @@ EOF
     
     # Main Falco configuration
     cat > /tmp/falco.yaml << 'EOF'
-# Falco Configuration for JarvisJR Stack
+# Falco Configuration for JStack Stack
 
 # Rules files to load
 rules_file:
@@ -345,12 +345,12 @@ setup_security_metrics() {
     # Security monitoring script
     cat > /tmp/security-monitor.sh << 'EOF'
 #!/bin/bash
-# Security Monitoring Script for JarvisJR Stack
+# Security Monitoring Script for JStack Stack
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
 
-MONITORING_LOG="/home/jarvis/jarvis-stack/logs/security-monitor.log"
+MONITORING_LOG="/home/jarvis/jstack/logs/security-monitor.log"
 ALERT_THRESHOLD_CPU=80
 ALERT_THRESHOLD_MEM=85
 
@@ -408,8 +408,8 @@ monitor_docker_events() {
 check_file_integrity() {
     # Check integrity of critical configuration files
     local config_files=(
-        "/home/jarvis/jarvis-stack/jstack.config"
-        "/home/jarvis/jarvis-stack/services/nginx/conf/nginx.conf"
+        "/home/jarvis/jstack/jstack.config"
+        "/home/jarvis/jstack/services/nginx/conf/nginx.conf"
     )
     
     for file in "${config_files[@]}"; do
@@ -434,10 +434,10 @@ check_file_integrity() {
 generate_security_report() {
     log_info "Generating security monitoring report..."
     
-    local report_file="/home/jarvis/jarvis-stack/logs/security-report-$(date +%Y%m%d_%H%M%S).txt"
+    local report_file="/home/jarvis/jstack/logs/security-report-$(date +%Y%m%d_%H%M%S).txt"
     
     {
-        echo "JarvisJR Stack Security Report"
+        echo "JStack Stack Security Report"
         echo "Generated: $(date)"
         echo "=============================="
         echo ""
@@ -479,7 +479,7 @@ case "${1:-monitor}" in
         check_file_integrity
         ;;
     *) echo "Usage: $0 [monitor|resources|auth|docker|integrity|report|all]"
-       echo "Security monitoring for JarvisJR Stack" ;;
+       echo "Security monitoring for JStack Stack" ;;
 esac
 EOF
     
@@ -501,9 +501,9 @@ create_monitoring_service() {
     
     log_info "Creating systemd service for security monitoring"
     
-    cat > /tmp/jarvis-security-monitor.service << EOF
+    cat > /tmp/jstack-security-monitor.service << EOF
 [Unit]
-Description=JarvisJR Stack Security Monitor
+Description=JStack Stack Security Monitor
 After=docker.service
 Requires=docker.service
 
@@ -521,14 +521,14 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
     
-    execute_cmd "sudo mv /tmp/jarvis-security-monitor.service /etc/systemd/system/" "Install monitoring service"
+    execute_cmd "sudo mv /tmp/jstack-security-monitor.service /etc/systemd/system/" "Install monitoring service"
     execute_cmd "sudo systemctl daemon-reload" "Reload systemd"
-    execute_cmd "sudo systemctl enable jarvis-security-monitor" "Enable monitoring service"
+    execute_cmd "sudo systemctl enable jstack-security-monitor" "Enable monitoring service"
     
     # Create timer for periodic reports
-    cat > /tmp/jarvis-security-report.service << EOF
+    cat > /tmp/jstack-security-report.service << EOF
 [Unit]
-Description=JarvisJR Stack Security Report Generator
+Description=JStack Stack Security Report Generator
 After=docker.service
 
 [Service]
@@ -538,10 +538,10 @@ Group=$SERVICE_GROUP
 ExecStart=$monitoring_dir/security-monitor.sh report
 EOF
     
-    cat > /tmp/jarvis-security-report.timer << 'EOF'
+    cat > /tmp/jstack-security-report.timer << 'EOF'
 [Unit]
-Description=Run JarvisJR security report daily
-Requires=jarvis-security-report.service
+Description=Run JStack security report daily
+Requires=jstack-security-report.service
 
 [Timer]
 OnCalendar=daily
@@ -551,10 +551,10 @@ Persistent=true
 WantedBy=timers.target
 EOF
     
-    execute_cmd "sudo mv /tmp/jarvis-security-report.service /etc/systemd/system/" "Install report service"
-    execute_cmd "sudo mv /tmp/jarvis-security-report.timer /etc/systemd/system/" "Install report timer"
+    execute_cmd "sudo mv /tmp/jstack-security-report.service /etc/systemd/system/" "Install report service"
+    execute_cmd "sudo mv /tmp/jstack-security-report.timer /etc/systemd/system/" "Install report timer"
     execute_cmd "sudo systemctl daemon-reload" "Reload systemd for timer"
-    execute_cmd "sudo systemctl enable jarvis-security-report.timer" "Enable report timer"
+    execute_cmd "sudo systemctl enable jstack-security-report.timer" "Enable report timer"
 }
 
 # Main function
@@ -567,19 +567,19 @@ main() {
             setup_security_metrics
             ;;
         "start") 
-            sudo systemctl start jarvis-security-monitor 2>/dev/null || log_warning "Could not start monitoring service"
-            sudo systemctl start jarvis-security-report.timer 2>/dev/null || log_warning "Could not start report timer"
+            sudo systemctl start jstack-security-monitor 2>/dev/null || log_warning "Could not start monitoring service"
+            sudo systemctl start jstack-security-report.timer 2>/dev/null || log_warning "Could not start report timer"
             ;;
         "stop")
-            sudo systemctl stop jarvis-security-monitor 2>/dev/null || log_warning "Could not stop monitoring service"
-            sudo systemctl stop jarvis-security-report.timer 2>/dev/null || log_warning "Could not stop report timer"
+            sudo systemctl stop jstack-security-monitor 2>/dev/null || log_warning "Could not stop monitoring service"
+            sudo systemctl stop jstack-security-report.timer 2>/dev/null || log_warning "Could not stop report timer"
             ;;
         "status")
-            systemctl status jarvis-security-monitor 2>/dev/null || echo "Monitoring service not found"
-            systemctl status jarvis-security-report.timer 2>/dev/null || echo "Report timer not found"
+            systemctl status jstack-security-monitor 2>/dev/null || echo "Monitoring service not found"
+            systemctl status jstack-security-report.timer 2>/dev/null || echo "Report timer not found"
             ;;
         *) echo "Usage: $0 [setup|falco|metrics|start|stop|status|all]"
-           echo "Runtime security monitoring for JarvisJR Stack" ;;
+           echo "Runtime security monitoring for JStack Stack" ;;
     esac
 }
 

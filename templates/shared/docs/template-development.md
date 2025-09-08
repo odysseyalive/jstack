@@ -1,6 +1,6 @@
-# JarvisJR Stack Template Development Guide
+# COMPASS Stack Template Development Guide
 
-This guide explains how to create custom site templates for the JarvisJR Stack ecosystem.
+This guide explains how to create custom site templates for the COMPASS Stack ecosystem.
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@ This guide explains how to create custom site templates for the JarvisJR Stack e
 
 ## Template Architecture
 
-Each JarvisJR Stack template follows a standardized directory structure:
+Each COMPASS Stack template follows a standardized directory structure:
 
 ```
 templates/your-template/
@@ -141,7 +141,7 @@ services:
     container_name: "my-template-${DOMAIN_SAFE}"
     restart: unless-stopped
     networks:
-      - jarvisjr-private
+      - jstack-private
     environment:
       - NODE_ENV=production
       - DOMAIN=${DOMAIN}
@@ -149,11 +149,11 @@ services:
       - no-new-privileges:true
     user: "1001:1001"
     labels:
-      - "com.jarvisjr.template=my-template"
-      - "com.jarvisjr.version=1.0.0"
+      - "com.jstack.template=my-template"
+      - "com.jstack.version=1.0.0"
 
 networks:
-  jarvisjr-private:
+  jstack-private:
     external: true
 ```
 
@@ -174,7 +174,7 @@ server {
     listen 443 ssl http2;
     server_name ${DOMAIN};
 
-    # SSL configuration (managed by JarvisJR Stack)
+    # SSL configuration (managed by COMPASS Stack)
     ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
 
@@ -229,7 +229,7 @@ Templates support automatic environment variable substitution:
 
 - `${DOMAIN}`: Site domain name
 - `${DOMAIN_SAFE}`: Domain with safe characters for container names
-- `${PROJECT_ROOT}`: JarvisJR Stack installation directory
+- `${PROJECT_ROOT}`: COMPASS Stack installation directory
 - Custom variables defined in template configuration
 
 ## Docker Integration
@@ -239,7 +239,7 @@ Templates support automatic environment variable substitution:
 1. **Non-root user**: All containers must run as non-root
 2. **Read-only filesystem**: When possible, use read-only containers
 3. **No new privileges**: Set `no-new-privileges:true`
-4. **Network isolation**: Use `jarvisjr-private` network
+4. **Network isolation**: Use `jstack-private` network
 5. **Health checks**: Include container health monitoring
 
 ### Multi-stage Builds
@@ -391,7 +391,7 @@ echo "All tests passed!"
 
 ## Template Submission
 
-When contributing templates to JarvisJR Stack:
+When contributing templates to COMPASS Stack:
 
 1. **Follow guidelines**: Adhere to all development guidelines
 2. **Complete documentation**: Include all required documentation
@@ -405,7 +405,7 @@ For template development support:
 
 - Review existing templates for examples
 - Check validation errors with `--dry-run` flag
-- Consult JarvisJR Stack documentation
+- Consult COMPASS Stack documentation
 - Test thoroughly before deployment
 
 Remember: Security and compliance are paramount in template development. Always follow established patterns and security requirements.

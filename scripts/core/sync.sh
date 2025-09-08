@@ -1,9 +1,9 @@
 #!/bin/bash
-# JarvisJR Stack - Sync System
+# COMPASS Stack - Sync System
 # Secure file synchronization and update system for modular architecture
 #
 # This script enables secure distribution and updates while maintaining
-# the excellent modular design of the JarvisJR Stack
+# the excellent modular design of the COMPASS Stack
 
 set -e # Exit on any error
 
@@ -12,8 +12,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$(dirname "${SCRIPT_DIR}")")"
 
 # Repository configuration
-REPO_URL="https://github.com/odysseyalive/jarvisjr_stack"
-RAW_BASE_URL="https://raw.githubusercontent.com/odysseyalive/jarvisjr_stack/main"
+REPO_URL="https://github.com/odysseyalive/JStack"
+RAW_BASE_URL="https://raw.githubusercontent.com/odysseyalive/JStack/main"
 
 # Color definitions for output
 RED='\033[0;31m'
@@ -320,7 +320,7 @@ sync_files() {
 
 # Initialize a new installation from repository
 run_initial_sync() {
-    log_section "🚀 JarvisJR Stack - Initial Setup"
+    log_section "🚀 COMPASS Stack - Initial Setup"
     log_info "Downloading and setting up the complete modular architecture"
     
     # Check prerequisites
@@ -355,7 +355,7 @@ run_initial_sync() {
 
 # Update existing installation
 run_update() {
-    log_section "🔄 JarvisJR Stack - Update System"
+    log_section "🔄 COMPASS Stack - Update System"
     log_info "Updating existing installation from repository"
     
     # Check prerequisites
@@ -386,7 +386,7 @@ run_update() {
 
 # Show sync status and manifest
 show_sync_status() {
-    log_section "📋 JarvisJR Stack - Sync Status"
+    log_section "📋 COMPASS Stack - Sync Status"
     
     local total_files=${#SYNC_MANIFEST[@]}
     local existing_files=0
@@ -420,7 +420,7 @@ show_sync_status() {
 
 # Show manifest list
 show_manifest() {
-    log_section "📝 JarvisJR Stack - File Manifest"
+    log_section "📝 COMPASS Stack - File Manifest"
     log_info "Files managed by the sync system:"
     echo ""
     
@@ -439,7 +439,7 @@ show_manifest() {
 
 show_usage() {
     cat << EOF
-JarvisJR Stack - Sync System
+COMPASS Stack - Sync System
 
 USAGE:
   $(basename "$0") COMMAND

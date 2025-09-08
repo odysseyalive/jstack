@@ -1,5 +1,5 @@
 #!/bin/bash
-# Network Security Enhancement Module for JarvisJR Stack
+# Network Security Enhancement Module for JStack Stack
 # Implements fail2ban, advanced rate limiting, geographic filtering, and threat response
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -52,7 +52,7 @@ setup_fail2ban() {
     execute_cmd "sudo mkdir -p $fail2ban_dir/filter.d" "Create fail2ban filter.d directory"
     execute_cmd "sudo mkdir -p $fail2ban_dir/action.d" "Create fail2ban action.d directory"
     
-    # Create JarvisJR-specific fail2ban configuration
+    # Create JStack-specific fail2ban configuration
     create_jarvis_fail2ban_config
     
     # Enable and start fail2ban service
@@ -64,11 +64,11 @@ setup_fail2ban() {
 }
 
 create_jarvis_fail2ban_config() {
-    log_info "Creating JarvisJR-specific fail2ban configuration"
+    log_info "Creating JStack-specific fail2ban configuration"
     
-    # Main jail configuration for JarvisJR Stack
-    cat > /tmp/jarvis-stack.local << 'EOF'
-# JarvisJR Stack fail2ban Configuration
+    # Main jail configuration for JStack Stack
+    cat > /tmp/jstack.local << 'EOF'
+# JStack Stack fail2ban Configuration
 # Protects N8N, Supabase, and NGINX from web-based attacks
 
 [DEFAULT]
@@ -81,7 +81,7 @@ backend = systemd
 
 # Email notifications (if configured)
 destemail = ${ALERT_EMAIL:-admin@${DOMAIN}}
-sendername = JarvisJR-fail2ban
+sendername = JStack-fail2ban
 mta = sendmail
 
 # Actions
@@ -91,7 +91,7 @@ action = %(action_mwl)s
 enabled = true
 port = http,https
 filter = nginx-http-auth
-logpath = /home/jarvis/jarvis-stack/logs/nginx/access.log
+logpath = /home/jarvis/jstack/logs/nginx/access.log
 maxretry = 3
 bantime = 1800
 
@@ -99,7 +99,7 @@ bantime = 1800
 enabled = true
 port = http,https
 filter = nginx-noscript
-logpath = /home/jarvis/jarvis-stack/logs/nginx/access.log
+logpath = /home/jarvis/jstack/logs/nginx/access.log
 maxretry = 6
 bantime = 3600
 
@@ -107,7 +107,7 @@ bantime = 3600
 enabled = true
 port = http,https
 filter = nginx-badbots
-logpath = /home/jarvis/jarvis-stack/logs/nginx/access.log
+logpath = /home/jarvis/jstack/logs/nginx/access.log
 maxretry = 2
 bantime = 86400
 
@@ -115,7 +115,7 @@ bantime = 86400
 enabled = true
 port = http,https
 filter = nginx-noproxy
-logpath = /home/jarvis/jarvis-stack/logs/nginx/access.log
+logpath = /home/jarvis/jstack/logs/nginx/access.log
 maxretry = 2
 bantime = 86400
 
@@ -123,7 +123,7 @@ bantime = 86400
 enabled = true
 port = http,https
 filter = n8n-auth
-logpath = /home/jarvis/jarvis-stack/logs/nginx/access.log
+logpath = /home/jarvis/jstack/logs/nginx/access.log
 maxretry = 5
 findtime = 300
 bantime = 1800
@@ -132,7 +132,7 @@ bantime = 1800
 enabled = true
 port = http,https
 filter = supabase-api-abuse
-logpath = /home/jarvis/jarvis-stack/logs/nginx/access.log
+logpath = /home/jarvis/jstack/logs/nginx/access.log
 maxretry = 20
 findtime = 60
 bantime = 600
@@ -141,7 +141,7 @@ bantime = 600
 enabled = true
 port = http,https
 filter = nginx-req-limit
-logpath = /home/jarvis/jarvis-stack/logs/nginx/error.log
+logpath = /home/jarvis/jstack/logs/nginx/error.log
 maxretry = 10
 findtime = 600
 bantime = 3600
@@ -157,14 +157,14 @@ bantime = 3600
 findtime = 600
 EOF
     
-    execute_cmd "sudo mv /tmp/jarvis-stack.local /etc/fail2ban/jail.d/jarvis-stack.local" "Install JarvisJR jail config"
+    execute_cmd "sudo mv /tmp/jstack.local /etc/fail2ban/jail.d/jstack.local" "Install JStack jail config"
     
-    # Create custom filters for JarvisJR applications
+    # Create custom filters for JStack applications
     create_custom_fail2ban_filters
 }
 
 create_custom_fail2ban_filters() {
-    log_info "Creating custom fail2ban filters for JarvisJR applications"
+    log_info "Creating custom fail2ban filters for JStack applications"
     
     # N8N authentication failures
     cat > /tmp/n8n-auth.conf << 'EOF'
@@ -222,9 +222,9 @@ EOF
     
     execute_cmd "sudo mv /tmp/nginx-badbots.conf /etc/fail2ban/filter.d/nginx-badbots.conf" "Install bad bots filter"
     
-    # Custom action for JarvisJR notifications
+    # Custom action for JStack notifications
     cat > /tmp/jarvis-notification.conf << EOF
-# Custom notification action for JarvisJR Stack
+# Custom notification action for JStack Stack
 [Definition]
 actionstart = echo "fail2ban service started on \$(hostname) at \$(date)" | logger -t jarvis-fail2ban
 actionstop = echo "fail2ban service stopped on \$(hostname) at \$(date)" | logger -t jarvis-fail2ban
@@ -260,7 +260,7 @@ create_advanced_rate_limiting() {
     
     # Advanced rate limiting configuration
     cat > /tmp/rate-limiting.conf << 'EOF'
-# Advanced Rate Limiting for JarvisJR Stack
+# Advanced Rate Limiting for JStack Stack
 # Multiple zones with different limits for different endpoints
 
 # Define rate limiting zones
@@ -367,7 +367,7 @@ create_custom_error_pages() {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Rate Limit Exceeded - JarvisJR Stack</title>
+    <title>Rate Limit Exceeded - JStack Stack</title>
     <meta charset="utf-8">
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
@@ -396,7 +396,7 @@ EOF
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Access Forbidden - JarvisJR Stack</title>
+    <title>Access Forbidden - JStack Stack</title>
     <meta charset="utf-8">
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
@@ -442,13 +442,13 @@ setup_geographic_filtering() {
     # Create IP blacklist management script
     cat > /tmp/ip-blacklist-manager.sh << 'EOF'
 #!/bin/bash
-# IP Blacklist Management for JarvisJR Stack
+# IP Blacklist Management for JStack Stack
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
 
-BLACKLIST_FILE="/home/jarvis/jarvis-stack/security/nginx/blocked-ips.conf"
-WHITELIST_FILE="/home/jarvis/jarvis-stack/security/nginx/allowed-ips.conf"
+BLACKLIST_FILE="/home/jarvis/jstack/security/nginx/blocked-ips.conf"
+WHITELIST_FILE="/home/jarvis/jstack/security/nginx/allowed-ips.conf"
 TEMP_BLACKLIST="/tmp/blocked-ips-temp.conf"
 
 # Initialize blacklist files
@@ -460,7 +460,7 @@ init_blacklists() {
     
     # Create initial whitelist (RFC 1918 private networks)
     cat > "$WHITELIST_FILE" << 'WHITELIST_EOF'
-# JarvisJR Stack - Whitelisted IP ranges
+# JStack Stack - Whitelisted IP ranges
 # Private network ranges (always allowed)
 allow 127.0.0.0/8;      # Loopback
 allow 10.0.0.0/8;       # Private Class A
@@ -474,7 +474,7 @@ WHITELIST_EOF
     
     # Create initial blacklist with known bad actors
     cat > "$BLACKLIST_FILE" << 'BLACKLIST_EOF'
-# JarvisJR Stack - Blocked IP ranges
+# JStack Stack - Blocked IP ranges
 # Known malicious networks and attackers
 
 # Tor exit nodes (uncomment if you want to block Tor)
@@ -491,7 +491,7 @@ WHITELIST_EOF
 # North Korea: 175.45.176.0/22, 210.52.109.0/24, etc.
 
 # Placeholder for dynamic entries (updated by fail2ban and monitoring)
-include /home/jarvis/jarvis-stack/security/nginx/dynamic-blocks.conf;
+include /home/jarvis/jstack/security/nginx/dynamic-blocks.conf;
 BLACKLIST_EOF
     
     # Create dynamic blocks file
@@ -658,7 +658,7 @@ main() {
             systemctl status fail2ban 2>/dev/null || echo "fail2ban not running"
             ;;
         *) echo "Usage: $0 [setup|fail2ban|rate-limit|geo-filter|status|all]"
-           echo "Network security enhancement for JarvisJR Stack" ;;
+           echo "Network security enhancement for JStack Stack" ;;
     esac
 }
 

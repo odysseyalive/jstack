@@ -177,7 +177,7 @@ services:
 
 ### Database Integration
 
-Connect to JarvisJR's PostgreSQL database:
+Connect to jstack's PostgreSQL database:
 
 ```typescript
 // src/lib/database.ts

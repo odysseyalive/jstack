@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# JarvisJR Stack Security Dashboard and Reporting System
+# JStack Security Dashboard and Reporting System
 # Phase 4: Monitoring & Alerting - Security Metrics Dashboard
 # Provides comprehensive security metrics collection, dashboard generation, and automated reporting
 
@@ -12,10 +12,10 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
 
 # Global variables
-METRICS_DIR="/opt/jarvis-security/metrics"
-DASHBOARD_DIR="/opt/jarvis-security/dashboard"
-REPORTS_DIR="/opt/jarvis-security/reports"
-WEB_DIR="/var/www/jarvis-security"
+METRICS_DIR="/opt/jstack-security/metrics"
+DASHBOARD_DIR="/opt/jstack-security/dashboard"
+REPORTS_DIR="/opt/jstack-security/reports"
+WEB_DIR="/var/www/jstack-security"
 RETENTION_DAYS=90
 
 # Initialize security dashboard system
@@ -60,7 +60,7 @@ import re
 from pathlib import Path
 
 class SecurityMetricsCollector:
-    def __init__(self, db_path="/opt/jarvis-security/metrics/security_metrics.db"):
+    def __init__(self, db_path="/opt/jstack-security/metrics/security_metrics.db"):
         self.db_path = db_path
         self.init_database()
     
@@ -276,7 +276,7 @@ import plotly.graph_objs as go
 import plotly.utils
 
 app = Flask(__name__)
-DB_PATH = "/opt/jarvis-security/metrics/security_metrics.db"
+DB_PATH = "/opt/jstack-security/metrics/security_metrics.db"
 
 def get_db_connection():
     """Get database connection"""
@@ -422,7 +422,7 @@ EOF
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JarvisJR Security Dashboard</title>
+    <title>jstack Security Dashboard</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
@@ -441,7 +441,7 @@ EOF
 </head>
 <body>
     <div class="header">
-        <h1>🛡️ JarvisJR Security Dashboard</h1>
+        <h1>🛡️ jstack Security Dashboard</h1>
         <p>Real-time security monitoring and threat analysis</p>
     </div>
     
@@ -599,9 +599,9 @@ from email import encoders
 from pathlib import Path
 
 class SecurityReporter:
-    def __init__(self, config_file="/opt/jarvis-security/config/reporting.json"):
+    def __init__(self, config_file="/opt/jstack-security/config/reporting.json"):
         self.config_file = config_file
-        self.db_path = "/opt/jarvis-security/metrics/security_metrics.db"
+        self.db_path = "/opt/jstack-security/metrics/security_metrics.db"
         self.load_config()
     
     def load_config(self):
@@ -613,7 +613,7 @@ class SecurityReporter:
                 "smtp_port": 587,
                 "username": "",
                 "password": "",
-                "from_email": "security@jarvisjr.local",
+                "from_email": "security@jstack.local",
                 "to_emails": []
             },
             "reports": {
@@ -752,7 +752,7 @@ class SecurityReporter:
         </head>
         <body>
             <div class="header">
-                <h2>🛡️ JarvisJR Daily Security Report</h2>
+                <h2>🛡️ jstack Daily Security Report</h2>
                 <p>Date: {report['date']}</p>
             </div>
             
@@ -835,12 +835,12 @@ class SecurityReporter:
         report = self.generate_daily_report()
         
         # Save to file
-        filename = f"/opt/jarvis-security/reports/daily_report_{report['date']}.json"
+        filename = f"/opt/jstack-security/reports/daily_report_{report['date']}.json"
         with open(filename, 'w') as f:
             json.dump(report, f, indent=2)
         
         # Send email if configured
-        self.send_email_report(report, f"JarvisJR Daily Security Report - {report['date']}")
+        self.send_email_report(report, f"jstack Daily Security Report - {report['date']}")
         
         return report
     
@@ -849,12 +849,12 @@ class SecurityReporter:
         report = self.generate_weekly_report()
         
         # Save to file
-        filename = f"/opt/jarvis-security/reports/weekly_report_{datetime.datetime.now().strftime('%Y%m%d')}.json"
+        filename = f"/opt/jstack-security/reports/weekly_report_{datetime.datetime.now().strftime('%Y%m%d')}.json"
         with open(filename, 'w') as f:
             json.dump(report, f, indent=2)
         
         # Send email if configured
-        self.send_email_report(report, f"JarvisJR Weekly Security Report - {report['date_range']}")
+        self.send_email_report(report, f"jstack Weekly Security Report - {report['date_range']}")
         
         return report
 
@@ -891,10 +891,10 @@ setup_reporting_cron() {
     
     # Create cron job for daily reports (6 AM)
     cat > "/tmp/jarvis_security_cron" << EOF
-# JarvisJR Security Reporting
-0 6 * * * /usr/bin/python3 $REPORTS_DIR/generate_report.py daily >> /opt/jarvis-security/logs/reporting.log 2>&1
-0 6 * * 1 /usr/bin/python3 $REPORTS_DIR/generate_report.py weekly >> /opt/jarvis-security/logs/reporting.log 2>&1
-*/5 * * * * /usr/bin/python3 $METRICS_DIR/collect_metrics.py >> /opt/jarvis-security/logs/metrics.log 2>&1
+# jstack Security Reporting
+0 6 * * * /usr/bin/python3 $REPORTS_DIR/generate_report.py daily >> /opt/jstack-security/logs/reporting.log 2>&1
+0 6 * * 1 /usr/bin/python3 $REPORTS_DIR/generate_report.py weekly >> /opt/jstack-security/logs/reporting.log 2>&1
+*/5 * * * * /usr/bin/python3 $METRICS_DIR/collect_metrics.py >> /opt/jstack-security/logs/metrics.log 2>&1
 EOF
     
     sudo crontab -u jarvis "/tmp/jarvis_security_cron"
@@ -912,9 +912,9 @@ create_dashboard_service() {
         return 0
     fi
     
-    cat > "/tmp/jarvis-security-dashboard.service" << EOF
+    cat > "/tmp/jstack-security-dashboard.service" << EOF
 [Unit]
-Description=JarvisJR Security Dashboard
+Description=jstack Security Dashboard
 After=network.target
 
 [Service]
@@ -931,9 +931,9 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-    sudo mv "/tmp/jarvis-security-dashboard.service" "/etc/systemd/system/"
+    sudo mv "/tmp/jstack-security-dashboard.service" "/etc/systemd/system/"
     sudo systemctl daemon-reload
-    sudo systemctl enable jarvis-security-dashboard
+    sudo systemctl enable jstack-security-dashboard
     
     log_success "Dashboard systemd service created"
 }
@@ -968,7 +968,7 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     
     # Basic auth for additional security
-    auth_basic "JarvisJR Security Dashboard";
+    auth_basic "jstack Security Dashboard";
     auth_basic_user_file /etc/nginx/htpasswd.security;
     
     location / {
@@ -1050,7 +1050,7 @@ setup_dashboard_system() {
     log_info "• Weekly Reports: Generated Mondays at 6:00 AM"
     log_info "• Web Dashboard: https://security.${DOMAIN:-your-domain.com}"
     log_info "• Dashboard Login: admin / JarvisSecure2024!"
-    log_info "• Service: systemctl status jarvis-security-dashboard"
+    log_info "• Service: systemctl status jstack-security-dashboard"
 }
 
 # Dry run validation
@@ -1102,7 +1102,7 @@ validate_dashboard_setup() {
 # Script usage information
 show_help() {
     cat << EOF
-JarvisJR Security Dashboard System
+jstack Security Dashboard System
 
 USAGE:
     bash security_dashboard.sh [COMMAND]
@@ -1124,20 +1124,20 @@ CONFIGURATION:
     Dashboard will be available at: https://security.your-domain.com
 
 FILES CREATED:
-    /opt/jarvis-security/metrics/collect_metrics.py    - Metrics collector
-    /opt/jarvis-security/dashboard/dashboard_app.py    - Web dashboard
-    /opt/jarvis-security/reports/generate_report.py    - Report generator
-    /etc/systemd/system/jarvis-security-dashboard.service - System service
+    /opt/jstack-security/metrics/collect_metrics.py    - Metrics collector
+    /opt/jstack-security/dashboard/dashboard_app.py    - Web dashboard
+    /opt/jstack-security/reports/generate_report.py    - Report generator
+    /etc/systemd/system/jstack-security-dashboard.service - System service
     /etc/nginx/sites-available/security-dashboard.conf    - NGINX config
 
 SERVICES:
-    systemctl status jarvis-security-dashboard    - Dashboard service
+    systemctl status jstack-security-dashboard    - Dashboard service
     crontab -u jarvis -l                         - Automated tasks
 
 LOGS:
-    /opt/jarvis-security/logs/metrics.log        - Metrics collection
-    /opt/jarvis-security/logs/reporting.log      - Report generation
-    journalctl -u jarvis-security-dashboard      - Dashboard service logs
+    /opt/jstack-security/logs/metrics.log        - Metrics collection
+    /opt/jstack-security/logs/reporting.log      - Report generation
+    journalctl -u jstack-security-dashboard      - Dashboard service logs
 
 EOF
 }

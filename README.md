@@ -1,4 +1,4 @@
-# 🧠 JarvisJR Stack - AI Second Brain Infrastructure
+# 🧠 jstack - AI Second Brain Infrastructure
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
@@ -7,11 +7,11 @@
 
 > **Transform your business with AI automation that works while you sleep. Get your complete AI Second Brain running in 15 minutes.**
 
-## What is JarvisJR?
+## What is jstack?
 
-JarvisJR is your AI Second Brain—a comprehensive system designed to work while you sleep, making burnout obsolete and freeing up time for what matters most. Built on N8N workflows and developed by the [AI Productivity Hub](https://www.skool.com/ai-productivity-hub/about) community, it's the "one AI that runs everything."
+jstack is your AI Second Brain—a comprehensive system designed to work while you sleep, making burnout obsolete and freeing up time for what matters most. Built on N8N workflows and developed by the [AI Productivity Hub](https://www.skool.com/ai-productivity-hub/about) community, it's the "one AI that runs everything."
 
-Unlike corporate AI assistants, JarvisJR is designed with a clear mission: help business owners and professionals save 10+ hours per week through intelligent automation while maintaining complete ownership of their data.
+Unlike corporate AI assistants, jstack is designed with a clear mission: help business owners and professionals save 10+ hours per week through intelligent automation while maintaining complete ownership of their data.
 
 ## 🚀 Quick Start - New to AI Automation?
 
@@ -60,11 +60,11 @@ dig +short api.yourdomain.com
 # All should return your server IP
 ```
 
-### Step 1: Get JarvisJR ⬇️
+### Step 1: Get jstack ⬇️
 
 ```bash
-git clone https://github.com/your-repo/JarvisJR_Stack.git
-cd JarvisJR_Stack
+git clone https://github.com/your-repo/jstack.git
+cd jstack
 ```
 
 ### Step 2: Configure (2 minutes) ⚙️
@@ -101,7 +101,7 @@ $1
 
 ### 🌐 Want to Deploy Websites Too?
 
-JarvisJR now includes **site templates** for rapid website deployment:
+jstack now includes **site templates** for rapid website deployment:
 
 ```bash
 # Deploy a Next.js business site:
@@ -140,12 +140,12 @@ Choose your documentation path:
 - **📋 [System Architecture](docs/reference/architecture.md)** - Complete technical overview
 - **⚙️ [Configuration Reference](docs/reference/configuration-ref.md)** - All configuration options
 - **🔒 [Security Documentation](docs/reference/security.md)** - Enterprise security features  
-- **🛠️ [Developer Guide](docs/reference/developer-guide.md)** - Extend and customize JarvisJR
+- **🛠️ [Developer Guide](docs/reference/developer-guide.md)** - Extend and customize jstack
 
 ### ⚫ **Experts & Contributors**
 
 - **🏗️ [Architecture Deep Dive](docs/reference/architecture-deep-dive.md)** - Internal implementation details
-- **🧪 [Development Setup](docs/reference/development.md)** - Contribute to JarvisJR
+- **🧪 [Development Setup](docs/reference/development.md)** - Contribute to jstack
 - **📊 [Performance Tuning](docs/reference/performance.md)** - Optimize for scale
 
 ---
@@ -197,7 +197,7 @@ Something broken? Try these first:
 - **🐛 Bug Reports**: [GitHub Issues](https://github.com/your-repo/issues)
 - **💬 Community**: [AI Productivity Hub](https://www.skool.com/ai-productivity-hub)
 - **📖 Documentation**: All guides linked above
-- **📧 Enterprise Support**: <enterprise@jarvisjr.com>
+- **📧 Enterprise Support**: <enterprise@jstack.com>
 
 ### 🔍 **Quick Diagnostics**
 
@@ -214,7 +214,7 @@ Something broken? Try these first:
 
 ---
 
-## 🎯 Why JarvisJR?
+## 🎯 Why jstack?
 
 ### **The Problem We Solve**
 
@@ -224,7 +224,7 @@ Business owners and professionals waste 15+ hours per week on repetitive tasks t
 - ❌ Require extensive technical knowledge (too complex for business users)  
 - ❌ Don't integrate with your existing tools (creates more work)
 
-### **The JarvisJR Solution**
+### **The jstack Solution**
 
 ✅ **Complete Data Ownership** - Everything runs on your infrastructure  
 ✅ **15-Minute Setup** - From zero to working AI automation in minutes  
@@ -250,7 +250,7 @@ Business owners and professionals waste 15+ hours per week on repetitive tasks t
 # Complete system operations
 ./jstack.sh --backup          # Create timestamped backup
 ./jstack.sh --restore         # Interactive restore from backup
-./jstack.sh --update          # Update JarvisJR to latest version
+./jstack.sh --update          # Update jstack to latest version
 ./jstack.sh --uninstall       # Complete system removal
 ./jstack.sh --dry-run         # Test changes without applying
 

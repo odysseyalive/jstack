@@ -1,5 +1,5 @@
 #!/bin/bash
-# Container Security Hardening Module for JarvisJR Stack
+# Container Security Hardening Module for JStack Stack
 # Implements CIS Docker benchmarks, vulnerability scanning, and runtime security
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -393,7 +393,7 @@ EOF
     # Create container hardening script
     cat > /tmp/harden-containers.sh << 'EOF'
 #!/bin/bash
-# Container Hardening Script for JarvisJR Stack
+# Container Hardening Script for JStack Stack
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
@@ -465,7 +465,7 @@ main() {
             run_container_security_scan
             ;;
         *) echo "Usage: $0 [setup|trivy|bench|apparmor|scan|configs|validate|all]"
-           echo "Container security hardening module for JarvisJR Stack" ;;
+           echo "Container security hardening module for JStack Stack" ;;
     esac
 }
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Automated Threat Response System for JarvisJR Stack
+# Automated Threat Response System for JStack Stack
 # Implements intelligent threat detection, automated response, and incident management
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -52,15 +52,15 @@ create_threat_detection_engine() {
     
     cat > /tmp/threat-detector.sh << 'EOF'
 #!/bin/bash
-# Threat Detection Engine for JarvisJR Stack
+# Threat Detection Engine for JStack Stack
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
 
 # Configuration
-THREAT_LOG="/home/jarvis/jarvis-stack/logs/security/threats.log"
-INCIDENT_LOG="/home/jarvis/jarvis-stack/logs/security/incidents.log"
-CONFIG_FILE="/home/jarvis/jarvis-stack/security/threat-response/threat-config.json"
+THREAT_LOG="${BASE_DIR}/logs/security/threats.log"
+INCIDENT_LOG="${BASE_DIR}/logs/security/incidents.log"
+CONFIG_FILE="${BASE_DIR}/security/threat-response/threat-config.json"
 
 # Ensure log directories exist
 mkdir -p "$(dirname "$THREAT_LOG")"
@@ -85,7 +85,7 @@ log_threat() {
 detect_brute_force_attacks() {
     log_info "Detecting brute force attacks"
     
-    local nginx_log="/home/jarvis/jarvis-stack/logs/nginx/access.log"
+    local nginx_log="${BASE_DIR}/logs/nginx/access.log"
     local time_window="$(date -d '5 minutes ago' '+%d/%b/%Y:%H:%M')"
     
     if [[ -f "$nginx_log" ]]; then
@@ -104,7 +104,7 @@ detect_brute_force_attacks() {
 detect_rate_limit_violations() {
     log_info "Detecting rate limit violations"
     
-    local nginx_error_log="/home/jarvis/jarvis-stack/logs/nginx/error.log"
+    local nginx_error_log="${BASE_DIR}/logs/nginx/error.log"
     local time_window="$(date -d '5 minutes ago' '+%Y/%m/%d %H:%M')"
     
     if [[ -f "$nginx_error_log" ]]; then
@@ -123,7 +123,7 @@ detect_rate_limit_violations() {
 detect_waf_triggers() {
     log_info "Detecting WAF trigger patterns"
     
-    local waf_log="/home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log"
+    local waf_log="${BASE_DIR}/logs/nginx/waf-blocks.log"
     local time_window="$(date -d '10 minutes ago' '+%d/%b/%Y:%H:%M')"
     
     if [[ -f "$waf_log" ]]; then
@@ -142,7 +142,7 @@ detect_waf_triggers() {
 detect_scanning_activity() {
     log_info "Detecting scanning and reconnaissance"
     
-    local nginx_log="/home/jarvis/jarvis-stack/logs/nginx/access.log"
+    local nginx_log="${BASE_DIR}/logs/nginx/access.log"
     local time_window="$(date -d '10 minutes ago' '+%d/%b/%Y:%H:%M')"
     
     if [[ -f "$nginx_log" ]]; then
@@ -162,7 +162,7 @@ detect_scanning_activity() {
 detect_anomalous_traffic() {
     log_info "Detecting anomalous traffic patterns"
     
-    local nginx_log="/home/jarvis/jarvis-stack/logs/nginx/access.log"
+    local nginx_log="${BASE_DIR}/logs/nginx/access.log"
     local current_hour=$(date '+%H')
     local current_minute=$(date '+%M')
     
@@ -214,10 +214,10 @@ analyze_threat_patterns() {
 generate_threat_report() {
     log_info "Generating threat detection report"
     
-    local report_file="/home/jarvis/jarvis-stack/logs/security/threat-report-$(date +%Y%m%d_%H%M%S).txt"
+    local report_file="${BASE_DIR}/logs/security/threat-report-$(date +%Y%m%d_%H%M%S).txt"
     
     {
-        echo "JarvisJR Stack Threat Detection Report"
+        echo "JStack Stack Threat Detection Report"
         echo "Generated: $(date)"
         echo "======================================="
         echo ""
@@ -299,13 +299,13 @@ create_automated_response_system() {
     
     cat > /tmp/automated-response.sh << 'EOF'
 #!/bin/bash
-# Automated Response System for JarvisJR Stack
+# Automated Response System for JStack Stack
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
 
-RESPONSE_LOG="/home/jarvis/jarvis-stack/logs/security/responses.log"
-BLOCKED_IPS_FILE="/home/jarvis/jarvis-stack/security/nginx/dynamic-blocks.conf"
+RESPONSE_LOG="${BASE_DIR}/logs/security/responses.log"
+BLOCKED_IPS_FILE="${BASE_DIR}/security/nginx/dynamic-blocks.conf"
 
 # Ensure directories exist
 mkdir -p "$(dirname "$RESPONSE_LOG")"
@@ -430,18 +430,18 @@ send_security_notification() {
     
     # Email notification (if configured)
     if [[ -n "${ALERT_EMAIL:-}" ]] && command -v mail >/dev/null 2>&1; then
-        echo "$message" | mail -s "JarvisJR Security Alert: $subject" "$ALERT_EMAIL" 2>/dev/null || true
+        echo "$message" | mail -s "JStack Security Alert: $subject" "$ALERT_EMAIL" 2>/dev/null || true
     fi
     
     # Slack notification (if webhook configured)
     if [[ -n "${SLACK_WEBHOOK:-}" ]] && command -v curl >/dev/null 2>&1; then
         curl -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"🚨 JarvisJR Security Alert: $subject\n$message\"}" \
+            --data "{\"text\":\"🚨 JStack Security Alert: $subject\n$message\"}" \
             "$SLACK_WEBHOOK" 2>/dev/null || true
     fi
     
     # System logger
-    logger -t jarvis-security "$subject: $message"
+    logger -t jstack-security "$subject: $message"
 }
 
 # Incident escalation
@@ -521,7 +521,7 @@ clean_expired_blocks() {
 
 # Show current response status
 show_status() {
-    echo "=== JarvisJR Automated Response Status ==="
+    echo "=== JStack Automated Response Status ==="
     echo ""
     
     echo "Active IP Blocks:"
@@ -581,13 +581,13 @@ create_incident_management_system() {
     
     cat > /tmp/incident-manager.sh << 'EOF'
 #!/bin/bash
-# Incident Management System for JarvisJR Stack
+# Incident Management System for JStack Stack
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
 
-INCIDENT_DB="/home/jarvis/jarvis-stack/security/incidents.db"
-INCIDENT_LOG="/home/jarvis/jarvis-stack/logs/security/incidents.log"
+INCIDENT_DB="${BASE_DIR}/security/incidents.db"
+INCIDENT_LOG="${BASE_DIR}/logs/security/incidents.log"
 
 # Ensure directories exist
 mkdir -p "$(dirname "$INCIDENT_DB")"
@@ -597,7 +597,7 @@ mkdir -p "$(dirname "$INCIDENT_LOG")"
 init_incident_db() {
     if [[ ! -f "$INCIDENT_DB" ]]; then
         cat > "$INCIDENT_DB" << 'DB_EOF'
-# JarvisJR Stack Incident Database
+# JStack Stack Incident Database
 # Format: TIMESTAMP|INCIDENT_ID|IP|TYPE|SEVERITY|STATUS|DESCRIPTION
 DB_EOF
         log_info "Incident database initialized: $INCIDENT_DB"
@@ -668,7 +668,7 @@ list_incidents() {
         return 0
     fi
     
-    echo "=== JarvisJR Stack Security Incidents ==="
+    echo "=== JStack Stack Security Incidents ==="
     echo ""
     
     local header="TIMESTAMP           | INCIDENT ID      | IP ADDRESS      | TYPE           | SEVERITY | STATUS"
@@ -738,12 +738,12 @@ get_incident() {
 # Generate incident report
 generate_report() {
     local period="${1:-24h}"
-    local report_file="/home/jarvis/jarvis-stack/logs/security/incident-report-$(date +%Y%m%d_%H%M%S).txt"
+    local report_file="${BASE_DIR}/logs/security/incident-report-$(date +%Y%m%d_%H%M%S).txt"
     
     init_incident_db
     
     {
-        echo "JarvisJR Stack Security Incident Report"
+        echo "JStack Stack Security Incident Report"
         echo "Generated: $(date)"
         echo "Period: Last $period"
         echo "======================================="
@@ -845,7 +845,7 @@ setup_threat_response_services() {
     # Threat detection service
     cat > /tmp/jarvis-threat-detection.service << EOF
 [Unit]
-Description=JarvisJR Stack Threat Detection Service
+Description=JStack Stack Threat Detection Service
 After=network.target docker.service
 Requires=docker.service
 
@@ -868,7 +868,7 @@ EOF
     # Response cleanup timer
     cat > /tmp/jarvis-response-cleanup.service << EOF
 [Unit]
-Description=JarvisJR Stack Response Cleanup
+Description=JStack Stack Response Cleanup
 After=network.target
 
 [Service]
@@ -880,7 +880,7 @@ EOF
     
     cat > /tmp/jarvis-response-cleanup.timer << 'EOF'
 [Unit]
-Description=Run JarvisJR response cleanup every hour
+Description=Run JStack response cleanup every hour
 Requires=jarvis-response-cleanup.service
 
 [Timer]
@@ -897,7 +897,7 @@ EOF
     # Incident auto-escalation timer
     cat > /tmp/jarvis-incident-escalation.service << EOF
 [Unit]
-Description=JarvisJR Stack Incident Auto-Escalation
+Description=JStack Stack Incident Auto-Escalation
 After=network.target
 
 [Service]
@@ -909,7 +909,7 @@ EOF
     
     cat > /tmp/jarvis-incident-escalation.timer << 'EOF'
 [Unit]
-Description=Run JarvisJR incident escalation every 30 minutes
+Description=Run JStack incident escalation every 30 minutes
 Requires=jarvis-incident-escalation.service
 
 [Timer]
@@ -951,7 +951,7 @@ main() {
             systemctl status jarvis-incident-escalation.timer 2>/dev/null | head -3 || echo "Escalation timer: Not running"
             ;;
         *) echo "Usage: $0 [setup|start|stop|status]"
-           echo "Automated threat response system for JarvisJR Stack" ;;
+           echo "Automated threat response system for JStack Stack" ;;
     esac
 }
 

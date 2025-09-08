@@ -1,6 +1,6 @@
-# JarvisJR Stack Site Templates
+# jstack Site Templates
 
-This directory contains pre-configured site templates for rapid deployment within the JarvisJR Stack ecosystem.
+This directory contains pre-configured site templates for rapid deployment within the jstack ecosystem.
 
 ## Available Templates
 
@@ -38,7 +38,7 @@ Each template directory contains:
 
 ## Usage
 
-Deploy a template using the JarvisJR Stack CLI:
+Deploy a template using the jstack CLI:
 
 ```bash
 # Deploy with template
@@ -55,7 +55,7 @@ See `shared/docs/template-development.md` for guidelines on creating custom temp
 
 ## Security & Compliance
 
-All templates follow JarvisJR Stack security standards:
+All templates follow jstack security standards:
 - Rootless container execution
 - Network isolation via Docker networks
 - Automated SSL certificate management

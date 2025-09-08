@@ -70,12 +70,12 @@ exit
 # SSH back into your server
 ```
 
-### Step 2: Download JarvisJR (1 minute)
+### Step 2: Download jstack (1 minute)
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/JarvisJR_Stack.git
-cd JarvisJR_Stack
+git clone https://github.com/your-repo/jstack.git
+cd jstack
 
 # Make the main script executable
 chmod +x jstack.sh
@@ -202,7 +202,7 @@ $1
 
 ## 🌐 Deploy Websites (Optional)
 
-Now that JarvisJR is running, you can deploy production websites using built-in templates:
+Now that jstack is running, you can deploy production websites using built-in templates:
 
 ### 🚀 **Quick Site Deployment**
 
@@ -306,7 +306,7 @@ nano src/app/page.tsx  # Next.js customization
 
 ### 🔄 **System Updates**
 ```bash
-# Update JarvisJR to latest version
+# Update jstack to latest version
 ./jstack.sh --update
 
 # Update system packages  
@@ -433,7 +433,7 @@ df -h
 - **[Community Support](https://www.skool.com/ai-productivity-hub)** - Get help from users
 
 ### 📧 **Enterprise Support**
-- **Email**: enterprise@jarvisjr.com
+- **Email**: enterprise@jstack.com
 - **Priority Support**: Available for production deployments
 - **Custom Integration**: Available for enterprise customers
 

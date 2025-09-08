@@ -1,5 +1,5 @@
 #!/bin/bash
-# Enhanced Docker Security Configurations for JarvisJR Stack
+# Enhanced Docker Security Configurations for JStack Stack
 # Implements capability management, security constraints, and hardened container settings
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -55,7 +55,7 @@ services:
     security_opt:
       - no-new-privileges:true
       - apparmor:docker-n8n-enhanced
-      - seccomp:/home/jarvis/jarvis-stack/security/configs/default-seccomp.json
+      - seccomp:/home/jarvis/jstack/security/configs/default-seccomp.json
     
     # Resource Limits
     mem_limit: ${N8N_MEMORY_LIMIT}
@@ -91,7 +91,7 @@ services:
     
     # Network Configuration
     networks:
-      - private_tier
+      - ${PRIVATE_TIER}
     
     # Health Check
     healthcheck:
@@ -115,10 +115,10 @@ volumes:
     driver_opts:
       type: none
       o: bind,nodev,nosuid
-      device: /home/jarvis/jarvis-stack/data/n8n
+      device: /home/jarvis/jstack/data/n8n
 
 networks:
-  private_tier:
+  ${PRIVATE_TIER}:
     external: true
     name: ${PRIVATE_TIER}
 EOF
@@ -169,7 +169,7 @@ services:
     security_opt:
       - no-new-privileges:true
       - apparmor:docker-postgres-enhanced
-      - seccomp:/home/jarvis/jarvis-stack/security/configs/default-seccomp.json
+      - seccomp:/home/jarvis/jstack/security/configs/default-seccomp.json
     
     # Resource Limits
     mem_limit: ${POSTGRES_MEMORY_LIMIT}
@@ -209,7 +209,7 @@ services:
     
     # Network Configuration
     networks:
-      - private_tier
+      - ${PRIVATE_TIER}
     
     # Health Check
     healthcheck:
@@ -233,10 +233,10 @@ volumes:
     driver_opts:
       type: none
       o: bind,nodev,nosuid
-      device: /home/jarvis/jarvis-stack/data/postgres
+      device: /home/jarvis/jstack/data/postgres
 
 networks:
-  private_tier:
+  ${PRIVATE_TIER}:
     external: true
     name: ${PRIVATE_TIER}
 EOF
@@ -286,7 +286,7 @@ services:
     security_opt:
       - no-new-privileges:true
       - apparmor:unconfined  # Use default for nginx
-      - seccomp:/home/jarvis/jarvis-stack/security/configs/default-seccomp.json
+      - seccomp:/home/jarvis/jstack/security/configs/default-seccomp.json
     
     # Resource Limits
     mem_limit: ${NGINX_MEMORY_LIMIT}
@@ -300,9 +300,9 @@ services:
     
     # Volumes (with security constraints)
     volumes:
-      - /home/jarvis/jarvis-stack/services/nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
-      - /home/jarvis/jarvis-stack/services/nginx/conf:/etc/nginx/conf.d:ro
-      - /home/jarvis/jarvis-stack/services/nginx/ssl:/etc/letsencrypt:ro
+      - /home/jarvis/jstack/services/nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /home/jarvis/jstack/services/nginx/conf:/etc/nginx/conf.d:ro
+      - /home/jarvis/jstack/services/nginx/ssl:/etc/letsencrypt:ro
       - nginx_logs:/var/log/nginx:rw,nodev,nosuid
       - nginx_cache:/var/cache/nginx:rw,nodev,nosuid,noexec
     
@@ -313,8 +313,8 @@ services:
     
     # Network Configuration
     networks:
-      - public_tier
-      - private_tier
+      - ${PUBLIC_TIER}
+      - ${PRIVATE_TIER}
     
     # Health Check
     healthcheck:
@@ -343,16 +343,16 @@ volumes:
     driver_opts:
       type: none
       o: bind,nodev,nosuid
-      device: /home/jarvis/jarvis-stack/logs/nginx
+      device: /home/jarvis/jstack/logs/nginx
   
   nginx_cache:
     driver: local
 
 networks:
-  public_tier:
+  ${PUBLIC_TIER}:
     external: true
     name: ${PUBLIC_TIER}
-  private_tier:
+  ${PRIVATE_TIER}:
     external: true
     name: ${PRIVATE_TIER}
 EOF
@@ -381,7 +381,7 @@ create_security_validation_script() {
     # Container Security Validation Script
     cat > /tmp/validate-container-security.sh << 'EOF'
 #!/bin/bash
-# Container Security Validation for JarvisJR Stack
+# Container Security Validation for JStack Stack
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
@@ -456,7 +456,7 @@ validate_container_security() {
         
         # Check network configuration
         local networks=$(docker inspect "$container" --format='{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' 2>/dev/null)
-        if [[ "$networks" =~ (private_tier|public_tier) ]]; then
+        if [[ "$networks" =~ (${PRIVATE_TIER}|${PUBLIC_TIER}) ]]; then
             echo "✅ PASS: Using custom networks: $networks"
         else
             echo "⚠️  WARN: Not using expected custom networks"
@@ -478,7 +478,7 @@ validate_container_security() {
 run_cis_benchmark_check() {
     log_section "Running CIS Docker Benchmark Checks"
     
-    local benchmark_script="/home/jarvis/jarvis-stack/security/docker-bench/docker-bench-security.sh"
+    local benchmark_script="/home/jarvis/jstack/security/docker-bench/docker-bench-security.sh"
     
     if [[ -f "$benchmark_script" ]]; then
         log_info "Running Docker Bench Security..."
@@ -493,7 +493,7 @@ case "${1:-validate}" in
     "cis") run_cis_benchmark_check ;;
     "all") validate_container_security; run_cis_benchmark_check ;;
     *) echo "Usage: $0 [security|cis|all]"
-       echo "Container security validation for JarvisJR Stack" ;;
+       echo "Container security validation for JStack Stack" ;;
 esac
 EOF
     
@@ -519,7 +519,7 @@ main() {
             create_security_validation_script
             ;;
         *) echo "Usage: $0 [setup|n8n|postgres|nginx|validate|all]"
-           echo "Enhanced Docker security configurations for JarvisJR Stack" ;;
+           echo "Enhanced Docker security configurations for JStack Stack" ;;
     esac
 }
 

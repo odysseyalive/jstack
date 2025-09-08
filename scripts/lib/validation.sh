@@ -1,5 +1,5 @@
 #!/bin/bash
-# Validation utilities for JarvisJR Stack
+# Validation utilities for JStack
 # Handles DNS, environment, and system validation
 
 # Get script directory and source common functions

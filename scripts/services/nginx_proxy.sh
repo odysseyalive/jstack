@@ -1,5 +1,5 @@
 #!/bin/bash
-# NGINX Reverse Proxy Service Module for JarvisJR Stack
+# NGINX Reverse Proxy Service Module for JStack
 # Handles NGINX reverse proxy configuration for Supabase, N8N, and SSL termination
 
 # Set script directory and source dependencies

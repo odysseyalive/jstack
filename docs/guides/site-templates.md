@@ -4,7 +4,7 @@
 
 ## Overview
 
-JarvisJR Stack includes three production-ready site templates that integrate seamlessly with your existing infrastructure:
+jstack includes three production-ready site templates that integrate seamlessly with your existing infrastructure:
 
 - **🚀 [Next.js Business](#nextjs-business-template)** - Modern React applications with server-side rendering
 - **📝 [Hugo Portfolio](#hugo-portfolio-template)** - Lightning-fast static sites with Tailwind CSS  
@@ -46,7 +46,7 @@ cp -r templates/nextjs-business/ ~/my-site/
 Once deployed, your site will be available at:
 - **🌐 Your Site**: `https://yourdomain.com`
 - **🔒 SSL Certificate**: Automatically configured
-- **📊 Monitoring**: Integrated with JarvisJR compliance dashboard
+- **📊 Monitoring**: Integrated with JStack compliance dashboard
 
 ---
 
@@ -200,11 +200,11 @@ Before deployment, validate your template:
 
 ---
 
-## Integration with JarvisJR
+## Integration with JStack
 
 ### NGINX Reverse Proxy
 
-All templates automatically integrate with JarvisJR's NGINX setup:
+All templates automatically integrate with jstack's NGINX setup:
 - SSL termination and certificate management
 - Security headers and rate limiting
 - Compression and caching
@@ -212,7 +212,7 @@ All templates automatically integrate with JarvisJR's NGINX setup:
 
 ### Database Integration
 
-Templates can access JarvisJR's PostgreSQL database:
+Templates can access jstack's PostgreSQL database:
 - Connection details auto-injected via environment variables
 - Supabase API access for modern applications
 - Database Studio access for management

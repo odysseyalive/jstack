@@ -74,7 +74,7 @@ hive-mind-prompt-*.txt
 logs/
 log/
 
-# JarvisJR Stack script execution artifacts
+# JStack script execution artifacts
 setup-*.log
 jj_production_stack.log
 /tmp/setup-logs/

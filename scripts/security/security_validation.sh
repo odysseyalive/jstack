@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# JarvisJR Stack Security Validation and Certification System
+# JStack Security Validation and Certification System
 # Phase 4: Monitoring & Alerting - Final Security Validation
 # Comprehensive security validation, testing, and certification system
 
@@ -12,10 +12,10 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
 
 # Global variables
-VALIDATION_DIR="/opt/jarvis-security/validation"
-CERTS_DIR="/opt/jarvis-security/certificates"
-REPORTS_DIR="/opt/jarvis-security/validation-reports"
-TESTS_DIR="/opt/jarvis-security/tests"
+VALIDATION_DIR="/opt/jstack-security/validation"
+CERTS_DIR="/opt/jstack-security/certificates"
+REPORTS_DIR="/opt/jstack-security/validation-reports"
+TESTS_DIR="/opt/jstack-security/tests"
 
 # Initialize security validation system
 init_validation_system() {
@@ -433,7 +433,7 @@ class SecurityValidator:
                         if len(parts) >= 4:
                             listening_ports.append(parts[3])
                 
-                # Expected ports for JarvisJR Stack
+                # Expected ports for jstack
                 expected_ports = [':80', ':443', ':22']  # HTTP, HTTPS, SSH
                 
                 unexpected_ports = []
@@ -1017,8 +1017,8 @@ class SecurityValidator:
             
             # Check for custom security monitoring
             security_scripts = [
-                '/opt/jarvis-security/scripts/security/monitoring_system.sh',
-                '/opt/jarvis-security/scripts/security/alerting_system.sh'
+                '/opt/jstack-security/scripts/security/monitoring_system.sh',
+                '/opt/jstack-security/scripts/security/alerting_system.sh'
             ]
             
             custom_monitoring = []
@@ -1058,7 +1058,7 @@ class SecurityValidator:
         """Check compliance with specific framework"""
         try:
             # Check if compliance checker exists
-            compliance_script = "/opt/jarvis-security/compliance/compliance_checker.py"
+            compliance_script = "/opt/jstack-security/compliance/compliance_checker.py"
             
             if Path(compliance_script).exists():
                 result = subprocess.run(['python3', compliance_script, framework], 
@@ -1128,7 +1128,7 @@ if __name__ == "__main__":
     
     # Save results
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    report_file = f"/opt/jarvis-security/validation-reports/security_validation_{timestamp}.json"
+    report_file = f"/opt/jstack-security/validation-reports/security_validation_{timestamp}.json"
     
     os.makedirs(os.path.dirname(report_file), exist_ok=True)
     with open(report_file, 'w') as f:
@@ -1176,8 +1176,8 @@ from typing import Dict, Any
 
 class SecurityCertificationGenerator:
     def __init__(self):
-        self.template_dir = "/opt/jarvis-security/certificates/templates"
-        self.output_dir = "/opt/jarvis-security/certificates/issued"
+        self.template_dir = "/opt/jstack-security/certificates/templates"
+        self.output_dir = "/opt/jstack-security/certificates/issued"
         os.makedirs(self.template_dir, exist_ok=True)
         os.makedirs(self.output_dir, exist_ok=True)
     
@@ -1213,7 +1213,7 @@ class SecurityCertificationGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JarvisJR Security Certificate</title>
+    <title>jstack Security Certificate</title>
     <style>
         body {{
             font-family: 'Georgia', serif;
@@ -1366,13 +1366,13 @@ class SecurityCertificationGenerator:
         
         <div class="header">
             <h1 class="title">SECURITY CERTIFICATE</h1>
-            <div class="subtitle">JarvisJR Stack Security Assessment</div>
+            <div class="subtitle">jstack Security Assessment</div>
         </div>
         
         <div class="content">
             <p class="cert-text">This certifies that the</p>
             <div class="cert-level">{cert_level} SECURITY LEVEL</div>
-            <p class="cert-text">has been achieved for the JarvisJR Stack deployment</p>
+            <p class="cert-text">has been achieved for the jstack deployment</p>
             
             <div class="score-display">{overall_score:.1%}</div>
             <p class="cert-text">Overall Security Score</p>
@@ -1567,7 +1567,7 @@ validate_security_system() {
 # Script usage information
 show_help() {
     cat << EOF
-JarvisJR Security Validation and Certification System
+jstack Security Validation and Certification System
 
 USAGE:
     bash security_validation.sh [COMMAND]
@@ -1623,7 +1623,7 @@ TOOLS INSTALLED:
     nmap, nikto, lynis, chkrootkit, rkhunter, clamav
 
 LOGS:
-    /opt/jarvis-security/logs/validation.log   - Validation logs
+    /opt/jstack-security/logs/validation.log   - Validation logs
 
 EOF
 }

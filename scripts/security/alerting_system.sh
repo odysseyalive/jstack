@@ -1,5 +1,5 @@
 #!/bin/bash
-# Automated Security Alerting System for JarvisJR Stack
+# Automated Security Alerting System for JStack
 # Multi-channel alerting with intelligent escalation and notification management
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -71,7 +71,7 @@ create_alerting_config() {
                 "enabled": ${SLACK_WEBHOOK:+true},
                 "webhook_url": "${SLACK_WEBHOOK:-}",
                 "channel": "#security-alerts",
-                "username": "JarvisJR-Security",
+                "username": "jstack-Security",
                 "severity_threshold": "HIGH"
             },
             "webhook": {
@@ -141,7 +141,7 @@ create_notification_channels() {
     # Email notification channel
     cat > /tmp/email-channel.sh << 'EOF'
 #!/bin/bash
-# Email Notification Channel for JarvisJR Stack
+# Email Notification Channel for jstack
 
 send_email_alert() {
     local severity="$1"
@@ -150,9 +150,9 @@ send_email_alert() {
     local timestamp="$4"
     
     # Prepare email content
-    local subject="[JarvisJR-$severity] $title"
+    local subject="[jstack-$severity] $title"
     local email_body="
-JarvisJR Stack Security Alert
+jstack Security Alert
 
 Severity: $severity
 Time: $timestamp
@@ -162,7 +162,7 @@ Details:
 $message
 
 ---
-JarvisJR Stack Security Monitoring
+jstack Security Monitoring
 $(hostname) - $(date)
 "
     
@@ -187,7 +187,7 @@ $(hostname) - $(date)
 
 # Test email functionality
 test_email() {
-    send_email_alert "INFO" "Test Alert" "This is a test alert from JarvisJR Stack security system." "$(date)"
+    send_email_alert "INFO" "Test Alert" "This is a test alert from jstack security system." "$(date)"
 }
 
 case "${1:-send}" in
@@ -203,7 +203,7 @@ EOF
     # Slack notification channel
     cat > /tmp/slack-channel.sh << 'EOF'
 #!/bin/bash
-# Slack Notification Channel for JarvisJR Stack
+# Slack Notification Channel for jstack
 
 send_slack_alert() {
     local severity="$1"
@@ -229,12 +229,12 @@ send_slack_alert() {
     # Prepare Slack payload
     local payload=$(cat << SLACK_EOF
 {
-    "username": "JarvisJR-Security",
+    "username": "jstack-Security",
     "icon_emoji": ":shield:",
     "attachments": [
         {
             "color": "$color",
-            "title": "$emoji JarvisJR Security Alert - $severity",
+            "title": "$emoji jstack Security Alert - $severity",
             "title_link": "https://${DOMAIN}",
             "text": "$title",
             "fields": [
@@ -254,7 +254,7 @@ send_slack_alert() {
                     "short": true
                 }
             ],
-            "footer": "JarvisJR Stack Security",
+            "footer": "jstack Security",
             "ts": $(date +%s)
         }
     ]
@@ -277,7 +277,7 @@ SLACK_EOF
 
 # Test Slack functionality
 test_slack() {
-    send_slack_alert "INFO" "Test Alert" "This is a test alert from JarvisJR Stack security system." "$(date)"
+    send_slack_alert "INFO" "Test Alert" "This is a test alert from jstack security system." "$(date)"
 }
 
 case "${1:-send}" in
@@ -293,7 +293,7 @@ EOF
     # Syslog notification channel
     cat > /tmp/syslog-channel.sh << 'EOF'
 #!/bin/bash
-# Syslog Notification Channel for JarvisJR Stack
+# Syslog Notification Channel for jstack
 
 send_syslog_alert() {
     local severity="$1"
@@ -312,13 +312,13 @@ send_syslog_alert() {
     esac
     
     # Send to syslog
-    logger -p local0.$priority -t jarvis-security "[$severity] $title: $message"
+    logger -p local0.$priority -t jstack-security "[$severity] $title: $message"
     return $?
 }
 
 # Test syslog functionality
 test_syslog() {
-    send_syslog_alert "INFO" "Test Alert" "This is a test alert from JarvisJR Stack security system." "$(date)"
+    send_syslog_alert "INFO" "Test Alert" "This is a test alert from jstack security system." "$(date)"
 }
 
 case "${1:-send}" in
@@ -334,7 +334,7 @@ EOF
     # Desktop notification channel
     cat > /tmp/desktop-channel.sh << 'EOF'
 #!/bin/bash
-# Desktop Notification Channel for JarvisJR Stack
+# Desktop Notification Channel for jstack
 
 send_desktop_alert() {
     local severity="$1"
@@ -355,20 +355,20 @@ send_desktop_alert() {
         esac
         
         notify-send --urgency="$urgency" --icon="$icon" \
-                   "JarvisJR Security Alert ($severity)" \
+                   "jstack Security Alert ($severity)" \
                    "$title: $message"
         return $?
     else
         # Fallback to console bell and message
-        echo -e "\a[JarvisJR-$severity] $title: $message" >/dev/console 2>/dev/null || \
-        echo -e "\a[JarvisJR-$severity] $title: $message"
+        echo -e "\a[jstack-$severity] $title: $message" >/dev/console 2>/dev/null || \
+        echo -e "\a[jstack-$severity] $title: $message"
         return $?
     fi
 }
 
 # Test desktop functionality
 test_desktop() {
-    send_desktop_alert "INFO" "Test Alert" "This is a test alert from JarvisJR Stack security system." "$(date)"
+    send_desktop_alert "INFO" "Test Alert" "This is a test alert from jstack security system." "$(date)"
 }
 
 case "${1:-send}" in
@@ -407,7 +407,7 @@ Action Taken:
 - Added to fail2ban banlist
 - NGINX access denied
 
-This is an automated response by JarvisJR Stack security system.
+This is an automated response by jstack security system.
 EOF
     
     safe_mv "/tmp/ip-ban-template.txt" "$alerting_dir/templates/ip-ban-template.txt" "Install IP ban template"
@@ -491,14 +491,14 @@ create_alert_manager() {
     
     cat > /tmp/alert-manager.sh << 'EOF'
 #!/bin/bash
-# Alert Manager for JarvisJR Stack Security System
+# Alert Manager for jstack Security System
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
 
 # Configuration
-ALERTING_CONFIG="/home/jarvis/jarvis-stack/security/alerting/config/alerting-config.json"
-ALERT_LOG="/home/jarvis/jarvis-stack/security/monitoring/logs/security-alerts.log"
+ALERTING_CONFIG="${BASE_DIR}/security/alerting/config/alerting-config.json"
+ALERT_LOG="${BASE_DIR}/security/monitoring/logs/security-alerts.log"
 RATE_LIMIT_FILE="/tmp/jarvis-alert-rate-limit"
 
 # Rate limiting state
@@ -715,7 +715,7 @@ test_all_channels() {
 
 # Show alert statistics
 show_alert_stats() {
-    echo "=== JarvisJR Alert Statistics ==="
+    echo "=== jstack Alert Statistics ==="
     echo "Last updated: $(date)"
     echo ""
     
@@ -778,7 +778,7 @@ setup_alerting_services() {
     # Alert processing service
     cat > /tmp/jarvis-alert-processor.service << EOF
 [Unit]
-Description=JarvisJR Stack Alert Processing Service
+Description=jstack Alert Processing Service
 After=network.target
 
 [Service]
@@ -800,7 +800,7 @@ EOF
     # Daily alert summary timer
     cat > /tmp/jarvis-alert-summary.service << EOF
 [Unit]
-Description=JarvisJR Stack Daily Alert Summary
+Description=jstack Daily Alert Summary
 After=network.target
 
 [Service]
@@ -812,7 +812,7 @@ EOF
     
     cat > /tmp/jarvis-alert-summary.timer << 'EOF'
 [Unit]
-Description=Generate daily JarvisJR alert summary
+Description=Generate daily jstack alert summary
 Requires=jarvis-alert-summary.service
 
 [Timer]
@@ -864,7 +864,7 @@ main() {
             sudo systemctl stop jarvis-alert-summary.timer 2>/dev/null || log_warning "Could not stop summary timer"
             ;;
         *) echo "Usage: $0 [setup|test|status|start|stop]"
-           echo "Automated security alerting system for JarvisJR Stack" ;;
+           echo "Automated security alerting system for jstack" ;;
     esac
 }
 

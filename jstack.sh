@@ -1,5 +1,5 @@
 #!/bin/bash
-# JarvisJR Stack - Main Orchestrator Script
+# JStack - Main Orchestrator Script
 # Production-ready containerized deployment system for AI productivity tools
 #
 # This script serves as the unified CLI interface and orchestrates all modular components
@@ -31,7 +31,7 @@ initialize_system() {
 
 # Main installation workflow
 run_installation() {
-    log_section "Starting JarvisJR Stack Installation"
+    log_section "Starting JStack Installation"
     
     # Phase 1: System Setup
     log_info "Phase 1: System Setup and Validation"
@@ -62,7 +62,7 @@ run_installation() {
         log_warning "Some services may have issues - check logs for details"
     fi
     
-    log_success "JarvisJR Stack installation completed successfully!"
+    log_success "JStack installation completed successfully!"
     
     # Display access information
     show_access_information
@@ -70,9 +70,9 @@ run_installation() {
 
 # Uninstallation workflow
 run_uninstallation() {
-    log_section "Starting JarvisJR Stack Uninstallation"
+    log_section "Starting JStack Uninstallation"
     
-    log_warning "This will completely remove the JarvisJR Stack installation"
+    log_warning "This will completely remove the JStack installation"
     echo "This includes:"
     echo "- All Docker containers and volumes"
     echo "- Service user and directories"
@@ -92,7 +92,7 @@ run_uninstallation() {
     
     # Execute complete uninstallation
     if bash "${PROJECT_ROOT}/scripts/utils/cleanup.sh" complete; then
-        log_success "JarvisJR Stack uninstallation completed successfully"
+        log_success "JStack uninstallation completed successfully"
     else
         log_error "Uninstallation failed or completed with warnings"
         log_info "Check logs for details or run manual cleanup if needed"
@@ -161,7 +161,7 @@ run_compliance_check() {
     
     if bash "${PROJECT_ROOT}/scripts/security/compliance_monitoring.sh" regenerate-reports; then
         log_success "Compliance check completed successfully"
-        log_info "Reports available in: ${BASE_DIR}/opt/jarvis-security/compliance-reports/"
+        log_info "Reports available in: ${BASE_DIR}/opt/jstack-security/compliance-reports/"
     else
         log_error "Compliance report generation failed"
         return 1
@@ -241,7 +241,7 @@ list_backups() {
 show_access_information() {
     log_section "🎉 Installation Complete - Access Information"
     
-    echo "Your JarvisJR Stack is now running and accessible at:"
+    echo "Your JStack is now running and accessible at:"
     echo ""
     echo "🗄️  Supabase API:     https://${SUPABASE_SUBDOMAIN}.${DOMAIN}"
     echo "🎨  Supabase Studio:  https://${STUDIO_SUBDOMAIN}.${DOMAIN}"
@@ -288,7 +288,7 @@ run_sync() {
 show_access_information() {
     log_section "🎉 Installation Complete - Access Information"
     
-    echo "Your JarvisJR Stack is now running and accessible at:"
+    echo "Your JStack is now running and accessible at:"
     echo ""
     echo "🗄️  Supabase API:     https://${SUPABASE_SUBDOMAIN}.${DOMAIN}"
     echo "🎨  Supabase Studio:  https://${STUDIO_SUBDOMAIN}.${DOMAIN}"
@@ -317,7 +317,7 @@ show_access_information() {
 
 show_usage() {
     cat << EOF
-JarvisJR Stack - Production-ready containerized deployment system
+JStack - Production-ready containerized deployment system
 
 USAGE:
   $0 [OPTION]

@@ -8,7 +8,7 @@ services:
     container_name: "lamp-webapp-${DOMAIN_SAFE}"
     restart: unless-stopped
     networks:
-      - jarvisjr-private
+      - jstack-private
     environment:
       - APACHE_RUN_USER=www-data
       - APACHE_RUN_GROUP=www-data
@@ -38,15 +38,15 @@ services:
       - "traefik.http.routers.lamp-webapp-${DOMAIN_SAFE}.tls=true"
       - "traefik.http.routers.lamp-webapp-${DOMAIN_SAFE}.tls.certresolver=letsencrypt"
       - "traefik.http.services.lamp-webapp-${DOMAIN_SAFE}.loadbalancer.server.port=80"
-      - "com.jarvisjr.template=lamp-webapp"
-      - "com.jarvisjr.version=1.0.0"
+      - "com.jstack.template=lamp-webapp"
+      - "com.jstack.version=1.0.0"
 
   lamp-database:
     image: mariadb:10.11
     container_name: "lamp-database-${DOMAIN_SAFE}"
     restart: unless-stopped
     networks:
-      - jarvisjr-private
+      - jstack-private
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASS}
       - MYSQL_DATABASE=${DB_NAME:-webapp}
@@ -68,16 +68,16 @@ services:
       retries: 3
       start_period: 30s
     labels:
-      - "com.jarvisjr.template=lamp-webapp"
-      - "com.jarvisjr.component=database"
+      - "com.jstack.template=lamp-webapp"
+      - "com.jstack.component=database"
 
 volumes:
   lamp_database_data:
     name: "lamp-database-data-${DOMAIN_SAFE}"
     labels:
-      - "com.jarvisjr.template=lamp-webapp"
-      - "com.jarvisjr.component=database"
+      - "com.jstack.template=lamp-webapp"
+      - "com.jstack.component=database"
 
 networks:
-  jarvisjr-private:
+  jstack-private:
     external: true

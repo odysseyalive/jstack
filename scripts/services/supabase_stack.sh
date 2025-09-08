@@ -1,5 +1,5 @@
 #!/bin/bash
-# Supabase Stack Service Module for JarvisJR Stack
+# Supabase Stack Service Module for JStack
 # Handles PostgreSQL, Supabase API, Studio, Kong, Auth, REST, Realtime, Storage, and Meta services
 
 # Set script directory and source dependencies
@@ -41,7 +41,7 @@ setup_supabase_containers() {
     
     # Create Supabase environment file
     cat > /tmp/supabase.env << EOF
-# Supabase Configuration for JarvisJR Stack
+# Supabase Configuration for JStack
 POSTGRES_PASSWORD=$postgres_password
 POSTGRES_DB=$SUPABASE_DB_NAME
 POSTGRES_USER=postgres
@@ -340,7 +340,7 @@ services:
       STUDIO_PG_META_URL: http://supabase-meta:8080
       POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}
       DEFAULT_ORGANIZATION_NAME: \${ORGANIZATION}
-      DEFAULT_PROJECT_NAME: JarvisJR Stack
+      DEFAULT_PROJECT_NAME: JStack
       SUPABASE_URL: \${API_EXTERNAL_URL}
       SUPABASE_ANON_KEY: \${ANON_KEY}
       SUPABASE_SERVICE_KEY: \${SERVICE_ROLE_KEY}

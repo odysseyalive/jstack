@@ -1,5 +1,5 @@
 #!/bin/bash
-# System Cleanup and Uninstall Script for JarvisJR Stack
+# System Cleanup and Uninstall Script for JStack
 # Complete removal of all system components, containers, and configurations
 
 # Set script directory and source dependencies
@@ -16,18 +16,18 @@ export_config
 # 🛑 CONTAINER AND SERVICE CLEANUP
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Stop and remove all JarvisJR containers
+# Stop and remove all JStack containers
 cleanup_containers() {
     log_section "Stopping and Removing All Containers"
     
     if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would stop and remove all JarvisJR containers"
+        log_info "[DRY-RUN] Would stop and remove all JStack containers"
         return 0
     fi
     
     start_section_timer "Container Cleanup"
     
-    # List of JarvisJR container names
+    # List of JStack container names
     local containers=(
         "nginx-proxy"
         "certbot"
@@ -44,7 +44,7 @@ cleanup_containers() {
     )
     
     # Stop containers gracefully first
-    log_info "Stopping JarvisJR containers gracefully"
+    log_info "Stopping JStack containers gracefully"
     for container in "${containers[@]}"; do
         if docker ps -q --filter "name=$container" | grep -q .; then
             log_info "Stopping container: $container"
@@ -53,7 +53,7 @@ cleanup_containers() {
     done
     
     # Remove containers
-    log_info "Removing JarvisJR containers"
+    log_info "Removing JStack containers"
     for container in "${containers[@]}"; do
         if docker ps -aq --filter "name=$container" | grep -q .; then
             log_info "Removing container: $container"
@@ -61,8 +61,8 @@ cleanup_containers() {
         fi
     done
     
-    # Force kill any remaining containers with JarvisJR-related names
-    log_info "Cleaning up any remaining JarvisJR containers"
+    # Force kill any remaining containers with JStack-related names
+    log_info "Cleaning up any remaining JStack containers"
     local remaining_containers=$(docker ps -aq --filter "name=supabase" --filter "name=n8n" --filter "name=nginx-proxy" --filter "name=certbot" 2>/dev/null || true)
     if [[ -n "$remaining_containers" ]]; then
         echo "$remaining_containers" | xargs -r docker rm -f >/dev/null 2>&1 || true
@@ -84,7 +84,7 @@ cleanup_docker_volumes() {
     
     start_section_timer "Volume Cleanup"
     
-    # List of JarvisJR volume patterns
+    # List of JStack volume patterns
     local volume_patterns=(
         "supabase_*"
         "n8n_*"
@@ -111,7 +111,7 @@ cleanup_docker_volumes() {
         done
         log_success "Docker volumes removed"
     else
-        log_info "No JarvisJR Docker volumes found to remove"
+        log_info "No JStack Docker volumes found to remove"
     fi
     
     end_section_timer "Volume Cleanup"
@@ -129,7 +129,7 @@ cleanup_docker_networks() {
     
     start_section_timer "Network Cleanup"
     
-    # List of JarvisJR networks
+    # List of JStack networks
     local networks=(
         "$JARVIS_NETWORK"
         "$PUBLIC_TIER"
@@ -162,13 +162,13 @@ cleanup_docker_images() {
     log_section "Removing Docker Images"
     
     if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would remove JarvisJR Docker images"
+        log_info "[DRY-RUN] Would remove JStack Docker images"
         return 0
     fi
     
     start_section_timer "Image Cleanup"
     
-    # List of image names used by JarvisJR
+    # List of image names used by JStack
     local image_patterns=(
         "postgres:15-alpine"
         "kong:3.4-alpine"
@@ -181,7 +181,7 @@ cleanup_docker_images() {
         "alpine:latest"
     )
     
-    log_info "Removing JarvisJR Docker images"
+    log_info "Removing JStack Docker images"
     
     # Remove images by pattern
     for pattern in "${image_patterns[@]}"; do
@@ -218,7 +218,7 @@ cleanup_systemd_services() {
     
     start_section_timer "Systemd Cleanup"
     
-    # List of JarvisJR systemd units
+    # List of JStack systemd units
     local systemd_units=(
         "jarvis-ssl-renewal.service"
         "jarvis-ssl-renewal.timer"
@@ -446,13 +446,13 @@ cleanup_system_configurations() {
     
     start_section_timer "System Config Cleanup"
     
-    # Remove any JarvisJR-related entries from system files
+    # Remove any JStack-related entries from system files
     log_info "Cleaning up system configuration files"
     
-    # Clean up hosts file (remove any JarvisJR entries)
+    # Clean up hosts file (remove any JStack entries)
     if [[ -f "/etc/hosts" ]]; then
-        sed -i '/# JarvisJR Stack/d' /etc/hosts 2>/dev/null || true
-        sed -i "/$DOMAIN.*# JarvisJR/d" /etc/hosts 2>/dev/null || true
+        sed -i '/# JStack/d' /etc/hosts 2>/dev/null || true
+        sed -i "/$DOMAIN.*# JStack/d" /etc/hosts 2>/dev/null || true
     fi
     
     # Clean up any cron jobs for the service user
@@ -530,7 +530,7 @@ preserve_backups() {
 uninstall_complete_system() {
     local remove_chrome_flag="$1"
     
-    log_section "Complete JarvisJR Stack Uninstallation"
+    log_section "Complete JStack Uninstallation"
     
     # Initialize timing
     init_timing_system
@@ -600,14 +600,14 @@ uninstall_complete_system() {
     
     # Report results
     if [[ ${#failed_steps[@]} -eq 0 ]]; then
-        log_success "Complete JarvisJR Stack uninstallation completed successfully"
+        log_success "Complete JStack uninstallation completed successfully"
         
         if [[ -f "/tmp/jarvis-backup-location.txt" ]]; then
             local backup_location=$(cat /tmp/jarvis-backup-location.txt)
             log_info "Preserved backups location: $backup_location"
         fi
         
-        log_info "System is now clean - JarvisJR Stack has been completely removed"
+        log_info "System is now clean - JStack has been completely removed"
         return 0
     else
         log_error "Uninstallation completed with ${#failed_steps[@]} failed steps:"
@@ -684,7 +684,7 @@ main() {
             preserve_backups
             ;;
         *)
-            echo "JarvisJR Stack Cleanup and Uninstall Script"
+            echo "JStack Cleanup and Uninstall Script"
             echo ""
             echo "Usage: $0 [COMMAND] [OPTIONS]"
             echo ""
@@ -716,7 +716,7 @@ main() {
             echo "Environment Variables:"
             echo "  DRY_RUN=true           # Test mode - show what would be done"
             echo ""
-            echo "⚠️  WARNING: Complete uninstallation will remove ALL JarvisJR Stack components!"
+            echo "⚠️  WARNING: Complete uninstallation will remove ALL JStack components!"
             echo "   Backups will be preserved automatically in /tmp during complete uninstallation."
             exit 1
             ;;

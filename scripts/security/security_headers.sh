@@ -1,5 +1,5 @@
 #!/bin/bash
-# Security Headers and Web Application Firewall Module for JarvisJR Stack
+# Security Headers and Web Application Firewall Module for JStack Stack
 # Implements comprehensive OWASP security headers and basic WAF functionality
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,7 +29,7 @@ create_security_headers_config() {
     
     # Comprehensive security headers configuration
     cat > /tmp/security-headers.conf << 'EOF'
-# Comprehensive Security Headers for JarvisJR Stack
+# Comprehensive Security Headers for JStack Stack
 # Based on OWASP recommendations and modern security best practices
 
 # ═════════════════════════════════════════════════════════════════
@@ -133,7 +133,7 @@ more_clear_headers "X-Powered-By";
 server_tokens off;
 
 # Custom security identifier (optional)
-add_header X-Security-Stack "JarvisJR-Enhanced" always;
+add_header X-Security-Stack "JStack-Enhanced" always;
 
 # ═════════════════════════════════════════════════════════════════
 # CONDITIONAL HEADERS BASED ON ENVIRONMENT
@@ -187,8 +187,8 @@ location /csp-report {
     limit_req zone=api_strict burst=10 nodelay;
     
     # Log CSP violations
-    access_log /home/jarvis/jarvis-stack/logs/nginx/csp-violations.log main;
-    error_log /home/jarvis/jarvis-stack/logs/nginx/csp-errors.log;
+    access_log /home/jarvis/jstack/logs/nginx/csp-violations.log main;
+    error_log /home/jarvis/jstack/logs/nginx/csp-errors.log;
     
     # Return success response
     return 204;
@@ -249,7 +249,7 @@ create_waf_rules() {
     
     # Comprehensive WAF rules
     cat > /tmp/waf-rules.conf << 'EOF'
-# Web Application Firewall Rules for JarvisJR Stack
+# Web Application Firewall Rules for JStack Stack
 # Based on OWASP Core Rule Set patterns
 
 # ═════════════════════════════════════════════════════════════════
@@ -258,14 +258,14 @@ create_waf_rules() {
 
 # Block SQL injection patterns in query strings
 location ~ "(\?|&|;|=).*(union|select|insert|delete|update|drop|create|alter|exec|execute)" {
-    access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+    access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
     return 403 "SQL injection attempt blocked";
 }
 
 # Block SQL injection in POST body (basic detection)
 location ~ ".*" {
     if ($request_body ~ "(union|select|insert|delete|update|drop|create|alter|exec|execute).*(from|into|where|table|database|information_schema)") {
-        access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+        access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
         return 403 "SQL injection in body blocked";
     }
 }
@@ -276,14 +276,14 @@ location ~ ".*" {
 
 # Block XSS patterns
 location ~ "(\?|&|;|=|<|>|%3C|%3E).*(script|javascript|vbscript|onload|onerror|onclick)" {
-    access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+    access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
     return 403 "XSS attempt blocked";
 }
 
 # Block HTML injection attempts
 location ~ ".*" {
     if ($args ~ "(<|%3C).*(>|%3E|script|iframe|object|embed|form)") {
-        access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+        access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
         return 403 "HTML injection blocked";
     }
 }
@@ -294,13 +294,13 @@ location ~ ".*" {
 
 # Block directory traversal attempts
 location ~ "(\.\./|\.\.%2F|\.\.%2f|\.\.%5C|\.\.%5c)" {
-    access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+    access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
     return 403 "Directory traversal blocked";
 }
 
 # Block null byte attacks
 location ~ ".*%00.*" {
-    access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+    access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
     return 403 "Null byte attack blocked";
 }
 
@@ -310,13 +310,13 @@ location ~ ".*%00.*" {
 
 # Block local/remote file inclusion attempts
 location ~ "(include|require|include_once|require_once).*(php://|file://|http://|https://|ftp://)" {
-    access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+    access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
     return 403 "File inclusion attempt blocked";
 }
 
 # Block sensitive file access attempts
 location ~ "\.(env|config|conf|ini|log|bak|backup|old|tmp|temp|swp|~)$" {
-    access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+    access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
     return 403 "Sensitive file access blocked";
 }
 
@@ -327,7 +327,7 @@ location ~ "\.(env|config|conf|ini|log|bak|backup|old|tmp|temp|swp|~)$" {
 # Block command injection patterns
 location ~ "(\?|&|;|=).*(;|%3B|\||%7C|&|%26|\$|%24|`|%60)" {
     if ($args ~ "(whoami|id|pwd|ls|cat|wget|curl|nc|netcat|bash|sh|cmd|powershell)") {
-        access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+        access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
         return 403 "Command injection blocked";
     }
 }
@@ -339,12 +339,12 @@ location ~ "(\?|&|;|=).*(;|%3B|\||%7C|&|%26|\$|%24|`|%60)" {
 # Block empty or suspicious user agents
 location ~ ".*" {
     if ($http_user_agent = "") {
-        access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+        access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
         return 403 "Empty user agent blocked";
     }
     
     if ($http_user_agent ~* "(sqlmap|nmap|masscan|nikto|havij|libwww|python|perl|ruby|curl|wget)") {
-        access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+        access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
         return 403 "Scanning tool blocked";
     }
 }
@@ -352,7 +352,7 @@ location ~ ".*" {
 # Block suspicious referrers
 location ~ ".*" {
     if ($http_referer ~* "(viagra|casino|poker|porn|sex|adult|pills|pharmacy)") {
-        access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+        access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
         return 403 "Spam referrer blocked";
     }
 }
@@ -363,13 +363,13 @@ location ~ ".*" {
 
 # Protect against common CMS vulnerabilities
 location ~* "(wp-admin|wp-login|wp-config|wp-content|wordpress|drupal|joomla|magento)" {
-    access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+    access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
     return 404 "CMS path not found";
 }
 
 # Block access to common admin paths
 location ~* "/(admin|administrator|manager|control|panel|cpanel|plesk|phpmyadmin|adminer)" {
-    access_log /home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log;
+    access_log /home/jarvis/jstack/logs/nginx/waf-blocks.log;
     return 404 "Admin path not found";
 }
 
@@ -433,14 +433,14 @@ create_waf_monitoring_script() {
     
     cat > /tmp/waf-monitor.sh << 'EOF'
 #!/bin/bash
-# WAF Monitoring and Reporting Script for JarvisJR Stack
+# WAF Monitoring and Reporting Script for JStack Stack
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
 
-WAF_LOG="/home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log"
-ACCESS_LOG="/home/jarvis/jarvis-stack/logs/nginx/access.log"
-REPORT_DIR="/home/jarvis/jarvis-stack/logs/security"
+WAF_LOG="/home/jarvis/jstack/logs/nginx/waf-blocks.log"
+ACCESS_LOG="/home/jarvis/jstack/logs/nginx/access.log"
+REPORT_DIR="/home/jarvis/jstack/logs/security"
 
 # Ensure report directory exists
 mkdir -p "$REPORT_DIR"
@@ -456,7 +456,7 @@ analyze_waf_blocks() {
     local report_file="$REPORT_DIR/waf-analysis-$(date +%Y%m%d_%H%M%S).txt"
     
     {
-        echo "JarvisJR Stack WAF Analysis Report"
+        echo "JStack Stack WAF Analysis Report"
         echo "Generated: $(date)"
         echo "========================================"
         echo ""
@@ -565,7 +565,7 @@ case "${1:-analyze}" in
         generate_security_dashboard
         ;;
     *) echo "Usage: $0 [analyze|monitor|dashboard|all]"
-       echo "WAF monitoring and analysis for JarvisJR Stack" ;;
+       echo "WAF monitoring and analysis for JStack Stack" ;;
 esac
 EOF
     
@@ -583,7 +583,7 @@ main() {
             create_waf_rules
             ;;
         *) echo "Usage: $0 [setup|headers|waf|all]"
-           echo "Security headers and WAF for JarvisJR Stack" ;;
+           echo "Security headers and WAF for JStack Stack" ;;
     esac
 }
 

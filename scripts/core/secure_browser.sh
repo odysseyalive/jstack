@@ -1,5 +1,5 @@
 #!/bin/bash
-# Secure Browser Automation for JarvisJR Stack
+# Secure Browser Automation for COMPASS Stack
 # Implements containerized Chrome with proper security constraints
 
 # Set script directory and source dependencies

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Common utilities and functions for JarvisJR Stack
+# Common utilities and functions for JStack
 # Provides logging, progress tracking, validation, and shared utilities
 
 # Get script directory and project root
@@ -92,7 +92,7 @@ log_interrupted_exit() {
 log_success_exit() {
     local duration=$(($(date +%s) - SCRIPT_START_EPOCH))
     log_success "Setup completed successfully in ${duration}s"
-    echo -e "\n${GREEN}🎉 JarvisJR Stack setup completed successfully!${NC}"
+    echo -e "\n${GREEN}🎉 JStack setup completed successfully!${NC}"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════

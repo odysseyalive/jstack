@@ -1,5 +1,5 @@
 #!/bin/bash
-# Container orchestration for JarvisJR Stack
+# Container orchestration for COMPASS Stack
 # Handles Supabase, N8N, NGINX, and site management
 
 # Set script directory and source dependencies
@@ -41,7 +41,7 @@ setup_supabase_containers() {
     
     # Create Supabase environment file
     cat > /tmp/supabase.env << EOF
-# Supabase Configuration for JarvisJR Stack
+# Supabase Configuration for COMPASS Stack
 POSTGRES_PASSWORD=$postgres_password
 POSTGRES_DB=$SUPABASE_DB_NAME
 POSTGRES_USER=postgres
@@ -340,7 +340,7 @@ services:
       STUDIO_PG_META_URL: http://supabase-meta:8080
       POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}
       DEFAULT_ORGANIZATION_NAME: \${ORGANIZATION}
-      DEFAULT_PROJECT_NAME: JarvisJR Stack
+      DEFAULT_PROJECT_NAME: COMPASS Stack
       SUPABASE_URL: \${API_EXTERNAL_URL}
       SUPABASE_ANON_KEY: \${ANON_KEY}
       SUPABASE_SERVICE_KEY: \${SERVICE_ROLE_KEY}
@@ -847,7 +847,7 @@ setup_n8n_container() {
     
     # Create N8N environment file
     cat > /tmp/n8n.env << EOF
-# N8N Configuration for JarvisJR Stack
+# N8N Configuration for COMPASS Stack
 N8N_HOST=0.0.0.0
 N8N_PORT=5678
 N8N_PROTOCOL=https

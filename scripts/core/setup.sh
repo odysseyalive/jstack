@@ -1,5 +1,5 @@
 #!/bin/bash
-# System setup and initialization for JarvisJR Stack
+# System setup and initialization for COMPASS Stack
 # Handles OS hardening, user setup, and prerequisite installation
 
 # Set script directory and source dependencies
@@ -123,7 +123,7 @@ EOF
     # Configure system security settings
     log_info "Applying system security settings"
     cat > /tmp/99-security.conf << EOF
-# Kernel security settings for JarvisJR Stack
+# Kernel security settings for COMPASS Stack
 kernel.dmesg_restrict = 1
 kernel.kptr_restrict = 2
 kernel.yama.ptrace_scope = 1
@@ -152,7 +152,7 @@ EOF
     if [[ "$AUDIT_LOGGING" == "true" ]]; then
         log_info "Configuring audit logging"
         cat > /tmp/audit.rules << EOF
-# JarvisJR Stack audit rules
+# COMPASS Stack audit rules
 -D
 -b 8192
 -f 1
@@ -575,7 +575,7 @@ setup_compliance_monitoring() {
 
 # Main setup function
 run_setup() {
-    log_section "JarvisJR Stack System Setup"
+    log_section "COMPASS Stack System Setup"
     
     # Initialize timing
     init_timing_system

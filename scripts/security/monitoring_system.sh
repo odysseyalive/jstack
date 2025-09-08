@@ -1,5 +1,5 @@
 #!/bin/bash
-# Security Monitoring & Alerting System for JarvisJR Stack
+# Security Monitoring & Alerting System for jstack
 # Implements centralized logging, event correlation, metrics dashboard, and compliance monitoring
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -49,23 +49,23 @@ create_log_aggregator() {
     
     cat > /tmp/log-aggregator.sh << 'EOF'
 #!/bin/bash
-# Centralized Log Aggregator for JarvisJR Stack Security Events
+# Centralized Log Aggregator for jstack Security Events
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
 
 # Configuration
-CENTRAL_LOG="/home/jarvis/jarvis-stack/security/monitoring/logs/security-events.log"
-CORRELATION_LOG="/home/jarvis/jarvis-stack/security/monitoring/logs/correlation-events.log"
-METRICS_LOG="/home/jarvis/jarvis-stack/security/monitoring/logs/security-metrics.log"
+CENTRAL_LOG="${BASE_DIR}/security/monitoring/logs/security-events.log"
+CORRELATION_LOG="${BASE_DIR}/security/monitoring/logs/correlation-events.log"
+METRICS_LOG="${BASE_DIR}/security/monitoring/logs/security-metrics.log"
 
 # Log sources
 FAIL2BAN_LOG="/var/log/fail2ban.log"
-NGINX_ACCESS_LOG="/home/jarvis/jarvis-stack/logs/nginx/access.log"
-NGINX_ERROR_LOG="/home/jarvis/jarvis-stack/logs/nginx/error.log"
-WAF_LOG="/home/jarvis/jarvis-stack/logs/nginx/waf-blocks.log"
-THREAT_LOG="/home/jarvis/jarvis-stack/logs/security/threats.log"
-INCIDENT_LOG="/home/jarvis/jarvis-stack/logs/security/incidents.log"
+NGINX_ACCESS_LOG="${BASE_DIR}/logs/nginx/access.log"
+NGINX_ERROR_LOG="${BASE_DIR}/logs/nginx/error.log"
+WAF_LOG="${BASE_DIR}/logs/nginx/waf-blocks.log"
+THREAT_LOG="${BASE_DIR}/logs/security/threats.log"
+INCIDENT_LOG="${BASE_DIR}/logs/security/incidents.log"
 
 # Ensure directories exist
 mkdir -p "$(dirname "$CENTRAL_LOG")"
@@ -259,7 +259,7 @@ case "${1:-aggregate}" in
     "waf") process_waf_logs ;;
     "threats") process_threat_logs ;;
     *) echo "Usage: $0 [aggregate|metrics|events|fail2ban|nginx|waf|threats]"
-       echo "Centralized log aggregation for JarvisJR Stack security" ;;
+       echo "Centralized log aggregation for jstack security" ;;
 esac
 EOF
     
@@ -274,14 +274,14 @@ create_event_correlation_engine() {
     
     cat > /tmp/event-correlator.sh << 'EOF'
 #!/bin/bash
-# Event Correlation Engine for JarvisJR Stack
+# Event Correlation Engine for jstack
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
 
-CENTRAL_LOG="/home/jarvis/jarvis-stack/security/monitoring/logs/security-events.log"
-CORRELATION_LOG="/home/jarvis/jarvis-stack/security/monitoring/logs/correlation-events.log"
-ALERT_LOG="/home/jarvis/jarvis-stack/security/monitoring/logs/security-alerts.log"
+CENTRAL_LOG="${BASE_DIR}/security/monitoring/logs/security-events.log"
+CORRELATION_LOG="${BASE_DIR}/security/monitoring/logs/correlation-events.log"
+ALERT_LOG="${BASE_DIR}/security/monitoring/logs/security-alerts.log"
 
 # Correlation rules and thresholds
 MULTI_SOURCE_THRESHOLD=3    # Same IP from 3+ sources
@@ -393,10 +393,10 @@ detect_traffic_anomalies() {
 
 # Generate correlation report
 generate_correlation_report() {
-    local report_file="/home/jarvis/jarvis-stack/security/monitoring/logs/correlation-report-$(date +%Y%m%d_%H%M%S).txt"
+    local report_file="${BASE_DIR}/security/monitoring/logs/correlation-report-$(date +%Y%m%d_%H%M%S).txt"
     
     {
-        echo "JarvisJR Stack Security Event Correlation Report"
+        echo "jstack Security Event Correlation Report"
         echo "Generated: $(date)"
         echo "=============================================="
         echo ""
@@ -439,7 +439,7 @@ run_correlation() {
 
 # Show correlation dashboard
 show_dashboard() {
-    echo "=== JarvisJR Security Correlation Dashboard ==="
+    echo "=== jstack Security Correlation Dashboard ==="
     echo "Last updated: $(date)"
     echo ""
     
@@ -488,7 +488,7 @@ case "${1:-correlate}" in
     "report") generate_correlation_report ;;
     "dashboard") show_dashboard ;;
     *) echo "Usage: $0 [correlate|coordinated|multi-source|escalation|anomalies|report|dashboard]"
-       echo "Event correlation engine for JarvisJR Stack security" ;;
+       echo "Event correlation engine for jstack security" ;;
 esac
 EOF
     
@@ -502,8 +502,8 @@ setup_log_management() {
     log_info "Setting up log rotation and retention"
     
     # Create logrotate configuration
-    cat > /tmp/jarvis-security-logs << EOF
-# Logrotate configuration for JarvisJR Stack security logs
+    cat > /tmp/jstack-security-logs << EOF
+# Logrotate configuration for jstack security logs
 $BASE_DIR/security/monitoring/logs/*.log {
     daily
     missingok
@@ -534,7 +534,7 @@ $BASE_DIR/logs/nginx/*.log {
 }
 EOF
     
-    execute_cmd "sudo mv /tmp/jarvis-security-logs /etc/logrotate.d/jarvis-security-logs" "Install logrotate config"
+    execute_cmd "sudo mv /tmp/jstack-security-logs /etc/logrotate.d/jstack-security-logs" "Install logrotate config"
 }
 
 # Main function
@@ -551,7 +551,7 @@ main() {
             fi
             ;;
         *) echo "Usage: $0 [setup|logging|test]"
-           echo "Security monitoring system for JarvisJR Stack" ;;
+           echo "Security monitoring system for jstack" ;;
     esac
 }
 

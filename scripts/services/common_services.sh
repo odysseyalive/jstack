@@ -1,5 +1,5 @@
 #!/bin/bash
-# Common Service Utilities for JarvisJR Stack
+# Common Service Utilities for JStack
 # Shared functions for service modules to reduce duplication
 
 # Set script directory and source dependencies

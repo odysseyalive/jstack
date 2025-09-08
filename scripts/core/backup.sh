@@ -1,5 +1,5 @@
 #!/bin/bash
-# Backup and Restore System for JarvisJR Stack
+# Backup and Restore System for COMPASS Stack
 # Handles complete system backup and restore with encryption and compression
 
 # Set script directory and source dependencies
@@ -292,7 +292,7 @@ backup_configurations_and_volumes() {
     # Backup Docker volumes (data only)
     log_info "Backing up Docker volumes"
     
-    # Get list of JarvisJR volumes
+    # Get list of COMPASS volumes
     local volumes=$(docker volume ls --filter "name=supabase" --filter "name=n8n" --format "{{.Name}}" 2>/dev/null || true)
     
     if [[ -n "$volumes" ]]; then

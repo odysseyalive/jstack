@@ -1,5 +1,5 @@
 #!/bin/bash
-# Configuration management for JarvisJR Stack
+# Configuration management for JStack
 # Single source of truth for configuration loading
 
 # Get script directory

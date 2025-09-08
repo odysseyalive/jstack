@@ -1,10 +1,10 @@
 # 🛠️ CLI Reference - jstack.sh Commands
 
-> Complete command-line reference for JarvisJR Stack management
+> Complete command-line reference for jstack management
 
 ## Overview
 
-The `jstack.sh` script is the main orchestrator for all JarvisJR Stack operations. It follows a modular architecture where all business logic is handled by specialized scripts, while the main CLI provides clean command routing.
+The `jstack.sh` script is the main orchestrator for all jstack operations. It follows a modular architecture where all business logic is handled by specialized scripts, while the main CLI provides clean command routing.
 
 ---
 
@@ -13,7 +13,7 @@ The `jstack.sh` script is the main orchestrator for all JarvisJR Stack operation
 ### Installation and Setup
 
 ```bash
-# Deploy complete JarvisJR Stack infrastructure
+# Deploy complete jstack infrastructure
 ./jstack.sh
 
 # Validate configuration before deployment
@@ -41,7 +41,7 @@ The `jstack.sh` script is the main orchestrator for all JarvisJR Stack operation
 # Complete system uninstall
 ./jstack.sh --uninstall
 
-# Update JarvisJR Stack from repository
+# Update jstack from repository
 ./jstack.sh --sync
 ```
 

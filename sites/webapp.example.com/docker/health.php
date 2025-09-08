@@ -1,7 +1,7 @@
 <?php
 /**
  * Health Check Script for LAMP WebApp Template
- * JarvisJR Stack Site Template System
+ * COMPASS Stack Site Template System
  */
 
 header('Content-Type: application/json');

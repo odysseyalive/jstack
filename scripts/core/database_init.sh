@@ -1,5 +1,5 @@
 #!/bin/bash
-# Database Initialization and Setup for JarvisJR Stack
+# Database Initialization and Setup for COMPASS Stack
 # Handles PostgreSQL database initialization, user creation, and N8N database setup
 
 # Set script directory and source dependencies

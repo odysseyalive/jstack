@@ -1,5 +1,5 @@
 #!/bin/bash
-# Network Security Validation and Testing Module for JarvisJR Stack
+# Network Security Validation and Testing Module for JStack Stack
 # Validates all network security implementations and provides comprehensive testing
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -39,12 +39,12 @@ validate_fail2ban_setup() {
         ((failed++))
     fi
     
-    # Check JarvisJR jail configuration
-    if [[ -f "/etc/fail2ban/jail.d/jarvis-stack.local" ]]; then
-        validation_results+=("✅ JarvisJR jail configuration exists")
+    # Check JStack jail configuration
+    if [[ -f "/etc/fail2ban/jail.d/jstack.local" ]]; then
+        validation_results+=("✅ JStack jail configuration exists")
         ((passed++))
     else
-        validation_results+=("❌ JarvisJR jail configuration missing")
+        validation_results+=("❌ JStack jail configuration missing")
         ((failed++))
     fi
     
@@ -486,7 +486,7 @@ generate_network_security_report() {
     mkdir -p "$(dirname "$report_file")"
     
     {
-        echo "JarvisJR Stack Network Security Assessment Report"
+        echo "JStack Stack Network Security Assessment Report"
         echo "Generated: $(date)"
         echo "=============================================="
         echo ""

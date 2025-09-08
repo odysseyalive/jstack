@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# JarvisJR Stack Automated Incident Response System
+# JStack Automated Incident Response System
 # Phase 4: Monitoring & Alerting - Incident Response Workflows
 # Provides automated incident detection, response, and recovery workflows
 
@@ -12,10 +12,10 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "${PROJECT_ROOT}/scripts/lib/common.sh"
 
 # Global variables
-INCIDENT_DIR="/opt/jarvis-security/incidents"
-RESPONSE_DIR="/opt/jarvis-security/response"
-PLAYBOOKS_DIR="/opt/jarvis-security/playbooks"
-QUARANTINE_DIR="/opt/jarvis-security/quarantine"
+INCIDENT_DIR="/opt/jstack-security/incidents"
+RESPONSE_DIR="/opt/jstack-security/response"
+PLAYBOOKS_DIR="/opt/jstack-security/playbooks"
+QUARANTINE_DIR="/opt/jstack-security/quarantine"
 
 # Initialize incident response system
 init_incident_response() {
@@ -138,10 +138,10 @@ from pathlib import Path
 from typing import Dict, List, Any
 
 class IncidentResponseEngine:
-    def __init__(self, db_path="/opt/jarvis-security/incidents/incidents.db"):
+    def __init__(self, db_path="/opt/jstack-security/incidents/incidents.db"):
         self.db_path = db_path
-        self.playbooks_dir = "/opt/jarvis-security/playbooks"
-        self.quarantine_dir = "/opt/jarvis-security/quarantine"
+        self.playbooks_dir = "/opt/jstack-security/playbooks"
+        self.quarantine_dir = "/opt/jstack-security/quarantine"
         
     def create_incident(self, severity: str, category: str, title: str, 
                        description: str = "", source_ip: str = None, 
@@ -377,7 +377,7 @@ class IncidentResponseEngine:
         """Collect logs for evidence"""
         try:
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            evidence_dir = f"/opt/jarvis-security/evidence/logs_{timestamp}"
+            evidence_dir = f"/opt/jstack-security/evidence/logs_{timestamp}"
             os.makedirs(evidence_dir, exist_ok=True)
             
             for source in log_sources:
@@ -397,7 +397,7 @@ class IncidentResponseEngine:
         """Send alert notification"""
         try:
             # Use the existing alerting system
-            alert_script = "/opt/jarvis-security/scripts/send_alert.sh"
+            alert_script = "/opt/jstack-security/scripts/send_alert.sh"
             if Path(alert_script).exists():
                 subprocess.run(['bash', alert_script, urgency, message], check=True)
                 return True
@@ -412,7 +412,7 @@ class IncidentResponseEngine:
     def backup_evidence(self, incident_id: str, sources: List[str]) -> bool:
         """Backup evidence for incident"""
         try:
-            evidence_dir = f"/opt/jarvis-security/evidence/{incident_id}"
+            evidence_dir = f"/opt/jstack-security/evidence/{incident_id}"
             os.makedirs(evidence_dir, exist_ok=True)
             
             for source in sources:
@@ -611,7 +611,7 @@ create_response_playbooks() {
             "description": "Backup attack evidence",
             "sources": [
                 "/var/log/auth.log",
-                "/opt/jarvis-security/logs/security.log"
+                "/opt/jstack-security/logs/security.log"
             ]
         }
     ]
@@ -658,7 +658,7 @@ EOF
             "type": "backup_evidence",
             "description": "Backup malware evidence",
             "sources": [
-                "/opt/jarvis-security/quarantine/",
+                "/opt/jstack-security/quarantine/",
                 "/var/log/syslog"
             ]
         }
@@ -688,7 +688,7 @@ EOF
             "sources": [
                 "/var/log/syslog",
                 "/var/log/auth.log",
-                "/opt/jarvis-security/logs/security.log"
+                "/opt/jstack-security/logs/security.log"
             ]
         },
         {
@@ -696,7 +696,7 @@ EOF
             "description": "Backup incident evidence", 
             "sources": [
                 "/var/log/",
-                "/opt/jarvis-security/logs/"
+                "/opt/jstack-security/logs/"
             ]
         }
     ]
@@ -727,7 +727,7 @@ class IncidentMonitor:
         self.monitored_logs = [
             "/var/log/auth.log",
             "/var/log/fail2ban.log", 
-            "/opt/jarvis-security/logs/security.log"
+            "/opt/jstack-security/logs/security.log"
         ]
         self.last_positions = {}
         
@@ -893,7 +893,7 @@ create_incident_service() {
     
     cat > "/tmp/jarvis-incident-monitor.service" << EOF
 [Unit]
-Description=JarvisJR Incident Response Monitor
+Description=jstack Incident Response Monitor
 After=network.target
 
 [Service]
@@ -1006,7 +1006,7 @@ validate_incident_response() {
 # Script usage information
 show_help() {
     cat << EOF
-JarvisJR Automated Incident Response System
+jstack Automated Incident Response System
 
 USAGE:
     bash incident_response.sh [COMMAND]
@@ -1053,7 +1053,7 @@ FILES CREATED:
 
 LOGS:
     journalctl -u jarvis-incident-monitor    - Service logs
-    /opt/jarvis-security/logs/incidents.log  - Incident logs
+    /opt/jstack-security/logs/incidents.log  - Incident logs
 
 EOF
 }

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Service Orchestration and Dependency Management for JarvisJR Stack
+# Service Orchestration and Dependency Management for COMPASS Stack
 # Handles proper service startup coordination, health checks, and dependency management
 
 # Set script directory and source dependencies
@@ -468,7 +468,7 @@ system_health_check() {
     local all_services=($(docker ps --filter "label=com.docker.compose.project" --format '{{.Names}}' | grep -E "(supabase|n8n|jarvis|nginx)" | sort))
     
     if [[ ${#all_services[@]} -eq 0 ]]; then
-        log_warning "No JarvisJR Stack services found running"
+        log_warning "No COMPASS Stack services found running"
         return 1
     fi
     
@@ -526,7 +526,7 @@ main() {
             system_health_check
             ;;
         *)
-            echo "JarvisJR Stack Service Orchestration"
+            echo "COMPASS Stack Service Orchestration"
             echo ""
             echo "Usage: $0 [COMMAND] [SERVICE_NAME]"
             echo ""

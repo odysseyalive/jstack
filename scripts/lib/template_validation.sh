@@ -1,5 +1,5 @@
 #!/bin/bash
-# JarvisJR Stack Template Validation Framework
+# JStack Template Validation Framework
 # Validates site templates for security, structure, and configuration compliance
 
 set -e
@@ -169,15 +169,15 @@ validate_template_compatibility() {
     
     log_info "Validating template compatibility: $template_name"
     
-    # Check JarvisJR Stack compatibility
+    # Check JStack compatibility
     local template_json="$template_path/template.json"
     
     if command -v jq &> /dev/null; then
         # Check network compatibility
         local docker_compose="$template_path/docker/docker-compose.yml"
         if [[ -f "$docker_compose" ]]; then
-            if ! grep -q "jarvisjr-private" "$docker_compose"; then
-                log_error "Docker Compose must use jarvisjr-private network"
+            if ! grep -q "jstack-private" "$docker_compose"; then
+                log_error "Docker Compose must use jstack-private network"
                 return 1
             fi
         fi
