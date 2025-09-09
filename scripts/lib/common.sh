@@ -315,6 +315,224 @@ generate_secret() {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 🐳 DOCKER DAEMON FAILURE PREVENTION SYSTEM
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Multi-layer Docker daemon health validation
+validate_docker_daemon_health() {
+    local timeout="${1:-${DOCKER_DAEMON_RESTART_TIMEOUT:-90}}"
+    local check_interval="${2:-${DOCKER_HEALTH_CHECK_INTERVAL:-3}}"
+    local elapsed=0
+    local validation_layers=("basic" "socket" "runtime" "security")
+    
+    log_info "Validating Docker daemon health (timeout: ${timeout}s)"
+    
+    while [ $elapsed -lt $timeout ]; do
+        local all_layers_passed=true
+        
+        for layer in "${validation_layers[@]}"; do
+            case $layer in
+                "basic")
+                    # Layer 1: Basic systemd status check
+                    if ! systemctl is-active docker &>/dev/null; then
+                        log_info "Layer 1 (Basic): Docker service not active"
+                        all_layers_passed=false
+                        break
+                    fi
+                    ;;
+                "socket")
+                    # Layer 2: Docker socket accessibility
+                    if ! sudo docker version &>/dev/null; then
+                        log_info "Layer 2 (Socket): Docker socket not accessible"
+                        all_layers_passed=false
+                        break
+                    fi
+                    ;;
+                "runtime")
+                    # Layer 3: Container runtime functionality
+                    if ! sudo docker info &>/dev/null; then
+                        log_info "Layer 3 (Runtime): Docker runtime not functional"
+                        all_layers_passed=false
+                        break
+                    fi
+                    ;;
+                "security")
+                    # Layer 4: Security profile integrity
+                    if [[ -f /etc/docker/daemon.json ]] && ! jq . /etc/docker/daemon.json &>/dev/null; then
+                        log_info "Layer 4 (Security): Docker daemon.json invalid"
+                        all_layers_passed=false
+                        break
+                    fi
+                    ;;
+            esac
+        done
+        
+        if $all_layers_passed; then
+            log_success "All Docker daemon health layers validated successfully"
+            return 0
+        fi
+        
+        sleep "$check_interval"
+        elapsed=$((elapsed + check_interval))
+    done
+    
+    log_error "Docker daemon health validation failed after ${timeout}s"
+    return 1
+}
+
+# Pre-restart safety checks
+validate_docker_pre_restart() {
+    log_info "Performing Docker pre-restart safety checks"
+    
+    # Check 1: Container management capability
+    if ! sudo docker ps --format "table {{.Names}}	{{.Status}}" &>/dev/null; then
+        log_warning "Docker container management check failed"
+        return 1
+    fi
+    
+    # Check 2: Daemon configuration JSON validity
+    if [[ -f /etc/docker/daemon.json ]]; then
+        if ! jq . /etc/docker/daemon.json &>/dev/null; then
+            log_error "Docker daemon.json contains invalid JSON - restart aborted"
+            return 1
+        fi
+        log_info "Docker daemon.json validation passed"
+    fi
+    
+    # Check 3: Seccomp profile verification (if present)
+    if [[ -f /etc/docker/seccomp.json ]]; then
+        if ! jq . /etc/docker/seccomp.json &>/dev/null; then
+            log_error "Docker seccomp.json contains invalid JSON - restart aborted"
+            return 1
+        fi
+        log_info "Docker seccomp.json validation passed"
+    fi
+    
+    # Check 4: Service user permissions
+    if [[ -n "${SERVICE_USER:-}" ]]; then
+        if ! groups "$SERVICE_USER" | grep -q docker; then
+            log_warning "Service user $SERVICE_USER not in docker group"
+        fi
+    fi
+    
+    log_success "Docker pre-restart safety checks completed"
+    return 0
+}
+
+# Comprehensive safe Docker daemon restart with emergency recovery
+safe_docker_daemon_restart() {
+    local operation_description="${1:-Docker daemon restart}"
+    local max_restart_attempts="${2:-3}"
+    local emergency_recovery="${3:-true}"
+    
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Would perform safe Docker daemon restart: $operation_description"
+        return 0
+    fi
+    
+    log_section "Safe Docker Daemon Restart: $operation_description"
+    
+    # Phase 1: Pre-restart validation
+    if ! validate_docker_pre_restart; then
+        log_error "Pre-restart validation failed - restart aborted"
+        return 1
+    fi
+    
+    # Phase 2: Attempt restart with comprehensive recovery
+    local attempt=1
+    while [[ $attempt -le $max_restart_attempts ]]; do
+        log_info "Docker restart attempt $attempt/$max_restart_attempts"
+        
+        # Perform the restart
+        if sudo systemctl restart docker; then
+            log_info "Docker service restart command succeeded (attempt $attempt)"
+            
+            # Phase 3: Post-restart health validation
+            if validate_docker_daemon_health; then
+                log_success "Docker daemon restart completed successfully"
+                return 0
+            else
+                log_warning "Docker daemon restart succeeded but health validation failed (attempt $attempt)"
+            fi
+        else
+            log_error "Docker service restart command failed (attempt $attempt)"
+        fi
+        
+        # Phase 4: Inter-attempt recovery if not final attempt
+        if [[ $attempt -lt $max_restart_attempts ]]; then
+            log_info "Preparing for next restart attempt..."
+            
+            # Stop docker service cleanly
+            sudo systemctl stop docker 2>/dev/null || true
+            sleep 3
+            
+            # Clear any stale docker processes
+            sudo pkill -f dockerd 2>/dev/null || true
+            sleep 2
+            
+            # Clean up docker runtime state if needed
+            if [[ -d /var/run/docker ]]; then
+                sudo rm -rf /var/run/docker/runtime-runc/moby/* 2>/dev/null || true
+            fi
+            
+            log_info "Inter-attempt cleanup completed"
+        fi
+        
+        ((attempt++))
+    done
+    
+    # Phase 5: Emergency recovery procedures
+    if [[ "$emergency_recovery" == "true" ]]; then
+        log_warning "All restart attempts failed - initiating emergency recovery"
+        
+        # Emergency step 1: Full service reset
+        log_info "Emergency recovery: Full Docker service reset"
+        sudo systemctl stop docker 2>/dev/null || true
+        sleep 5
+        
+        # Emergency step 2: Clean stale processes and state
+        log_info "Emergency recovery: Cleaning stale Docker processes"
+        sudo pkill -9 -f dockerd 2>/dev/null || true
+        sudo pkill -9 -f docker-containerd 2>/dev/null || true
+        sleep 3
+        
+        # Emergency step 3: Remove problematic runtime state
+        log_info "Emergency recovery: Clearing Docker runtime state"
+        sudo rm -rf /var/run/docker/* 2>/dev/null || true
+        sudo rm -rf /var/lib/docker/tmp/* 2>/dev/null || true
+        
+        # Emergency step 4: Reset daemon configuration if corrupted
+        if [[ -f /etc/docker/daemon.json ]] && ! jq . /etc/docker/daemon.json &>/dev/null; then
+            log_warning "Emergency recovery: Backing up corrupted daemon.json"
+            sudo cp /etc/docker/daemon.json "/etc/docker/daemon.json.corrupted.$(date +%s)" 2>/dev/null || true
+            sudo rm -f /etc/docker/daemon.json
+        fi
+        
+        # Emergency step 5: Final restart attempt
+        log_info "Emergency recovery: Final Docker restart attempt"
+        if sudo systemctl start docker && validate_docker_daemon_health 60 2; then
+            log_success "Emergency recovery successful - Docker daemon restored"
+            return 0
+        else
+            log_error "Emergency recovery failed - Docker daemon could not be restored"
+            
+            # Provide detailed diagnostic information
+            log_error "Docker diagnostic information:"
+            log_error "- Service status: $(systemctl is-active docker 2>/dev/null || echo 'unknown')"
+            log_error "- Service enabled: $(systemctl is-enabled docker 2>/dev/null || echo 'unknown')"
+            log_error "- Docker socket: $([[ -S /var/run/docker.sock ]] && echo 'present' || echo 'missing')"
+            log_error "- Free disk space: $(df -h /var/lib/docker 2>/dev/null | tail -1 | awk '{print $4}' || echo 'unknown')"
+            log_error "- Memory usage: $(free -h | grep '^Mem:' | awk '{print $3"/"$2}' || echo 'unknown')"
+            
+            return 1
+        fi
+    else
+        log_error "Docker daemon restart failed after $max_restart_attempts attempts"
+        return 1
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # 🔒 SECURITY UTILITIES
 # ═══════════════════════════════════════════════════════════════════════════════
 

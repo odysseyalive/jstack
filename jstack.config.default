@@ -160,6 +160,18 @@ ENABLE_DEBUG_LOGS="false"
 DRY_RUN="${DRY_RUN:-false}"
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 🐳 DOCKER DAEMON FAILURE PREVENTION CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Docker Daemon Restart Timeout Configuration
+# Maximum time to wait for Docker daemon to become healthy after restart (seconds)
+DOCKER_DAEMON_RESTART_TIMEOUT="90"
+
+# Docker Health Check Interval Configuration  
+# Interval between Docker daemon health checks during validation (seconds)
+DOCKER_HEALTH_CHECK_INTERVAL="3"
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # 🛡️ COMPLIANCE MONITORING CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 

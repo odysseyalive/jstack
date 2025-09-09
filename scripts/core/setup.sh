@@ -765,30 +765,11 @@ EOF
         execute_cmd "sudo mv /tmp/daemon.json /etc/docker/daemon.json" "Install Docker daemon configuration"
         execute_cmd "sudo chmod 644 /etc/docker/daemon.json" "Set daemon config permissions"
         
-        # Restart Docker with new security configuration
-        log_info "Applying Docker security configuration"
-        execute_cmd "sudo systemctl restart docker" "Restart Docker with security configuration"
-        
-        # Wait for Docker to be ready after restart
-        log_info "Waiting for Docker to restart with new configuration"
-        local max_attempts=30
-        local attempt=1
-        
-        while [[ $attempt -le $max_attempts ]]; do
-            if sudo docker info &> /dev/null; then
-                log_success "Docker restarted successfully with security configuration"
-                break
-            fi
-            
-            if [[ $attempt -eq $max_attempts ]]; then
-                log_error "Docker failed to restart with security configuration"
-                return 1
-            fi
-            
-            log_info "Waiting for Docker restart (attempt $attempt/$max_attempts)"
-            sleep 2
-            ((attempt++))
-        done
+        # Restart Docker with new security configuration using safe restart procedure
+        if ! safe_docker_daemon_restart "Apply Docker security configuration"; then
+            log_error "Failed to restart Docker with security configuration"
+            return 1
+        fi
     else
         log_info "Skipping Docker daemon security configuration for Docker Desktop"
     fi
