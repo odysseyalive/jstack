@@ -230,6 +230,29 @@ run_compliance_check() {
     fi
 }
 
+# Diagnostic data collection workflow
+run_diagnostics() {
+    local diagnostic_level="${1:-detailed}"
+    log_section "Running JarvisJR Stack Diagnostics"
+    
+    # Initialize system to ensure configuration is loaded
+    initialize_system
+    
+    log_info "Collecting diagnostic information (level: $diagnostic_level)"
+    
+    # Execute diagnostic collection via diagnostics.sh
+    if bash "${PROJECT_ROOT}/scripts/core/diagnostics.sh" "$diagnostic_level"; then
+        log_success "Diagnostic data collection completed successfully"
+        log_info "Review the output above for troubleshooting information"
+        if [[ -d "$BASE_DIR/logs" ]]; then
+            log_info "Diagnostic report also saved to: $BASE_DIR/logs/diagnostic_$(date '+%Y%m%d_%H%M%S').log"
+        fi
+    else
+        log_error "Diagnostic data collection failed"
+        return 1
+    fi
+}
+
 # Site management workflows
 add_site() {
     local site_path="$1"
@@ -397,6 +420,7 @@ OPTIONS:
   --configure-sudo   Configure passwordless sudo for SERVICE_USER
   --uninstall-docker Remove existing Docker installation for clean reinstall
   --compliance-check Run compliance validation and generate reports
+  --diagnose [LEVEL] Collect diagnostic information for troubleshooting
   --add-site PATH    Add a site from specified path
   --remove-site PATH Remove a site from specified path
   --enable-debug     Enable debug logging
@@ -415,6 +439,8 @@ EXAMPLES:
   $0 --add-site sites/example.com    # Add a site from config
   $0 --remove-site sites/example.com # Remove a site
   $0 --compliance-check # Run compliance validation and reports
+  $0 --diagnose       # Collect detailed diagnostic information
+  $0 --diagnose comprehensive # Collect comprehensive troubleshooting data
   $0 --dry-run       # Test run without making changes
   $0 --force-install # Force installation with password-based sudo (not recommended)
   $0 --configure-ssl # Configure SSL certificates and start NGINX
@@ -618,6 +644,22 @@ main() {
                 operation="compliance-check"
                 shift
                 ;;
+            --diagnose)
+                if [[ -n "$operation" ]]; then
+                    echo "Error: Multiple operations specified. Use one at a time."
+                    exit 1
+                fi
+                operation="diagnose"
+                # Check for diagnostic level argument
+                if [[ -n "$2" && ! "$2" =~ ^-- && "$2" =~ ^(basic|detailed|comprehensive)$ ]]; then
+                    operation_args=("$2")
+                    shift 2
+                else
+                    # Default to detailed level
+                    operation_args=("detailed")
+                    shift
+                fi
+                ;;
             --add-site)
                 if [[ -n "$operation" ]]; then
                     echo "Error: Multiple operations specified. Use one at a time."
@@ -723,6 +765,13 @@ main() {
             ;;
         "compliance-check")
             run_compliance_check
+            ;;
+        "diagnose")
+            if [[ ${#operation_args[@]} -gt 0 ]]; then
+                run_diagnostics "${operation_args[0]}"
+            else
+                run_diagnostics "detailed"
+            fi
             ;;
         "add-site")
             if [[ ${#operation_args[@]} -eq 2 ]]; then
