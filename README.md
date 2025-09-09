@@ -75,7 +75,34 @@ dig +short supabase.yourdomain.com
 dig +short yourdomain.com
 ```
 
-### Step 3: Get jstack & Configure ⬇️
+### Step 3: User Environment Setup 👤
+
+**⚠️ IMPORTANT**: jstack is designed to be run from a user directory (not as root). Create a dedicated user for security:
+
+```bash
+# Create the jarvis user (or use your preferred username)
+sudo useradd -m -s /bin/bash jarvis
+```
+```bash
+# Set password for the user
+sudo passwd jarvis
+```
+```bash
+# Add user to sudo group
+sudo usermod -aG sudo jarvis
+```
+```bash
+# Switch to the user environment
+su - jarvis
+```
+
+**✅ Verify you're in the correct environment:**
+```bash
+whoami    # Should show: jarvis (or your chosen username)
+pwd       # Should show: /home/jarvis (or your chosen user's home)
+```
+
+### Step 4: Get jstack & Configure ⬇️
 
 ```bash
 git clone https://github.com/odysseyalive/jstack.git
@@ -91,13 +118,15 @@ cp jstack.config.default jstack.config
 nano jstack.config
 ```
 
-**⚠️ REQUIRED**: Edit these two lines in the config file:
+**⚠️ REQUIRED**: Edit these four lines in the config file:
 ```
 DOMAIN=your-domain.com
 EMAIL=your-email@domain.com
+SERVICE_USER="jarvis"        # Set to your actual username
+SERVICE_GROUP="jarvis"       # Set to your actual username
 ```
 
-### Step 4: Deploy 🚀
+### Step 5: Deploy 🚀
 
 **Option A: Standard Installation (Recommended)**
 ```bash
@@ -122,7 +151,7 @@ EMAIL=your-email@domain.com
 
 ⏱️ **Installation takes 5-10 minutes** - grab coffee and watch the colored progress logs!
 
-### Step 5: Access Your AI Second Brain 🎉
+### Step 6: Access Your AI Second Brain 🎉
 
 Once deployment completes, visit:
 
