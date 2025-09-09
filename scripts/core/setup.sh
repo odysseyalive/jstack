@@ -262,6 +262,49 @@ EOF
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 🔐 SUDOERS CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+configure_passwordless_sudo() {
+    log_section "Configuring Passwordless Sudo"
+    
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Would configure passwordless sudo for: $SERVICE_USER"
+        return 0
+    fi
+    
+    start_section_timer "Sudo Configuration"
+    
+    local sudoers_file="/etc/sudoers.d/jarvis-stack"
+    
+    log_info "Creating sudoers configuration for service user: $SERVICE_USER"
+    
+    # Create sudoers configuration with SERVICE_USER variable
+    cat > /tmp/jarvis-stack-sudoers << EOF
+# JarvisJR Stack sudo configuration for service user: $SERVICE_USER
+# Generated automatically - do not edit manually
+$SERVICE_USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl, /usr/bin/apt-get, /usr/bin/ufw, /bin/mkdir, /bin/chown, /bin/chmod, /usr/bin/curl, /usr/bin/mv, /usr/sbin/useradd, /usr/sbin/usermod, /usr/bin/docker, /usr/bin/certbot, /usr/sbin/nginx, /usr/bin/fail2ban-client
+EOF
+    
+    # Install sudoers file with proper permissions
+    execute_cmd "sudo visudo -c -f /tmp/jarvis-stack-sudoers" "Validate sudoers syntax"
+    execute_cmd "sudo mv /tmp/jarvis-stack-sudoers $sudoers_file" "Install sudoers configuration"
+    execute_cmd "sudo chmod 440 $sudoers_file" "Set sudoers permissions"
+    execute_cmd "sudo chown root:root $sudoers_file" "Set sudoers ownership"
+    
+    # Test sudo configuration
+    log_info "Testing passwordless sudo configuration"
+    if sudo -n -u "$SERVICE_USER" sudo -n systemctl --version &>/dev/null; then
+        log_success "Passwordless sudo configured successfully for $SERVICE_USER"
+    else
+        log_warning "Sudo test failed - manual verification recommended"
+    fi
+    
+    end_section_timer "Sudo Configuration"
+    log_success "Passwordless sudo configuration completed"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # 🐳 DOCKER ENVIRONMENT SETUP
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -633,6 +676,7 @@ run_setup() {
        check_prerequisites && \
        harden_host_os && \
        setup_service_user && \
+       configure_passwordless_sudo && \
        setup_container_environment && \
        setup_compliance_monitoring && \
        setup_system_timezone; then
@@ -656,6 +700,9 @@ main() {
             ;;
         "user")
             setup_service_user
+            ;;
+        "sudo")
+            configure_passwordless_sudo
             ;;
         "docker")
             setup_container_environment

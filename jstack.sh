@@ -167,6 +167,15 @@ run_ssl_configuration() {
     fi
 }
 
+# Sudo configuration workflow
+run_sudo_configuration() {
+    log_section "Configuring Passwordless Sudo"
+    if ! bash "${PROJECT_ROOT}/scripts/core/setup.sh" sudo; then
+        log_error "Sudo configuration failed"
+        return 1
+    fi
+}
+
 # Compliance check workflow
 run_compliance_check() {
     log_section "Running Compliance Check"
@@ -348,6 +357,7 @@ OPTIONS:
   --sync             Update system files from repository (preserves config)
   --dry-run          Run in dry-run mode (no actual changes)
   --configure-ssl    Configure SSL certificates and start NGINX
+  --configure-sudo   Configure passwordless sudo for SERVICE_USER
   --compliance-check Run compliance validation and generate reports
   --add-site PATH    Add a site from specified path
   --remove-site PATH Remove a site from specified path
@@ -369,6 +379,7 @@ EXAMPLES:
   $0 --compliance-check # Run compliance validation and reports
   $0 --dry-run       # Test run without making changes
   $0 --configure-ssl # Configure SSL certificates and start NGINX
+  $0 --configure-sudo # Configure passwordless sudo for service user
 
 CONFIGURATION:
   Configuration files:
@@ -544,6 +555,14 @@ main() {
                 operation="configure-ssl"
                 shift
                 ;;
+            --configure-sudo)
+                if [[ -n "$operation" ]]; then
+                    echo "Error: Multiple operations specified. Use one at a time."
+                    exit 1
+                fi
+                operation="configure-sudo"
+                shift
+                ;;
             --compliance-check)
                 if [[ -n "$operation" ]]; then
                     echo "Error: Multiple operations specified. Use one at a time."
@@ -643,6 +662,9 @@ main() {
             ;;
         "configure-ssl")
             run_ssl_configuration
+            ;;
+        "configure-sudo")
+            run_sudo_configuration
             ;;
         "compliance-check")
             run_compliance_check
