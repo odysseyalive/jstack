@@ -656,7 +656,10 @@ setup_container_environment() {
             fi
         else
             log_info "Docker already installed and configured correctly"
-            # Verify it's still operational
+            # Ensure Docker service is running
+            execute_cmd "sudo systemctl start docker" "Start Docker service"
+            
+            # Verify it's operational
             if ! verify_docker_operational; then
                 log_error "Existing Docker installation is not operational"
                 return 1
