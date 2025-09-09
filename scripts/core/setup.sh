@@ -227,11 +227,20 @@ setup_service_user() {
     
     # Set up Docker for the service user
     log_info "Configuring Docker for service user"
-    execute_cmd "sudo systemctl enable docker" "Enable Docker system service"
-    execute_cmd "sudo systemctl start docker" "Start Docker system service"
     
-    # Configure Docker daemon for security
-    cat > /tmp/daemon.json << EOF
+    # Check if Docker Desktop is running (different management approach needed)
+    if docker info 2>/dev/null | grep -q "Docker Desktop"; then
+        log_info "Docker Desktop detected - skipping daemon configuration"
+        log_info "Docker Desktop manages its own daemon configuration"
+    else
+        execute_cmd "sudo systemctl enable docker" "Enable Docker system service"
+        execute_cmd "sudo systemctl start docker" "Start Docker system service"
+    fi
+    
+    # Configure Docker daemon for security (skip for Docker Desktop)
+    if ! docker info 2>/dev/null | grep -q "Docker Desktop"; then
+        log_info "Configuring system Docker daemon"
+        cat > /tmp/daemon.json << EOF
 {
   "log-driver": "json-file",
   "log-opts": {
@@ -244,9 +253,12 @@ setup_service_user() {
   "seccomp-profile": "/etc/docker/seccomp.json"
 }
 EOF
-    
-    execute_cmd "sudo mv /tmp/daemon.json /etc/docker/daemon.json" "Install Docker daemon configuration"
-    execute_cmd "sudo systemctl restart docker" "Restart Docker with new configuration"
+        
+        execute_cmd "sudo mv /tmp/daemon.json /etc/docker/daemon.json" "Install Docker daemon configuration"
+        execute_cmd "sudo systemctl restart docker" "Restart Docker with new configuration"
+    else
+        log_info "Skipping daemon configuration for Docker Desktop"
+    fi
     
     # Set up user Docker environment
     execute_cmd "sudo -u $SERVICE_USER bash -c 'source ~/.bashrc && systemctl --user enable docker'" "Enable Docker service" || {
@@ -450,10 +462,11 @@ EOF
         execute_cmd "sudo apparmor_parser -r /etc/apparmor.d/docker-jarvis" "Load container AppArmor profile"
     fi
     
-    # Configure Docker security options
-    log_info "Applying Docker security configuration"
-    
-    # Create seccomp profile for enhanced security
+    # Configure Docker security options (skip for Docker Desktop)
+    if ! docker info 2>/dev/null | grep -q "Docker Desktop"; then
+        log_info "Applying Docker security configuration"
+        
+        # Create seccomp profile for enhanced security
     cat > /tmp/seccomp.json << 'EOF'
 {
   "defaultAction": "SCMP_ACT_ERRNO",
@@ -510,8 +523,11 @@ EOF
 }
 EOF
     
-    execute_cmd "sudo mv /tmp/seccomp.json /etc/docker/seccomp.json" "Install Docker seccomp profile"
-    execute_cmd "sudo systemctl restart docker" "Restart Docker with security configuration"
+        execute_cmd "sudo mv /tmp/seccomp.json /etc/docker/seccomp.json" "Install Docker seccomp profile"
+        execute_cmd "sudo systemctl restart docker" "Restart Docker with security configuration"
+    else
+        log_info "Skipping Docker security configuration for Docker Desktop"
+    fi
     
     end_section_timer "Container Environment"
     log_success "Container environment setup completed"

@@ -33,13 +33,16 @@ init_compliance_system() {
     
     # Create main compliance directory structure
     sudo mkdir -p "$COMPLIANCE_DIR" "$AUDIT_DIR" "$POLICIES_DIR" "$EVIDENCE_DIR" "$REPORTS_DIR"
-    sudo chown -R jarvis:jarvis "$COMPLIANCE_DIR" "$AUDIT_DIR" "$POLICIES_DIR" "$EVIDENCE_DIR" "$REPORTS_DIR"
+    sudo chown -R $SERVICE_USER:$SERVICE_GROUP "$COMPLIANCE_DIR" "$AUDIT_DIR" "$POLICIES_DIR" "$EVIDENCE_DIR" "$REPORTS_DIR"
     
     # Create documentation directory structure
+    sudo mkdir -p "$COMPLIANCE_DOCS_DIR"
+    sudo chown -R $SERVICE_USER:$SERVICE_GROUP "$COMPLIANCE_DOCS_DIR"
+    
     local docs_subdirs=("reports" "policies" "evidence" "audit-logs" "site-specific")
     for subdir in "${docs_subdirs[@]}"; do
         sudo mkdir -p "$COMPLIANCE_DOCS_DIR/$subdir"
-        sudo chown -R jarvis:jarvis "$COMPLIANCE_DOCS_DIR/$subdir"
+        sudo chown -R $SERVICE_USER:$SERVICE_GROUP "$COMPLIANCE_DOCS_DIR/$subdir"
     done
     
     # Initialize site registry for compliance tracking

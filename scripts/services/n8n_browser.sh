@@ -1921,7 +1921,7 @@ generate_performance_report() {
     local avg_memory=$(awk -F'CHROME_MEM:' '{if(NF>1) print $2}' "$metrics_file" | awk -F'MB' '{sum+=$1; count++} END {if(count>0) printf "%.0f", sum/count; else print "0"}')
     
     # Generate JSON report
-    cat > "$report_file" << EOF
+    cat > "$report_file" << JSONEOF
 {
   "date": "$(date '+%Y-%m-%d')",
   "summary": {
@@ -1943,7 +1943,7 @@ generate_performance_report() {
   },
   "generatedAt": "$(date -u '+%Y-%m-%dT%H:%M:%S.%3NZ')"
 }
-EOF
+JSONEOF
     
     log_info "Performance report generated: $report_file"
 }
@@ -4921,7 +4921,7 @@ validate_davinci_systems_integration() {
     log_info "Validating da Vinci's systems integration requirements"
     
     # Create systems integration validator
-    cat > /tmp/systems-integration-validator.sh << 'EOF'
+    cat > /tmp/systems-integration-validator.sh << 'VALIDATOREOF'
 #!/bin/bash
 # da Vinci's Systems Integration Validator
 # Ensures harmonious integration across all system components
@@ -5324,7 +5324,7 @@ case "${1:-validate}" in
         exit 1
         ;;
 esac
-EOF
+VALIDATOREOF
     
     safe_mv "/tmp/systems-integration-validator.sh" "$BASE_DIR/scripts/systems-integration-validator.sh" "Install systems integration validator"
     safe_chmod "755" "$BASE_DIR/scripts/systems-integration-validator.sh" "Make systems integration validator executable"
