@@ -18,6 +18,7 @@ Unlike corporate AI assistants, jstack is designed with a clear mission: help bu
 **⚠️ Before You Start**: jstack automatically handles Docker installation, security configuration, SSL certificates, and service deployment. You only need to handle DNS setup and basic configuration.
 
 **✅ What jstack automates for you:**
+
 - Docker installation and security configuration
 - Firewall setup (UFW) with proper rules
 - SSL certificates via Let's Encrypt with auto-renewal
@@ -28,6 +29,7 @@ Unlike corporate AI assistants, jstack is designed with a clear mission: help bu
 ### Step 1: Prerequisites ✅
 
 **What you need to provide:**
+
 - Ubuntu/Debian server with sudo access
 - Domain name with DNS control
 - Email address (for SSL certificates)
@@ -60,17 +62,21 @@ yourdomain.com          → Your Server IP
 **⏱️ DNS Propagation**: Allow 15 minutes to 24 hours for DNS changes to take effect.
 
 **✅ Test required DNS setup:**
+
 ```bash
 dig +short n8n.yourdomain.com
 ```
+
 ```bash
 dig +short studio.yourdomain.com
 ```
+
 ```bash
 dig +short supabase.yourdomain.com
 ```
 
 **🔗 Test optional DNS (if you added root domain):**
+
 ```bash
 dig +short yourdomain.com
 ```
@@ -83,20 +89,24 @@ dig +short yourdomain.com
 # Create the jarvis user (or use your preferred username)
 sudo useradd -m -s /bin/bash jarvis
 ```
+
 ```bash
 # Set password for the user
 sudo passwd jarvis
 ```
+
 ```bash
 # Add user to sudo group
 sudo usermod -aG sudo jarvis
 ```
+
 ```bash
 # Switch to the user environment
 su - jarvis
 ```
 
 **✅ Verify you're in the correct environment:**
+
 ```bash
 whoami    # Should show: jarvis (or your chosen username)
 pwd       # Should show: /home/jarvis (or your chosen user's home)
@@ -107,6 +117,7 @@ pwd       # Should show: /home/jarvis (or your chosen user's home)
 ```bash
 git clone https://github.com/odysseyalive/jstack.git
 ```
+
 ```bash
 cd jstack
 ```
@@ -114,14 +125,17 @@ cd jstack
 ```bash
 cp jstack.config.default jstack.config
 ```
+
 ```bash
 nano jstack.config
 ```
 
 **⚠️ REQUIRED**: Edit these four lines in the config file:
+
 ```
 DOMAIN=your-domain.com
 EMAIL=your-email@domain.com
+...
 SERVICE_USER="jarvis"        # Set to your actual username
 SERVICE_GROUP="jarvis"       # Set to your actual username
 ```
@@ -129,22 +143,27 @@ SERVICE_GROUP="jarvis"       # Set to your actual username
 ### Step 5: Deploy 🚀
 
 **Option A: Standard Installation (Recommended)**
+
 ```bash
 ./jstack.sh --configure-sudo
 ```
+
 ```bash
 ./jstack.sh --install
 ```
 
 **Option B: Force Installation (If Option A fails)**
+
 ```bash
 ./jstack.sh --force-install
 ```
 
 **Option C: Validate First (Safest)**
+
 ```bash
 ./jstack.sh --dry-run
 ```
+
 ```bash
 ./jstack.sh --install
 ```
@@ -164,6 +183,7 @@ Once deployment completes, visit:
 **jstack handles everything automatically so you don't have to:**
 
 ### 🏗️ System Preparation
+
 - **Docker Installation**: Automatic Docker setup with security hardening
 - **Service User**: Creates dedicated `jarvis` user with minimal privileges  
 - **Firewall**: Configures UFW with secure rules (ports 80, 443, 22 only)
@@ -171,6 +191,7 @@ Once deployment completes, visit:
 - **Logging**: Sets up comprehensive logging system with automatic cleanup
 
 ### 🐳 Container Deployment  
+
 - **PostgreSQL Database**: Production-tuned database with 4GB memory limit
 - **Supabase Stack**: Full-featured backend-as-a-service with API + Studio
 - **N8N Workflows**: Visual automation platform with 2GB memory allocation
@@ -178,6 +199,7 @@ Once deployment completes, visit:
 - **Network Isolation**: Secure Docker networks prevent unauthorized access
 
 ### 🔒 Security & SSL
+
 - **SSL Certificates**: Automatic Let's Encrypt certificates for all subdomains
 - **NGINX Proxy**: Reverse proxy with rate limiting, compression, security headers
 - **Certificate Renewal**: Automatic SSL renewal prevents expiration issues
@@ -185,6 +207,7 @@ Once deployment completes, visit:
 - **Network Security**: Services isolated in private networks, NGINX-only public access
 
 ### 🔄 Service Orchestration
+
 - **Health Monitoring**: Automatic health checks with restart on failure
 - **Service Dependencies**: Proper startup order ensuring database before applications
 - **Configuration**: Auto-generated secrets and optimized service configurations
@@ -197,9 +220,11 @@ jstack now includes **site templates** for rapid website deployment:
 ```bash
 ./jstack.sh --add-site mybusiness.com --template nextjs-business
 ```
+
 ```bash
 ./jstack.sh --add-site myportfolio.com --template hugo-portfolio
 ```
+
 ```bash
 ./jstack.sh --add-site myapp.com --template lamp-webapp
 ```
@@ -217,18 +242,23 @@ jstack now includes **site templates** for rapid website deployment:
 ```bash
 ./jstack.sh --dry-run
 ```
+
 ```bash
 ./jstack.sh --configure-sudo
 ```
+
 ```bash
 dig +short yourdomain.com
 ```
+
 ```bash
 dig +short n8n.yourdomain.com
 ```
+
 ```bash
 dig +short studio.yourdomain.com
 ```
+
 ```bash
 dig +short supabase.yourdomain.com
 ```
@@ -240,9 +270,11 @@ Something broken? Try these first:
 ```bash
 docker ps
 ```
+
 ```bash
 tail -f /home/jarvis/jarvis-stack/logs/setup_*.log
 ```
+
 ```bash
 ./jstack.sh --restart-services
 ```
@@ -250,22 +282,27 @@ tail -f /home/jarvis/jarvis-stack/logs/setup_*.log
 ### 🚨 **Common Installation Issues**
 
 **DNS Not Ready**
+
 ```bash
 ./jstack.sh --configure-ssl
 ```
 
-**Sudo Password Prompts** 
+**Sudo Password Prompts**
+
 ```bash
 ./jstack.sh --configure-sudo
 ```
+
 ```bash
 ./jstack.sh --install
 ```
 
 **Docker Installation Fails**
+
 ```bash
 curl -fsSL https://get.docker.com/rootless | sh
 ```
+
 ```bash
 ./jstack.sh --force-install
 ```
@@ -282,6 +319,7 @@ curl -fsSL https://get.docker.com/rootless | sh
 ## ✅ Installation Complete? Here's What's Next
 
 **First time with N8N workflows?** Check out these starter automations:
+
 - **Email Management**: Auto-sort and respond to common emails
 - **Social Media**: Schedule posts across platforms  
 - **CRM Integration**: Sync contacts between tools automatically
@@ -357,9 +395,11 @@ Something broken? Try these first:
 ```bash
 ./jstack.sh --status
 ```
+
 ```bash
 ./jstack.sh --logs
 ```
+
 ```bash
 ./jstack.sh --restart
 ```
@@ -376,9 +416,11 @@ Something broken? Try these first:
 ```bash
 ./jstack.sh --validate
 ```
+
 ```bash
 ./jstack.sh --test-connections
 ```
+
 ```bash
 ./jstack.sh --security-check
 ```
@@ -420,24 +462,31 @@ Business owners and professionals waste 15+ hours per week on repetitive tasks t
 ```bash
 ./jstack.sh --backup
 ```
+
 ```bash
 ./jstack.sh --restore
 ```
+
 ```bash
 ./jstack.sh --update
 ```
+
 ```bash
 ./jstack.sh --uninstall
 ```
+
 ```bash
 ./jstack.sh --dry-run
 ```
+
 ```bash
 ./jstack.sh --restart-n8n
 ```
+
 ```bash
 ./jstack.sh --restart-db
 ```
+
 ```bash
 ./jstack.sh --ssl-renew
 ```
@@ -450,12 +499,15 @@ Business owners and professionals waste 15+ hours per week on repetitive tasks t
 ```bash
 ./jstack.sh --security-scan
 ```
+
 ```bash
 ./jstack.sh --compliance-check
 ```
+
 ```bash
 ./jstack.sh --incident-response
 ```
+
 ```bash
 ./jstack.sh --view-security-logs
 ```
@@ -468,12 +520,15 @@ Business owners and professionals waste 15+ hours per week on repetitive tasks t
 ```bash
 ./jstack.sh --metrics
 ```
+
 ```bash
 ./jstack.sh --health-check
 ```
+
 ```bash
 ./jstack.sh --generate-report
 ```
+
 ```bash
 ./jstack.sh --view-dashboard
 ```
