@@ -225,49 +225,9 @@ setup_service_user() {
         execute_cmd "sudo -u $SERVICE_USER mkdir -p $BASE_DIR/$subdir" "Create $subdir directory"
     done
     
-    # Set up Docker for the service user
-    log_info "Configuring Docker for service user"
-    
-    # Check if Docker Desktop is running (different management approach needed)
-    if docker info 2>/dev/null | grep -q "Docker Desktop"; then
-        log_info "Docker Desktop detected - skipping daemon configuration"
-        log_info "Docker Desktop manages its own daemon configuration"
-    else
-        execute_cmd "sudo systemctl enable docker" "Enable Docker system service"
-        execute_cmd "sudo systemctl start docker" "Start Docker system service"
-    fi
-    
-    # Configure Docker daemon for security (skip for Docker Desktop)
-    if ! docker info 2>/dev/null | grep -q "Docker Desktop"; then
-        log_info "Configuring system Docker daemon"
-        cat > /tmp/daemon.json << EOF
-{
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "$CONTAINER_LOG_MAX_SIZE",
-    "max-file": "$CONTAINER_LOG_MAX_FILES"
-  },
-  "live-restore": true,
-  "userland-proxy": false,
-  "no-new-privileges": true,
-  "seccomp-profile": "/etc/docker/seccomp.json"
-}
-EOF
-        
-        execute_cmd "sudo mv /tmp/daemon.json /etc/docker/daemon.json" "Install Docker daemon configuration"
-        execute_cmd "sudo systemctl restart docker" "Restart Docker with new configuration"
-    else
-        log_info "Skipping daemon configuration for Docker Desktop"
-    fi
-    
-    # Set up user Docker environment
-    execute_cmd "sudo -u $SERVICE_USER bash -c 'source ~/.bashrc && systemctl --user enable docker'" "Enable Docker service" || {
-        log_info "User Docker service not available, using system Docker"
-    }
-    
-    execute_cmd "sudo -u $SERVICE_USER bash -c 'source ~/.bashrc && systemctl --user start docker'" "Start Docker service" || {
-        log_info "User Docker service not available, using system Docker"
-    }
+    # Docker setup is handled by setup_container_environment function
+    # This avoids duplicate Docker installations and timing conflicts
+    log_info "Docker setup will be handled by container environment setup"
     
     end_section_timer "User Setup"
     log_success "Service user setup completed"
@@ -638,127 +598,96 @@ setup_container_environment() {
     
     start_section_timer "Container Environment"
     
-    # Check for existing Docker installation
+    # Phase 1: Install/Verify Docker Installation
+    log_info "Phase 1: Docker Installation"
+    
     if command -v docker &> /dev/null; then
-        # Docker is installed - check if it's a root installation
-        if check_root_docker_installation; then
-            log_warning "Detected existing root Docker installation"
-            log_info "JarvisJR Stack requires a clean Docker installation for proper configuration"
-            
-            if prompt_yes_no "Would you like to uninstall the existing Docker installation? (Recommended)"; then
-                uninstall_existing_docker
-                # Proceed with fresh installation
-                install_docker_fresh
+        log_info "Docker command found - checking installation type"
+        
+        # Check for Docker Desktop specifically
+        if docker info 2>/dev/null | grep -q "Docker Desktop"; then
+            log_info "Docker Desktop detected - using existing installation"
+            local docker_desktop=true
+        else
+            # Check if it's a proper system Docker installation
+            if systemctl is-active docker &> /dev/null && [[ -S /var/run/docker.sock ]]; then
+                log_info "System Docker installation detected"
+                local docker_desktop=false
             else
-                log_error "Cannot proceed with existing Docker installation"
-                log_info "Please manually uninstall Docker or run: ./jstack.sh --uninstall-docker"
-                return 1
-            fi
-        else
-            log_info "Docker already installed and configured correctly"
-            # Ensure Docker service is running
-            execute_cmd "sudo systemctl start docker" "Start Docker service"
-            
-            # Verify it's operational
-            if ! verify_docker_operational; then
-                log_error "Existing Docker installation is not operational"
-                return 1
+                log_warning "Docker found but not properly configured - reinstalling"
+                uninstall_existing_docker
+                install_docker_fresh
+                local docker_desktop=false
             fi
         fi
     else
-        # No Docker found - install fresh
+        log_info "Docker not found - installing fresh"
         install_docker_fresh
+        local docker_desktop=false
     fi
     
-    # Install Docker Compose if not present
-    # Setup Docker Compose with enhanced detection and wrapper automation
-    log_info "Configuring Docker Compose compatibility"
+    # Phase 2: Docker Service Configuration
+    log_info "Phase 2: Docker Service Configuration"
     
-    if docker compose version &> /dev/null; then
-        if command -v docker-compose &> /dev/null; then
-            log_info "Both Docker Compose variants available (plugin + standalone)"
-        else
-            log_info "Docker Desktop plugin detected - creating compatibility wrapper"
-            create_docker_compose_wrapper
-        fi
-    elif command -v docker-compose &> /dev/null; then
-        log_info "Standalone Docker Compose already installed"
+    if [[ "$docker_desktop" == "true" ]]; then
+        log_info "Using Docker Desktop - skipping system service configuration"
     else
-        log_info "No Docker Compose found - installing standalone version"
-        install_docker_compose_standalone
+        # Ensure system Docker service is running
+        execute_cmd "sudo systemctl enable docker" "Enable Docker system service"
+        execute_cmd "sudo systemctl start docker" "Start Docker system service"
+        
+        # Wait for Docker daemon to be ready
+        log_info "Waiting for Docker daemon to be ready"
+        local max_attempts=30
+        local attempt=1
+        
+        while [[ $attempt -le $max_attempts ]]; do
+            if sudo docker info &> /dev/null; then
+                log_success "Docker daemon is ready"
+                break
+            fi
+            
+            if [[ $attempt -eq $max_attempts ]]; then
+                log_error "Docker daemon failed to start after $max_attempts attempts"
+                return 1
+            fi
+            
+            log_info "Waiting for Docker daemon (attempt $attempt/$max_attempts)"
+            sleep 2
+            ((attempt++))
+        done
     fi
     
-    # Create Docker networks
-    log_info "Setting up Docker networks"
-    docker_cmd "docker network create $JARVIS_NETWORK --driver bridge --subnet=172.20.0.0/16 --gateway=172.20.0.1 || true" "Create main network"
-    docker_cmd "docker network create $PUBLIC_TIER --driver bridge --subnet=172.21.0.0/16 --gateway=172.21.0.1 || true" "Create public tier network"
-    docker_cmd "docker network create $PRIVATE_TIER --driver bridge --subnet=172.22.0.0/16 --gateway=172.22.0.1 || true" "Create private tier network"
+    # Phase 3: User Access Configuration
+    log_info "Phase 3: User Access Configuration"
     
-    # Set up container security profiles if enabled
-    if [[ "$APPARMOR_ENABLED" == "true" ]]; then
-        log_info "Configuring container security profiles"
-        
-        # Create AppArmor profile for containers
-        cat > /tmp/docker-jarvis << 'EOF'
-#include <tunables/global>
-
-profile docker-jarvis flags=(attach_disconnected,mediate_deleted) {
-  #include <abstractions/base>
-  
-  network inet tcp,
-  network inet udp,
-  capability,
-  file,
-  mount,
-  
-  # Deny dangerous capabilities
-  deny capability mac_admin,
-  deny capability mac_override,
-  deny capability sys_admin,
-  deny capability sys_module,
-  deny capability sys_rawio,
-  
-  # Allow necessary capabilities
-  capability chown,
-  capability dac_override,
-  capability fowner,
-  capability setgid,
-  capability setuid,
-  capability net_bind_service,
-  
-  # Allow container filesystem access
-  /bin/** rix,
-  /usr/bin/** rix,
-  /lib/** r,
-  /usr/lib/** r,
-  /etc/** r,
-  /tmp/** rw,
-  /var/tmp/** rw,
-  /var/log/** rw,
-  
-  # Allow application-specific paths
-  /app/** rw,
-  /data/** rw,
-  /config/** rw,
-  
-  # Deny sensitive host paths
-  deny /proc/sys/kernel/** w,
-  deny /sys/** w,
-  deny /dev/** w,
-  deny /host/** rw,
-}
-EOF
-        
-        execute_cmd "sudo mv /tmp/docker-jarvis /etc/apparmor.d/docker-jarvis" "Install container AppArmor profile"
-        execute_cmd "sudo apparmor_parser -r /etc/apparmor.d/docker-jarvis" "Load container AppArmor profile"
+    # Add service user to docker group
+    if ! groups "$SERVICE_USER" 2>/dev/null | grep -q docker; then
+        execute_cmd "sudo usermod -aG docker $SERVICE_USER" "Add $SERVICE_USER to docker group"
+        log_info "User added to docker group - group membership will be active for new sessions"
+    else
+        log_info "Service user already in docker group"
     fi
     
-    # Configure Docker security options (skip for Docker Desktop)
-    if ! docker info 2>/dev/null | grep -q "Docker Desktop"; then
-        log_info "Applying Docker security configuration"
+    # Test Docker access (using sudo for now since group membership needs new session)
+    log_info "Verifying Docker access"
+    if sudo docker version &> /dev/null; then
+        log_success "Docker access verified"
+    else
+        log_error "Docker access verification failed"
+        return 1
+    fi
+    
+    # Phase 4: Security Configuration
+    log_info "Phase 4: Security Configuration"
+    
+    if [[ "$docker_desktop" != "true" ]]; then
+        # Create Docker configuration directory
+        execute_cmd "sudo mkdir -p /etc/docker" "Create Docker config directory"
         
-        # Create seccomp profile for enhanced security
-    cat > /tmp/seccomp.json << 'EOF'
+        # Create seccomp profile first (dependency for daemon.json)
+        log_info "Creating Docker seccomp security profile"
+        cat > /tmp/seccomp.json << 'EOF'
 {
   "defaultAction": "SCMP_ACT_ERRNO",
   "architectures": ["SCMP_ARCH_X86_64", "SCMP_ARCH_X86", "SCMP_ARCH_X32"],
@@ -813,15 +742,194 @@ EOF
   ]
 }
 EOF
-    
+        
         execute_cmd "sudo mv /tmp/seccomp.json /etc/docker/seccomp.json" "Install Docker seccomp profile"
+        execute_cmd "sudo chmod 644 /etc/docker/seccomp.json" "Set seccomp profile permissions"
+        
+        # Create Docker daemon configuration with proper dependencies
+        log_info "Creating Docker daemon configuration"
+        cat > /tmp/daemon.json << EOF
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "$CONTAINER_LOG_MAX_SIZE",
+    "max-file": "$CONTAINER_LOG_MAX_FILES"
+  },
+  "live-restore": true,
+  "userland-proxy": false,
+  "no-new-privileges": true,
+  "seccomp-profile": "/etc/docker/seccomp.json"
+}
+EOF
+        
+        execute_cmd "sudo mv /tmp/daemon.json /etc/docker/daemon.json" "Install Docker daemon configuration"
+        execute_cmd "sudo chmod 644 /etc/docker/daemon.json" "Set daemon config permissions"
+        
+        # Restart Docker with new security configuration
+        log_info "Applying Docker security configuration"
         execute_cmd "sudo systemctl restart docker" "Restart Docker with security configuration"
+        
+        # Wait for Docker to be ready after restart
+        log_info "Waiting for Docker to restart with new configuration"
+        local max_attempts=30
+        local attempt=1
+        
+        while [[ $attempt -le $max_attempts ]]; do
+            if sudo docker info &> /dev/null; then
+                log_success "Docker restarted successfully with security configuration"
+                break
+            fi
+            
+            if [[ $attempt -eq $max_attempts ]]; then
+                log_error "Docker failed to restart with security configuration"
+                return 1
+            fi
+            
+            log_info "Waiting for Docker restart (attempt $attempt/$max_attempts)"
+            sleep 2
+            ((attempt++))
+        done
     else
-        log_info "Skipping Docker security configuration for Docker Desktop"
+        log_info "Skipping Docker daemon security configuration for Docker Desktop"
     fi
     
+    # Phase 5: AppArmor Configuration (optional)
+    if [[ "$APPARMOR_ENABLED" == "true" ]]; then
+        log_info "Configuring AppArmor container security profiles"
+        
+        cat > /tmp/docker-jarvis << 'EOF'
+#include <tunables/global>
+
+profile docker-jarvis flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+  
+  network inet tcp,
+  network inet udp,
+  capability,
+  file,
+  mount,
+  
+  # Deny dangerous capabilities
+  deny capability mac_admin,
+  deny capability mac_override,
+  deny capability sys_admin,
+  deny capability sys_module,
+  deny capability sys_rawio,
+  
+  # Allow necessary capabilities
+  capability chown,
+  capability dac_override,
+  capability fowner,
+  capability setgid,
+  capability setuid,
+  capability net_bind_service,
+  
+  # Allow container filesystem access
+  /bin/** rix,
+  /usr/bin/** rix,
+  /lib/** r,
+  /usr/lib/** r,
+  /etc/** r,
+  /tmp/** rw,
+  /var/tmp/** rw,
+  /var/log/** rw,
+  
+  # Allow application-specific paths
+  /app/** rw,
+  /data/** rw,
+  /config/** rw,
+  
+  # Deny sensitive host paths
+  deny /proc/sys/kernel/** w,
+  deny /sys/** w,
+  deny /dev/** w,
+  deny /host/** rw,
+}
+EOF
+        
+        execute_cmd "sudo mv /tmp/docker-jarvis /etc/apparmor.d/docker-jarvis" "Install container AppArmor profile"
+        execute_cmd "sudo apparmor_parser -r /etc/apparmor.d/docker-jarvis" "Load container AppArmor profile"
+        log_success "AppArmor container profiles configured"
+    else
+        log_info "AppArmor disabled by configuration - skipping container profiles"
+    fi
+    
+    # Phase 6: Docker Compose Setup
+    log_info "Phase 6: Docker Compose Setup"
+    
+    if docker compose version &> /dev/null; then
+        if command -v docker-compose &> /dev/null; then
+            log_info "Both Docker Compose variants available (plugin + standalone)"
+        else
+            log_info "Docker Desktop plugin detected - creating compatibility wrapper"
+            create_docker_compose_wrapper
+        fi
+    elif command -v docker-compose &> /dev/null; then
+        log_info "Standalone Docker Compose already installed"
+    else
+        log_info "No Docker Compose found - installing standalone version"
+        install_docker_compose_standalone
+    fi
+    
+    # Verify Docker Compose is working
+    if docker compose version &> /dev/null || command -v docker-compose &> /dev/null; then
+        log_success "Docker Compose verified"
+    else
+        log_error "Docker Compose installation failed"
+        return 1
+    fi
+    
+    # Phase 7: Network Creation
+    log_info "Phase 7: Docker Network Setup"
+    
+    # Use sudo for Docker commands until group membership takes effect
+    local docker_prefix="sudo docker"
+    
+    # Create Docker networks with error handling
+    if $docker_prefix network create "$JARVIS_NETWORK" --driver bridge --subnet=172.20.0.0/16 --gateway=172.20.0.1 2>/dev/null || \
+       $docker_prefix network ls | grep -q "$JARVIS_NETWORK"; then
+        log_success "Main network '$JARVIS_NETWORK' ready"
+    else
+        log_error "Failed to create main network"
+        return 1
+    fi
+    
+    if $docker_prefix network create "$PUBLIC_TIER" --driver bridge --subnet=172.21.0.0/16 --gateway=172.21.0.1 2>/dev/null || \
+       $docker_prefix network ls | grep -q "$PUBLIC_TIER"; then
+        log_success "Public tier network '$PUBLIC_TIER' ready"
+    else
+        log_error "Failed to create public tier network"
+        return 1
+    fi
+    
+    if $docker_prefix network create "$PRIVATE_TIER" --driver bridge --subnet=172.22.0.0/16 --gateway=172.22.0.1 2>/dev/null || \
+       $docker_prefix network ls | grep -q "$PRIVATE_TIER"; then
+        log_success "Private tier network '$PRIVATE_TIER' ready"
+    else
+        log_error "Failed to create private tier network"
+        return 1
+    fi
+    
+    # Phase 8: Final Verification
+    log_info "Phase 8: Final Verification"
+    
+    # Test container functionality
+    log_info "Testing container functionality"
+    if $docker_prefix run --rm --network="$JARVIS_NETWORK" hello-world &> /dev/null; then
+        log_success "Container functionality verified"
+    else
+        log_warning "Container test failed - may not affect normal operation"
+    fi
+    
+    # Display final status
+    log_info "Docker installation summary:"
+    log_info "  Docker version: $(sudo docker --version 2>/dev/null || echo 'Unknown')"
+    log_info "  Docker Compose: $(docker compose version 2>/dev/null || docker-compose --version 2>/dev/null || echo 'Unknown')"
+    log_info "  Networks: $JARVIS_NETWORK, $PUBLIC_TIER, $PRIVATE_TIER"
+    log_info "  Service user: $SERVICE_USER (in docker group)"
+    
     end_section_timer "Container Environment"
-    log_success "Container environment setup completed"
+    log_success "Container environment setup completed successfully"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
