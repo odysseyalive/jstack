@@ -25,28 +25,12 @@ Unlike corporate AI assistants, jstack is designed with a clear mission: help bu
 - Container deployment and network isolation
 - Health monitoring and automatic restarts
 
-### Step 1: Prerequisites (2 minutes) ✅
+### Step 1: Prerequisites ✅
 
 **What you need to provide:**
 - Ubuntu/Debian server with sudo access
 - Domain name with DNS control
 - Email address (for SSL certificates)
-
-**System validation** (optional but recommended):
-```bash
-git clone https://github.com/odysseyalive/jstack.git
-```
-```bash
-cd jstack
-```
-```bash
-./jstack.sh --dry-run
-```
-
-**Sudo configuration** (recommended for smooth installation):
-```bash
-./jstack.sh --configure-sudo
-```
 
 ### Step 2: DNS Setup (Required!) 🌐
 
@@ -82,7 +66,7 @@ dig +short studio.yourdomain.com
 dig +short supabase.yourdomain.com
 ```
 
-### Step 3: Get jstack ⬇️
+### Step 3: Get jstack & Configure ⬇️
 
 ```bash
 git clone https://github.com/odysseyalive/jstack.git
@@ -90,8 +74,6 @@ git clone https://github.com/odysseyalive/jstack.git
 ```bash
 cd jstack
 ```
-
-### Step 4: Configure (2 minutes) ⚙️
 
 ```bash
 cp jstack.config.default jstack.config
@@ -106,7 +88,7 @@ DOMAIN=your-domain.com
 EMAIL=your-email@domain.com
 ```
 
-### Step 5: Deploy 🚀
+### Step 4: Deploy 🚀
 
 **Option A: Standard Installation (Recommended)**
 ```bash
@@ -131,7 +113,7 @@ EMAIL=your-email@domain.com
 
 ⏱️ **Installation takes 5-10 minutes** - grab coffee and watch the colored progress logs!
 
-### Step 6: Access Your AI Second Brain 🎉
+### Step 5: Access Your AI Second Brain 🎉
 
 Once deployment completes, visit:
 
