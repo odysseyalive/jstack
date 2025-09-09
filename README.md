@@ -34,28 +34,32 @@ Unlike corporate AI assistants, jstack is designed with a clear mission: help bu
 
 ### Step 2: DNS Setup (Required!) 🌐
 
-**Create these DNS A records BEFORE installation:**
+**✅ REQUIRED DNS A records for base jstack installation:**
 
 ```bash
-# Point these subdomains to your server IP:
-yourdomain.com          → Your Server IP
+# These 3 subdomains are required:
 n8n.yourdomain.com      → Your Server IP  
 studio.yourdomain.com   → Your Server IP
 supabase.yourdomain.com → Your Server IP
 
 # Example if your server IP is 203.0.113.1:
-# yourdomain.com          A    203.0.113.1
 # n8n.yourdomain.com      A    203.0.113.1
 # studio.yourdomain.com   A    203.0.113.1  
 # supabase.yourdomain.com A    203.0.113.1
 ```
 
+**🔗 OPTIONAL: Root domain (only needed for website deployment):**
+
+```bash
+# Only add this if you plan to use --add-site features:
+yourdomain.com          → Your Server IP
+
+# Example: yourdomain.com A 203.0.113.1
+```
+
 **⏱️ DNS Propagation**: Allow 15 minutes to 24 hours for DNS changes to take effect.
 
-**✅ Test DNS Setup:**
-```bash
-dig +short yourdomain.com
-```
+**✅ Test required DNS setup:**
 ```bash
 dig +short n8n.yourdomain.com
 ```
@@ -64,6 +68,11 @@ dig +short studio.yourdomain.com
 ```
 ```bash
 dig +short supabase.yourdomain.com
+```
+
+**🔗 Test optional DNS (if you added root domain):**
+```bash
+dig +short yourdomain.com
 ```
 
 ### Step 3: Get jstack & Configure ⬇️
