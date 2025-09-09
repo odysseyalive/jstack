@@ -35,7 +35,11 @@ Unlike corporate AI assistants, jstack is designed with a clear mission: help bu
 **System validation** (optional but recommended):
 ```bash
 git clone https://github.com/odysseyalive/jstack.git
+```
+```bash
 cd jstack
+```
+```bash
 ./jstack.sh --dry-run
 ```
 
@@ -67,8 +71,14 @@ supabase.yourdomain.com → Your Server IP
 **✅ Test DNS Setup:**
 ```bash
 dig +short yourdomain.com
+```
+```bash
 dig +short n8n.yourdomain.com
+```
+```bash
 dig +short studio.yourdomain.com
+```
+```bash
 dig +short supabase.yourdomain.com
 ```
 
@@ -76,6 +86,8 @@ dig +short supabase.yourdomain.com
 
 ```bash
 git clone https://github.com/odysseyalive/jstack.git
+```
+```bash
 cd jstack
 ```
 
@@ -83,6 +95,8 @@ cd jstack
 
 ```bash
 cp jstack.config.default jstack.config
+```
+```bash
 nano jstack.config
 ```
 
@@ -97,6 +111,8 @@ EMAIL=your-email@domain.com
 **Option A: Standard Installation (Recommended)**
 ```bash
 ./jstack.sh --configure-sudo
+```
+```bash
 ./jstack.sh --install
 ```
 
@@ -108,6 +124,8 @@ EMAIL=your-email@domain.com
 **Option C: Validate First (Safest)**
 ```bash
 ./jstack.sh --dry-run
+```
+```bash
 ./jstack.sh --install
 ```
 
@@ -158,7 +176,11 @@ jstack now includes **site templates** for rapid website deployment:
 
 ```bash
 ./jstack.sh --add-site mybusiness.com --template nextjs-business
+```
+```bash
 ./jstack.sh --add-site myportfolio.com --template hugo-portfolio
+```
+```bash
 ./jstack.sh --add-site myapp.com --template lamp-webapp
 ```
 
@@ -174,10 +196,20 @@ jstack now includes **site templates** for rapid website deployment:
 
 ```bash
 ./jstack.sh --dry-run
+```
+```bash
 ./jstack.sh --configure-sudo
+```
+```bash
 dig +short yourdomain.com
+```
+```bash
 dig +short n8n.yourdomain.com
+```
+```bash
 dig +short studio.yourdomain.com
+```
+```bash
 dig +short supabase.yourdomain.com
 ```
 
@@ -187,7 +219,11 @@ Something broken? Try these first:
 
 ```bash
 docker ps
+```
+```bash
 tail -f /home/jarvis/jarvis-stack/logs/setup_*.log
+```
+```bash
 ./jstack.sh --restart-services
 ```
 
@@ -201,12 +237,16 @@ tail -f /home/jarvis/jarvis-stack/logs/setup_*.log
 **Sudo Password Prompts** 
 ```bash
 ./jstack.sh --configure-sudo
+```
+```bash
 ./jstack.sh --install
 ```
 
 **Docker Installation Fails**
 ```bash
 curl -fsSL https://get.docker.com/rootless | sh
+```
+```bash
 ./jstack.sh --force-install
 ```
 
@@ -296,7 +336,11 @@ Something broken? Try these first:
 
 ```bash
 ./jstack.sh --status
+```
+```bash
 ./jstack.sh --logs
+```
+```bash
 ./jstack.sh --restart
 ```
 
@@ -311,7 +355,11 @@ Something broken? Try these first:
 
 ```bash
 ./jstack.sh --validate
+```
+```bash
 ./jstack.sh --test-connections
+```
+```bash
 ./jstack.sh --security-check
 ```
 
@@ -350,17 +398,28 @@ Business owners and professionals waste 15+ hours per week on repetitive tasks t
 <summary><strong>🔧 System Management Commands</strong></summary>
 
 ```bash
-# Complete system operations
-./jstack.sh --backup          # Create timestamped backup
-./jstack.sh --restore         # Interactive restore from backup
-./jstack.sh --update          # Update jstack to latest version
-./jstack.sh --uninstall       # Complete system removal
-./jstack.sh --dry-run         # Test changes without applying
-
-# Service-specific operations  
-./jstack.sh --restart-n8n     # Restart N8N workflow engine
-./jstack.sh --restart-db      # Restart PostgreSQL database
-./jstack.sh --ssl-renew       # Force SSL certificate renewal
+./jstack.sh --backup
+```
+```bash
+./jstack.sh --restore
+```
+```bash
+./jstack.sh --update
+```
+```bash
+./jstack.sh --uninstall
+```
+```bash
+./jstack.sh --dry-run
+```
+```bash
+./jstack.sh --restart-n8n
+```
+```bash
+./jstack.sh --restart-db
+```
+```bash
+./jstack.sh --ssl-renew
 ```
 
 </details>
@@ -369,11 +428,16 @@ Business owners and professionals waste 15+ hours per week on repetitive tasks t
 <summary><strong>🔒 Security Operations</strong></summary>
 
 ```bash
-# Security monitoring and validation
-./jstack.sh --security-scan           # Comprehensive security assessment
-./jstack.sh --compliance-check        # SOC2/GDPR/ISO27001 validation
-./jstack.sh --incident-response       # Emergency security response
-./jstack.sh --view-security-logs      # Review security events
+./jstack.sh --security-scan
+```
+```bash
+./jstack.sh --compliance-check
+```
+```bash
+./jstack.sh --incident-response
+```
+```bash
+./jstack.sh --view-security-logs
 ```
 
 </details>
@@ -382,11 +446,16 @@ Business owners and professionals waste 15+ hours per week on repetitive tasks t
 <summary><strong>📊 Monitoring & Metrics</strong></summary>
 
 ```bash
-# System monitoring
-./jstack.sh --metrics                 # View system performance metrics
-./jstack.sh --health-check            # Comprehensive health validation  
-./jstack.sh --generate-report         # System status report
-./jstack.sh --view-dashboard           # Open monitoring dashboard
+./jstack.sh --metrics
+```
+```bash
+./jstack.sh --health-check
+```
+```bash
+./jstack.sh --generate-report
+```
+```bash
+./jstack.sh --view-dashboard
 ```
 
 </details>
