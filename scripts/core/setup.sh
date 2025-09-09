@@ -512,6 +512,122 @@ install_docker_compose_standalone() {
 # 🐳 CONTAINER ENVIRONMENT SETUP
 # ===============================================================================
 
+# Check if Docker is installed as root (not rootless)
+check_root_docker_installation() {
+    # Check if Docker daemon is running as root
+    if systemctl is-active docker &> /dev/null; then
+        # Check if it's a system-wide installation
+        if [[ -f /lib/systemd/system/docker.service ]] || [[ -f /usr/lib/systemd/system/docker.service ]]; then
+            # Check if Docker socket is owned by root
+            if [[ -S /var/run/docker.sock ]]; then
+                local socket_owner=$(stat -c '%U' /var/run/docker.sock 2>/dev/null)
+                if [[ "$socket_owner" == "root" ]]; then
+                    return 0  # Root Docker detected
+                fi
+            fi
+        fi
+    fi
+    
+    # Check for Docker Desktop or other non-standard installations
+    if docker context ls 2>/dev/null | grep -q "desktop-linux"; then
+        return 0  # Docker Desktop detected
+    fi
+    
+    return 1  # No root Docker detected
+}
+
+# Uninstall existing Docker installation
+uninstall_existing_docker() {
+    log_info "Uninstalling existing Docker installation"
+    
+    # Stop Docker services
+    execute_cmd "sudo systemctl stop docker || true" "Stop Docker service"
+    execute_cmd "sudo systemctl stop docker.socket || true" "Stop Docker socket"
+    execute_cmd "sudo systemctl stop containerd || true" "Stop containerd"
+    
+    # Remove Docker packages
+    if command -v apt-get &> /dev/null; then
+        execute_cmd "sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-compose || true" "Remove Docker packages"
+        execute_cmd "sudo apt-get autoremove -y" "Clean up dependencies"
+    elif command -v yum &> /dev/null; then
+        execute_cmd "sudo yum remove -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true" "Remove Docker packages"
+    fi
+    
+    # Clean up Docker data and configurations
+    execute_cmd "sudo rm -rf /var/lib/docker" "Remove Docker data directory"
+    execute_cmd "sudo rm -rf /var/lib/containerd" "Remove containerd data"
+    execute_cmd "sudo rm -rf /etc/docker" "Remove Docker configuration"
+    execute_cmd "sudo rm -rf /etc/systemd/system/docker.service.d" "Remove Docker systemd overrides"
+    execute_cmd "sudo rm -f /var/run/docker.sock" "Remove Docker socket"
+    
+    # Remove Docker group if it exists
+    execute_cmd "sudo groupdel docker 2>/dev/null || true" "Remove Docker group"
+    
+    # Reload systemd
+    execute_cmd "sudo systemctl daemon-reload" "Reload systemd"
+    
+    log_success "Docker uninstallation completed"
+}
+
+# Install Docker fresh
+install_docker_fresh() {
+    log_info "Installing Docker"
+    execute_cmd "curl -fsSL https://get.docker.com | sh" "Install Docker"
+    execute_cmd "sudo systemctl enable docker" "Enable Docker"
+    execute_cmd "sudo systemctl start docker" "Start Docker"
+    
+    # Verify Docker is operational
+    verify_docker_operational
+}
+
+# Verify Docker is operational after installation
+verify_docker_operational() {
+    log_info "Verifying Docker installation"
+    
+    local max_attempts=10
+    local attempt=1
+    
+    while [[ $attempt -le $max_attempts ]]; do
+        # Check if Docker daemon is running
+        if sudo systemctl is-active docker &> /dev/null; then
+            # Test Docker with a simple command
+            if sudo docker version &> /dev/null; then
+                # Try to run a test container
+                if sudo docker run --rm hello-world &> /dev/null; then
+                    log_success "Docker is operational"
+                    
+                    # Add user to docker group for non-root access
+                    if ! groups "$SERVICE_USER" 2>/dev/null | grep -q docker; then
+                        execute_cmd "sudo usermod -aG docker $SERVICE_USER" "Add $SERVICE_USER to docker group"
+                        log_info "User added to docker group - may require re-login for group membership to take effect"
+                    fi
+                    
+                    return 0
+                else
+                    log_warning "Docker installed but unable to run containers (attempt $attempt/$max_attempts)"
+                fi
+            else
+                log_warning "Docker service running but daemon not responding (attempt $attempt/$max_attempts)"
+            fi
+        else
+            log_warning "Docker service not active yet (attempt $attempt/$max_attempts)"
+        fi
+        
+        # Wait before retry
+        sleep 3
+        ((attempt++))
+    done
+    
+    # If we get here, Docker isn't working properly
+    log_error "Docker installation verification failed after $max_attempts attempts"
+    log_info "Troubleshooting steps:"
+    log_info "  1. Check Docker status: sudo systemctl status docker"
+    log_info "  2. Check Docker logs: sudo journalctl -xeu docker"
+    log_info "  3. Try manual restart: sudo systemctl restart docker"
+    
+    return 1
+}
+
 setup_container_environment() {
     log_section "Container Environment Setup"
     
@@ -522,14 +638,33 @@ setup_container_environment() {
     
     start_section_timer "Container Environment"
     
-    # Install Docker if not present
-    if ! command -v docker &> /dev/null; then
-        log_info "Installing Docker"
-        execute_cmd "curl -fsSL https://get.docker.com | sudo sh" "Install Docker"
-        execute_cmd "sudo systemctl enable docker" "Enable Docker"
-        execute_cmd "sudo systemctl start docker" "Start Docker"
+    # Check for existing Docker installation
+    if command -v docker &> /dev/null; then
+        # Docker is installed - check if it's a root installation
+        if check_root_docker_installation; then
+            log_warning "Detected existing root Docker installation"
+            log_info "JarvisJR Stack requires a clean Docker installation for proper configuration"
+            
+            if prompt_yes_no "Would you like to uninstall the existing Docker installation? (Recommended)"; then
+                uninstall_existing_docker
+                # Proceed with fresh installation
+                install_docker_fresh
+            else
+                log_error "Cannot proceed with existing Docker installation"
+                log_info "Please manually uninstall Docker or run: ./jstack.sh --uninstall-docker"
+                return 1
+            fi
+        else
+            log_info "Docker already installed and configured correctly"
+            # Verify it's still operational
+            if ! verify_docker_operational; then
+                log_error "Existing Docker installation is not operational"
+                return 1
+            fi
+        fi
     else
-        log_info "Docker already installed"
+        # No Docker found - install fresh
+        install_docker_fresh
     fi
     
     # Install Docker Compose if not present

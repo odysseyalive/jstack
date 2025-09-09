@@ -149,6 +149,41 @@ show_progress_bar() {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 🎯 USER INTERACTION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Prompt for yes/no response
+prompt_yes_no() {
+    local prompt="$1"
+    local default="${2:-n}"  # Default to 'no' if not specified
+    local response
+    
+    # Format the prompt based on default
+    if [[ "$default" == "y" ]]; then
+        prompt="$prompt [Y/n]: "
+    else
+        prompt="$prompt [y/N]: "
+    fi
+    
+    # Read user input
+    read -r -p "$prompt" response
+    
+    # Handle empty response (use default)
+    if [[ -z "$response" ]]; then
+        response="$default"
+    fi
+    
+    # Convert to lowercase and check
+    response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
+    
+    if [[ "$response" == "y" || "$response" == "yes" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ⏱️ TIMING SYSTEM
 # ═══════════════════════════════════════════════════════════════════════════════
 

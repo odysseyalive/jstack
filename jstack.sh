@@ -190,6 +190,28 @@ run_sudo_configuration() {
     fi
 }
 
+# Docker uninstallation workflow
+run_docker_uninstall() {
+    log_section "Docker Uninstallation"
+    
+    # Initialize system to load common functions
+    initialize_system
+    
+    # Source setup.sh to get the uninstall function
+    source "${PROJECT_ROOT}/scripts/core/setup.sh"
+    
+    log_warning "This will completely remove Docker and all containers/images/volumes"
+    log_warning "All Docker data will be permanently deleted"
+    
+    if prompt_yes_no "Are you sure you want to uninstall Docker?"; then
+        uninstall_existing_docker
+        log_success "Docker has been uninstalled"
+        log_info "You can now run './jstack.sh' to install Docker with proper JarvisJR configuration"
+    else
+        log_info "Docker uninstallation cancelled"
+    fi
+}
+
 # Compliance check workflow
 run_compliance_check() {
     log_section "Running Compliance Check"
@@ -373,6 +395,7 @@ OPTIONS:
   --force-install    Force installation even with password-based sudo
   --configure-ssl    Configure SSL certificates and start NGINX
   --configure-sudo   Configure passwordless sudo for SERVICE_USER
+  --uninstall-docker Remove existing Docker installation for clean reinstall
   --compliance-check Run compliance validation and generate reports
   --add-site PATH    Add a site from specified path
   --remove-site PATH Remove a site from specified path
@@ -579,6 +602,14 @@ main() {
                 operation="configure-sudo"
                 shift
                 ;;
+            --uninstall-docker)
+                if [[ -n "$operation" ]]; then
+                    echo "Error: Multiple operations specified. Use one at a time."
+                    exit 1
+                fi
+                operation="uninstall-docker"
+                shift
+                ;;
             --compliance-check)
                 if [[ -n "$operation" ]]; then
                     echo "Error: Multiple operations specified. Use one at a time."
@@ -686,6 +717,9 @@ main() {
             ;;
         "configure-sudo")
             run_sudo_configuration
+            ;;
+        "uninstall-docker")
+            run_docker_uninstall
             ;;
         "compliance-check")
             run_compliance_check
