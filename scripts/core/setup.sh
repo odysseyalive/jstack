@@ -309,64 +309,131 @@ $current_user ALL=(ALL) NOPASSWD: $sudo_commands
 $SERVICE_USER ALL=(ALL) NOPASSWD: $sudo_commands
 EOF
     
-    # Validate sudoers syntax (requires sudo, so handle gracefully if not available)
-    log_info "Validating sudoers syntax"
-    if execute_cmd "sudo visudo -c -f /tmp/jarvis-stack-sudoers" "Validate sudoers syntax" || {
-        log_warning "Cannot validate sudoers syntax without sudo access - proceeding with installation"
-        log_info "Manual validation will be performed after installation"
-        true
-    }; then
-        # Install sudoers file with proper permissions
-        execute_cmd "sudo mv /tmp/jarvis-stack-sudoers $sudoers_file" "Install sudoers configuration" || {
-            log_error "Failed to install sudoers configuration - manual installation required"
-            log_error "Please run: sudo cp /tmp/jarvis-stack-sudoers $sudoers_file"
+    # Self-bootstrapping logic: Attempt automated installation
+    log_info "Attempting automated sudo configuration installation"
+    
+    # Check if we have any sudo access at all (even with password)
+    if sudo -v 2>/dev/null; then
+        log_info "Sudo access detected - proceeding with automated installation"
+        
+        # Extend sudo timeout for the duration of this operation
+        sudo -v || {
+            log_error "Failed to refresh sudo timestamp"
             return 1
         }
         
-        execute_cmd "sudo chmod 440 $sudoers_file" "Set sudoers permissions" || {
-            log_warning "Failed to set sudoers permissions - file may still work"
-        }
-        
-        execute_cmd "sudo chown root:root $sudoers_file" "Set sudoers ownership" || {
-            log_warning "Failed to set sudoers ownership - file may still work"
-        }
-        
-        # Test sudo configuration for current user
-        log_info "Testing passwordless sudo configuration for current user"
-        if sudo -n systemctl --version &>/dev/null; then
-            log_success "Passwordless sudo configured successfully for current user: $current_user"
-        else
-            log_info "Sudo configuration installed - testing will be available after next login or sudo reset"
-        fi
-        
-        # Test sudo configuration for service user (if user exists)
-        if id "$SERVICE_USER" &>/dev/null; then
-            log_info "Testing passwordless sudo configuration for service user"
-            if sudo -n -u "$SERVICE_USER" sudo -n systemctl --version &>/dev/null; then
-                log_success "Passwordless sudo configured successfully for service user: $SERVICE_USER"
+        # Validate sudoers syntax before installation
+        log_info "Validating sudoers syntax"
+        if sudo visudo -c -f /tmp/jarvis-stack-sudoers; then
+            log_success "Sudoers syntax validation passed"
+            
+            # Install sudoers file with proper permissions
+            log_info "Installing sudoers configuration automatically"
+            if sudo cp /tmp/jarvis-stack-sudoers "$sudoers_file"; then
+                log_success "Sudoers file installed successfully"
+                
+                # Set proper permissions
+                execute_cmd "sudo chmod 440 $sudoers_file" "Set sudoers permissions" || {
+                    log_warning "Failed to set sudoers permissions - file may still work"
+                }
+                
+                execute_cmd "sudo chown root:root $sudoers_file" "Set sudoers ownership" || {
+                    log_warning "Failed to set sudoers ownership - file may still work"
+                }
+                
+                # Validate the installed configuration
+                if sudo visudo -c; then
+                    log_success "Installed sudoers configuration validated successfully"
+                else
+                    log_error "Installed sudoers configuration validation failed - removing for safety"
+                    sudo rm -f "$sudoers_file"
+                    return 1
+                fi
+                
             else
-                log_info "Service user sudo configuration installed - will be active after user login"
+                log_error "Failed to install sudoers configuration automatically"
+                log_error "Manual installation required - see instructions below"
+                _show_manual_sudo_instructions
+                return 1
             fi
+            
         else
-            log_info "Service user $SERVICE_USER does not exist yet - sudo will be validated after user creation"
+            log_error "Sudoers syntax validation failed"
+            log_error "Generated configuration contains errors:"
+            cat /tmp/jarvis-stack-sudoers | sed 's/^/  /'
+            return 1
         fi
         
-        # Create backup of sudoers file for recovery
-        if [[ -f "$sudoers_file" ]]; then
-            execute_cmd "sudo cp $sudoers_file $sudoers_file.backup" "Backup sudoers configuration" || {
-                log_warning "Failed to create sudoers backup - continuing"
-            }
-        fi
-        
-        end_section_timer "Sudo Configuration"
-        log_success "Passwordless sudo configuration completed for both current user and service user"
-        return 0
     else
-        log_error "Sudoers syntax validation failed"
-        log_error "Generated file contents:"
-        cat /tmp/jarvis-stack-sudoers | sed 's/^/  /'
+        # No sudo access detected - provide manual instructions
+        log_warning "No sudo access detected for automated installation"
+        log_info "Manual installation required"
+        _show_manual_sudo_instructions
         return 1
     fi
+    
+    # Test the configuration
+    log_info "Testing passwordless sudo configuration"
+    
+    # Clear any cached sudo credentials to test the new configuration
+    sudo -k
+    
+    # Test passwordless access for current user
+    if sudo -n systemctl --version &>/dev/null; then
+        log_success "Passwordless sudo configured successfully for current user: $current_user"
+    else
+        log_warning "Passwordless sudo test failed - may require logout/login or sudo reset"
+        log_info "Configuration is installed but may need session refresh"
+    fi
+    
+    # Test sudo configuration for service user (if user exists)
+    if id "$SERVICE_USER" &>/dev/null; then
+        log_info "Testing passwordless sudo configuration for service user"
+        if sudo -n -u "$SERVICE_USER" sudo -n systemctl --version &>/dev/null 2>&1; then
+            log_success "Passwordless sudo configured successfully for service user: $SERVICE_USER"
+        else
+            log_info "Service user sudo configuration installed - will be active after user operations"
+        fi
+    else
+        log_info "Service user $SERVICE_USER does not exist yet - sudo will be validated after user creation"
+    fi
+    
+    # Create backup of sudoers file for recovery
+    if [[ -f "$sudoers_file" ]]; then
+        execute_cmd "sudo cp $sudoers_file $sudoers_file.backup" "Backup sudoers configuration" || {
+            log_warning "Failed to create sudoers backup - continuing"
+        }
+    fi
+    
+    # Clean up temporary file
+    rm -f /tmp/jarvis-stack-sudoers
+    
+    end_section_timer "Sudo Configuration"
+    log_success "Passwordless sudo configuration completed successfully"
+    log_info "Installation can now proceed automatically without password prompts"
+    return 0
+}
+
+# Helper function to show manual sudo installation instructions
+_show_manual_sudo_instructions() {
+    log_info ""
+    log_info "MANUAL SUDO CONFIGURATION REQUIRED:"
+    log_info "======================================"
+    log_info ""
+    log_info "The sudoers configuration has been prepared but requires manual installation."
+    log_info ""
+    log_info "To complete the configuration, run these commands:"
+    log_info "  1. sudo cp /tmp/jarvis-stack-sudoers /etc/sudoers.d/jarvis-stack"
+    log_info "  2. sudo chmod 440 /etc/sudoers.d/jarvis-stack"
+    log_info "  3. sudo chown root:root /etc/sudoers.d/jarvis-stack"
+    log_info ""
+    log_info "Then re-run the installation:"
+    log_info "  ./jstack.sh"
+    log_info ""
+    log_info "SECURITY NOTE: This configuration allows passwordless sudo for specific"
+    log_info "commands required by JarvisJR Stack. Review /tmp/jarvis-stack-sudoers"
+    log_info "before installation if you have security concerns."
+    log_info ""
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
