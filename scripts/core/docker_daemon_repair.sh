@@ -391,6 +391,69 @@ create_seccomp_profile() {
     return 0
 }
 
+generate_daemon_corrected_config() {
+    log_section "Generating corrected Docker daemon configuration"
+    
+    # Create temp directory if it doesn't exist
+    local temp_dir="${PROJECT_ROOT}/.claude/temp"
+    if ! mkdir -p "$temp_dir"; then
+        log_error "Failed to create temp directory: $temp_dir"
+        return 1
+    fi
+    
+    # Check for existing nvidia runtime configuration
+    local nvidia_runtime=""
+    if [[ -f "$DAEMON_JSON_PATH" ]]; then
+        log_info "Checking for existing nvidia runtime configuration"
+        if jq -e '.runtimes.nvidia' "$DAEMON_JSON_PATH" >/dev/null 2>&1; then
+            nvidia_runtime=$(jq -r '.runtimes.nvidia' "$DAEMON_JSON_PATH" 2>/dev/null)
+            log_success "Found existing nvidia runtime configuration - will preserve"
+        fi
+    fi
+    
+    # Generate base daemon configuration using same template as setup.sh
+    log_info "Generating corrected daemon.json configuration"
+    
+    local daemon_config='{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "'${CONTAINER_LOG_MAX_SIZE:-10m}'",
+    "max-file": "'${CONTAINER_LOG_MAX_FILES:-5}'"
+  },
+  "live-restore": true,
+  "userland-proxy": false,
+  "no-new-privileges": true,
+  "seccomp-profile": "/etc/docker/seccomp.json"
+}'
+    
+    # Add nvidia runtime if it was detected
+    if [[ -n "$nvidia_runtime" ]]; then
+        log_info "Adding nvidia runtime to corrected configuration"
+        daemon_config=$(echo "$daemon_config" | jq --argjson nvidia "$nvidia_runtime" '.runtimes.nvidia = $nvidia')
+    fi
+    
+    # Write corrected configuration to temp file
+    if echo "$daemon_config" | jq . > "$CORRECTED_CONFIG_PATH"; then
+        log_success "Generated corrected daemon.json configuration at: $CORRECTED_CONFIG_PATH"
+        
+        # Validate the generated configuration
+        if ! validate_daemon_config "$CORRECTED_CONFIG_PATH"; then
+            log_error "Generated configuration failed validation"
+            return 1
+        fi
+        
+        log_info "Configuration preview:"
+        if [[ "${DRY_RUN:-false}" == "true" ]] || [[ "${DEBUG_ENABLED:-false}" == "true" ]]; then
+            cat "$CORRECTED_CONFIG_PATH"
+        fi
+        
+        return 0
+    else
+        log_error "Failed to generate corrected daemon.json configuration"
+        return 1
+    fi
+}
+
 deploy_daemon_config() {
     log_section "Deploying Docker daemon security configuration"
     
@@ -542,13 +605,19 @@ repair_docker_daemon() {
         return 1
     fi
     
-    # Step 2: Deploy corrected configuration with security hardening
+    # Step 2: Generate corrected configuration
+    if ! generate_daemon_corrected_config; then
+        log_error "Failed to generate corrected daemon configuration"
+        return 1
+    fi
+    
+    # Step 3: Deploy corrected configuration with security hardening
     if ! deploy_daemon_config; then
         log_error "Configuration deployment failed"
         return 1
     fi
     
-    # Step 3: Restart Docker service
+    # Step 4: Restart Docker service
     if ! restart_docker_service; then
         log_error "Docker service restart failed"
         
@@ -563,7 +632,7 @@ repair_docker_daemon() {
         return 1
     fi
     
-    # Step 4: Verify functionality and security compliance
+    # Step 5: Verify functionality and security compliance
     if ! verify_docker_functionality; then
         log_error "Docker functionality verification failed"
         return 1
