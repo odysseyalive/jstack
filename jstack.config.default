@@ -9,8 +9,8 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # DOMAIN CONFIGURATION - REQUIRED: Change to your actual domain
-DOMAIN="test.example.com"          # ⚠️  CHANGE THIS: Your actual domain name  
-EMAIL="admin@test.example.com"    # ⚠️  CHANGE THIS: Your email for SSL certificates
+DOMAIN="your-domain.com"          # ⚠️  CHANGE THIS: Your actual domain name  
+EMAIL="admin@your-domain.com"    # ⚠️  CHANGE THIS: Your email for SSL certificates
 COUNTRY_CODE="US"
 STATE_NAME="California"
 CITY_NAME="San Francisco"
