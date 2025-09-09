@@ -212,6 +212,20 @@ run_docker_uninstall() {
     fi
 }
 
+# Docker daemon repair workflow
+run_docker_daemon_repair() {
+    log_section "Docker Daemon Configuration Repair"
+    
+    # Initialize system to load common functions
+    initialize_system
+    
+    log_info "This will repair Docker daemon configuration with security hardening"
+    log_info "Current configuration will be backed up automatically"
+    
+    # Execute the Docker daemon repair script
+    bash "${PROJECT_ROOT}/scripts/core/docker_daemon_repair.sh"
+}
+
 # Compliance check workflow
 run_compliance_check() {
     log_section "Running Compliance Check"
@@ -419,6 +433,7 @@ OPTIONS:
   --configure-ssl    Configure SSL certificates and start NGINX
   --configure-sudo   Configure passwordless sudo for SERVICE_USER
   --uninstall-docker Remove existing Docker installation for clean reinstall
+  --repair-docker-daemon  Repair Docker daemon configuration with security hardening
   --compliance-check Run compliance validation and generate reports
   --diagnose [LEVEL] Collect diagnostic information for troubleshooting
   --add-site PATH    Add a site from specified path
@@ -636,6 +651,14 @@ main() {
                 operation="uninstall-docker"
                 shift
                 ;;
+            --repair-docker-daemon)
+                if [[ -n "$operation" ]]; then
+                    echo "Error: Multiple operations specified. Use one at a time."
+                    exit 1
+                fi
+                operation="repair-docker-daemon"
+                shift
+                ;;
             --compliance-check)
                 if [[ -n "$operation" ]]; then
                     echo "Error: Multiple operations specified. Use one at a time."
@@ -762,6 +785,9 @@ main() {
             ;;
         "uninstall-docker")
             run_docker_uninstall
+            ;;
+        "repair-docker-daemon")
+            run_docker_daemon_repair
             ;;
         "compliance-check")
             run_compliance_check
