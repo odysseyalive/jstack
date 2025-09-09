@@ -126,7 +126,8 @@ validate_environment() {
     
     # Check if service user exists
     if ! id "$SERVICE_USER" &>/dev/null; then
-        validation_errors+=("Service user does not exist: $SERVICE_USER")
+        log_warning "Service user does not exist: $SERVICE_USER"
+        log_info "This will be created automatically during setup"
     fi
     
     # Validate configuration
@@ -248,7 +249,8 @@ check_prerequisites() {
     
     # Check if user has sudo access
     if ! sudo -n true 2>/dev/null; then
-        prereq_errors+=("User does not have passwordless sudo access")
+        log_warning "User does not have passwordless sudo access"
+        log_info "This will be configured automatically during setup"
     fi
     
     # Check if user has systemd linger enabled
