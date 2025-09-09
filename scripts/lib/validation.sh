@@ -93,10 +93,7 @@ validate_environment() {
     
     local validation_errors=()
     
-    # Check if running as root
-    if [[ $EUID -eq 0 ]]; then
-        validation_errors+=("Script should not be run as root. Run as a regular user with sudo access.")
-    fi
+    # Root check moved to validate_sudo_access() function
     
     # Check for required commands (excluding docker-compose which has dual compatibility)
     local required_commands=("docker" "curl" "dig" "openssl" "gpg")
@@ -157,6 +154,121 @@ validate_environment() {
     fi
     
     log_success "Environment validation passed"
+    return 0
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 🔐 SUDO ACCESS VALIDATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Validate sudo access - fails fast to prevent installation issues
+validate_sudo_access() {
+    log_section "Sudo Access Validation"
+    
+    local sudo_errors=()
+    
+    # Check if running as root (should not be)
+    if [[ $EUID -eq 0 ]]; then
+        sudo_errors+=("Script should not be run as root. Run as a regular user with sudo access.")
+        log_error "Running as root is not supported"
+        log_info "Please run as a regular user with sudo access"
+        return 1
+    fi
+    
+    # Check if user has any sudo access
+    if ! sudo -v 2>/dev/null; then
+        sudo_errors+=("User $USER has no sudo access. Please ensure user is in sudoers group.")
+        log_error "No sudo access detected for user: $USER"
+        log_info ""
+        log_info "REMEDIATION OPTIONS:"
+        log_info "===================="
+        log_info ""
+        log_info "Option 1: Add user to sudoers group (requires admin access):"
+        log_info "  sudo usermod -aG sudo $USER"
+        log_info "  # Then logout and login again"
+        log_info ""
+        log_info "Option 2: Ask system administrator to grant sudo access"
+        log_info ""
+        log_info "Option 3: Run installation from a user account that already has sudo access"
+        log_info ""
+        return 1
+    fi
+    
+    # Check if user has passwordless sudo access
+    if ! sudo -n true 2>/dev/null; then
+        log_warning "User $USER has sudo access but requires password"
+        log_info ""
+        log_info "For automated installation, passwordless sudo is recommended."
+        log_info ""
+        log_info "REMEDIATION OPTIONS:"
+        log_info "===================="
+        log_info ""
+        log_info "Option 1: Configure passwordless sudo automatically (RECOMMENDED):"
+        log_info "  ./jstack.sh --configure-sudo"
+        log_info ""
+        log_info "Option 2: Force installation with password prompts (NOT RECOMMENDED):"
+        log_info "  ./jstack.sh --force-install"
+        log_info ""
+        log_info "Option 3: Manual sudo configuration:"
+        log_info "  See documentation for manual sudoers configuration"
+        log_info ""
+        
+        # Check for non-interactive mode or force install flag
+        if [[ "${FORCE_INSTALL:-false}" == "true" ]]; then
+            log_info "Force install mode detected - continuing with password-based sudo"
+            return 0
+        fi
+        
+        # In non-interactive environments, fail fast
+        if [[ ! -t 0 ]]; then
+            log_error "Non-interactive mode detected and passwordless sudo not configured"
+            log_info "Use one of the remediation options above and retry installation"
+            return 1
+        fi
+        
+        # Interactive prompt for user choice
+        echo ""
+        echo "Would you like to:"
+        echo "1) Configure passwordless sudo now (recommended)"
+        echo "2) Continue with password prompts (not recommended for automation)"
+        echo "3) Exit and configure manually"
+        echo ""
+        read -p "Choose option [1-3]: " -r choice
+        
+        case "$choice" in
+            1)
+                log_info "Launching sudo configuration..."
+                if bash "${PROJECT_ROOT}/scripts/core/setup.sh" sudo; then
+                    log_success "Passwordless sudo configured successfully"
+                    return 0
+                else
+                    log_error "Sudo configuration failed"
+                    return 1
+                fi
+                ;;
+            2)
+                log_warning "Continuing with password-based sudo (may require multiple password entries)"
+                return 0
+                ;;
+            3|*)
+                log_info "Installation cancelled. Please configure sudo access first:"
+                log_info "  ./jstack.sh --configure-sudo"
+                return 1
+                ;;
+        esac
+    else
+        log_success "User $USER has passwordless sudo access"
+    fi
+    
+    # Report validation results
+    if [[ ${#sudo_errors[@]} -gt 0 ]]; then
+        log_error "Sudo validation failed:"
+        for error in "${sudo_errors[@]}"; do
+            log_error "  - $error"
+        done
+        return 1
+    fi
+    
     return 0
 }
 
@@ -247,11 +359,7 @@ check_prerequisites() {
         prereq_errors+=("systemd is required but not available")
     fi
     
-    # Check if user has sudo access
-    if ! sudo -n true 2>/dev/null; then
-        log_warning "User does not have passwordless sudo access"
-        log_info "This will be configured automatically during setup"
-    fi
+    # Sudo access check moved to validate_sudo_access() function
     
     # Check if user has systemd linger enabled
     if [[ ! -f "/var/lib/systemd/linger/$USER" ]]; then

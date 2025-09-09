@@ -31,7 +31,21 @@ initialize_system() {
 
 # Main installation workflow
 run_installation() {
+    # Initialize system first to load configuration
+    initialize_system
+    
     log_section "Starting JStack Installation"
+    
+    # Phase 0: Sudo Access Validation (Fail Fast)
+    log_info "Phase 0: Sudo Access Validation"
+    source "${PROJECT_ROOT}/scripts/lib/validation.sh"
+    if ! validate_sudo_access; then
+        log_error "Sudo access validation failed"
+        log_info "Please configure sudo access and try again:"
+        log_info "  ./jstack.sh --configure-sudo"
+        log_info "  ./jstack.sh --force-install  # Force with password prompts"
+        return 1
+    fi
     
     # Phase 1: System Setup
     log_info "Phase 1: System Setup and Validation"
@@ -356,6 +370,7 @@ OPTIONS:
   --list-backups     List all available backups with details
   --sync             Update system files from repository (preserves config)
   --dry-run          Run in dry-run mode (no actual changes)
+  --force-install    Force installation even with password-based sudo
   --configure-ssl    Configure SSL certificates and start NGINX
   --configure-sudo   Configure passwordless sudo for SERVICE_USER
   --compliance-check Run compliance validation and generate reports
@@ -378,6 +393,7 @@ EXAMPLES:
   $0 --remove-site sites/example.com # Remove a site
   $0 --compliance-check # Run compliance validation and reports
   $0 --dry-run       # Test run without making changes
+  $0 --force-install # Force installation with password-based sudo (not recommended)
   $0 --configure-ssl # Configure SSL certificates and start NGINX
   $0 --configure-sudo # Configure passwordless sudo for service user
 
@@ -611,6 +627,11 @@ main() {
                 export DRY_RUN="true"
                 dry_run_enabled=true
                 log_info "Dry-run mode enabled"
+                shift
+                ;;
+            --force-install)
+                export FORCE_INSTALL="true"
+                log_info "Force install mode enabled (will proceed with password-based sudo)"
                 shift
                 ;;
             --enable-debug)

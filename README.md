@@ -13,23 +13,38 @@ jstack is your AI Second Brain—a comprehensive system designed to work while y
 
 Unlike corporate AI assistants, jstack is designed with a clear mission: help business owners and professionals save 10+ hours per week through intelligent automation while maintaining complete ownership of their data.
 
-## 🚀 Quick Start - New to AI Automation?
+## 🚀 Quick Start - Get Running in 15 Minutes
 
-**⏱️ 15 minutes to your first AI workflow**
+**⚠️ Before You Start**: jstack automatically handles Docker installation, security configuration, SSL certificates, and service deployment. You only need to handle DNS setup and basic configuration.
 
-### Step 1: Prerequisites Check ✅
+**✅ What jstack automates for you:**
+- Docker installation and security configuration
+- Firewall setup (UFW) with proper rules
+- SSL certificates via Let's Encrypt with auto-renewal
+- Service user creation with minimal privileges
+- Container deployment and network isolation
+- Health monitoring and automatic restarts
 
+### Step 1: Prerequisites (2 minutes) ✅
+
+**What you need to provide:**
+- Ubuntu/Debian server with sudo access
+- Domain name with DNS control
+- Email address (for SSL certificates)
+
+**System validation** (optional but recommended):
 ```bash
-# Verify you have:
-# ✅ Ubuntu/Debian server with sudo access  
-# ✅ Domain name pointed to your server
-# ✅ Email address for SSL certificates
-
-# Quick system check:
-curl -fsSL https://get.docker.com | sh  # Install Docker if needed
+git clone https://github.com/odysseyalive/jstack.git
+cd jstack
+./jstack.sh --dry-run
 ```
 
-### Step 1.5: DNS Setup (Required!) 🌐
+**Sudo configuration** (recommended for smooth installation):
+```bash
+./jstack.sh --configure-sudo
+```
+
+### Step 2: DNS Setup (Required!) 🌐
 
 **Create these DNS A records BEFORE installation:**
 
@@ -38,58 +53,67 @@ curl -fsSL https://get.docker.com | sh  # Install Docker if needed
 yourdomain.com          → Your Server IP
 n8n.yourdomain.com      → Your Server IP  
 studio.yourdomain.com   → Your Server IP
-supabase.yourdomain.com      → Your Server IP
+supabase.yourdomain.com → Your Server IP
 
 # Example if your server IP is 203.0.113.1:
 # yourdomain.com          A    203.0.113.1
 # n8n.yourdomain.com      A    203.0.113.1
 # studio.yourdomain.com   A    203.0.113.1  
-# supabase.yourdomain.com      A    203.0.113.1
+# supabase.yourdomain.com A    203.0.113.1
 ```
 
 **⏱️ DNS Propagation**: Allow 15 minutes to 24 hours for DNS changes to take effect.
 
 **✅ Test DNS Setup:**
-
 ```bash
-# Test each subdomain resolves to your server:
 dig +short yourdomain.com
 dig +short n8n.yourdomain.com
 dig +short studio.yourdomain.com
 dig +short supabase.yourdomain.com
-# All should return your server IP
 ```
 
-### Step 1: Get jstack ⬇️
+### Step 3: Get jstack ⬇️
 
 ```bash
 git clone https://github.com/odysseyalive/jstack.git
 cd jstack
 ```
 
-### Step 2: Configure (2 minutes) ⚙️
+### Step 4: Configure (2 minutes) ⚙️
 
 ```bash
-# Copy and edit your configuration:
 cp jstack.config.default jstack.config
 nano jstack.config
-
-# ⚠️ REQUIRED: Edit these two lines:
-# DOMAIN=your-domain.com
-# EMAIL=your-email@domain.com
 ```
 
-### Step 3: Deploy 🚀
+**⚠️ REQUIRED**: Edit these two lines in the config file:
+```
+DOMAIN=your-domain.com
+EMAIL=your-email@domain.com
+```
 
+### Step 5: Deploy 🚀
+
+**Option A: Standard Installation (Recommended)**
 ```bash
-# Deploy complete AI infrastructure:
+./jstack.sh --configure-sudo
 ./jstack.sh --install
-
-# ☕ Grab coffee - this takes 5-10 minutes
-# Watch the progress with colored logs
 ```
 
-### Step 4: Access Your AI Second Brain 🎉
+**Option B: Force Installation (If Option A fails)**
+```bash
+./jstack.sh --force-install
+```
+
+**Option C: Validate First (Safest)**
+```bash
+./jstack.sh --dry-run
+./jstack.sh --install
+```
+
+⏱️ **Installation takes 5-10 minutes** - grab coffee and watch the colored progress logs!
+
+### Step 6: Access Your AI Second Brain 🎉
 
 Once deployment completes, visit:
 
@@ -97,24 +121,113 @@ Once deployment completes, visit:
 - **📊 Database Studio**: `https://studio.your-domain.com` - Manage your PostgreSQL database
 - **🔍 API Access**: `https://supabase.your-domain.com` - REST API for integrations
 
-$1
+## 🔍 What Happens During Installation?
+
+**jstack handles everything automatically so you don't have to:**
+
+### 🏗️ System Preparation
+- **Docker Installation**: Automatic Docker setup with security hardening
+- **Service User**: Creates dedicated `jarvis` user with minimal privileges  
+- **Firewall**: Configures UFW with secure rules (ports 80, 443, 22 only)
+- **Directory Structure**: Creates organized directory structure under `/home/jarvis/jarvis-stack/`
+- **Logging**: Sets up comprehensive logging system with automatic cleanup
+
+### 🐳 Container Deployment  
+- **PostgreSQL Database**: Production-tuned database with 4GB memory limit
+- **Supabase Stack**: Full-featured backend-as-a-service with API + Studio
+- **N8N Workflows**: Visual automation platform with 2GB memory allocation
+- **Chrome Automation**: Headless browser for web interactions (4GB limit, 5 instances)
+- **Network Isolation**: Secure Docker networks prevent unauthorized access
+
+### 🔒 Security & SSL
+- **SSL Certificates**: Automatic Let's Encrypt certificates for all subdomains
+- **NGINX Proxy**: Reverse proxy with rate limiting, compression, security headers
+- **Certificate Renewal**: Automatic SSL renewal prevents expiration issues
+- **Container Security**: Rootless containers, no unnecessary privileges
+- **Network Security**: Services isolated in private networks, NGINX-only public access
+
+### 🔄 Service Orchestration
+- **Health Monitoring**: Automatic health checks with restart on failure
+- **Service Dependencies**: Proper startup order ensuring database before applications
+- **Configuration**: Auto-generated secrets and optimized service configurations
+- **Backup System**: Automated backup system with configurable retention
 
 ### 🌐 Want to Deploy Websites Too?
 
 jstack now includes **site templates** for rapid website deployment:
 
 ```bash
-# Deploy a Next.js business site:
 ./jstack.sh --add-site mybusiness.com --template nextjs-business
-
-# Deploy a Hugo portfolio:
 ./jstack.sh --add-site myportfolio.com --template hugo-portfolio
-
-# Deploy a LAMP web app:
 ./jstack.sh --add-site myapp.com --template lamp-webapp
 ```
 
 **📚 [Complete Site Templates Guide →](docs/guides/site-templates.md)**
+
+---
+
+## 🆘 Need Help?
+
+### 🧪 **Fail-Fast Validation (Recommended First Step)**
+
+**Avoid installation problems by validating your setup first:**
+
+```bash
+./jstack.sh --dry-run
+./jstack.sh --configure-sudo
+dig +short yourdomain.com
+dig +short n8n.yourdomain.com
+dig +short studio.yourdomain.com
+dig +short supabase.yourdomain.com
+```
+
+### 🔥 **Emergency Troubleshooting**
+
+Something broken? Try these first:
+
+```bash
+docker ps
+tail -f /home/jarvis/jarvis-stack/logs/setup_*.log
+./jstack.sh --restart-services
+```
+
+### 🚨 **Common Installation Issues**
+
+**DNS Not Ready**
+```bash
+./jstack.sh --configure-ssl
+```
+
+**Sudo Password Prompts** 
+```bash
+./jstack.sh --configure-sudo
+./jstack.sh --install
+```
+
+**Docker Installation Fails**
+```bash
+curl -fsSL https://get.docker.com/rootless | sh
+./jstack.sh --force-install
+```
+
+### 📞 **Get Support**
+
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/odysseyalive/jstack/issues)
+- **💬 Community**: [AI Productivity Hub](https://www.skool.com/ai-productivity-hub)
+- **📖 Documentation**: All guides linked below
+- **📧 Enterprise Support**: <enterprise@jstack.com>
+
+---
+
+## ✅ Installation Complete? Here's What's Next
+
+**First time with N8N workflows?** Check out these starter automations:
+- **Email Management**: Auto-sort and respond to common emails
+- **Social Media**: Schedule posts across platforms  
+- **CRM Integration**: Sync contacts between tools automatically
+- **Data Processing**: Extract and organize information from documents
+
+**Ready to build custom workflows?** Visit `https://n8n.your-domain.com` and explore the 400+ integrations.
 
 ---
 
@@ -182,13 +295,8 @@ Choose your documentation path:
 Something broken? Try these first:
 
 ```bash
-# Check all services
 ./jstack.sh --status
-
-# View recent logs
 ./jstack.sh --logs
-
-# Restart everything
 ./jstack.sh --restart
 ```
 
@@ -202,13 +310,8 @@ Something broken? Try these first:
 ### 🔍 **Quick Diagnostics**
 
 ```bash
-# System health check
 ./jstack.sh --validate
-
-# Test all connections
 ./jstack.sh --test-connections
-
-# Security scan
 ./jstack.sh --security-check
 ```
 
