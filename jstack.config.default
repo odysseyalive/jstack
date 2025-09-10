@@ -163,6 +163,13 @@ DRY_RUN="${DRY_RUN:-false}"
 # 🐳 DOCKER DAEMON FAILURE PREVENTION CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# Docker Auto-Repair Configuration
+# Enable automatic Docker daemon repair when validation fails (true/false)
+# ENABLED BY DEFAULT for novice-friendly operation - automatically fixes Docker configuration issues
+# When enabled, failed Docker validation will attempt automatic repair using docker_daemon_repair.sh
+# This provides enhanced reliability by automatically fixing common Docker daemon configuration issues
+AUTO_REPAIR_DOCKER_DAEMON="true"
+
 # Docker Daemon Restart Timeout Configuration
 # Maximum time to wait for Docker daemon to become healthy after restart (seconds)
 DOCKER_DAEMON_RESTART_TIMEOUT="90"

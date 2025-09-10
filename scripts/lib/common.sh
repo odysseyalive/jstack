@@ -385,16 +385,57 @@ validate_docker_pre_restart() {
     log_info "Performing Docker pre-restart safety checks"
     
     # Check 1: Container management capability
-    if ! sudo docker ps --format "table {{.Names}}	{{.Status}}" &>/dev/null; then
+    if ! sudo docker ps --format "table {{.Names}}\t{{.Status}}" &>/dev/null; then
         log_warning "Docker container management check failed"
-        return 1
+        
+        # Auto-repair attempt if enabled
+        if [[ "${AUTO_REPAIR_DOCKER_DAEMON:-false}" == "true" ]]; then
+            log_info "AUTO_REPAIR_DOCKER_DAEMON enabled - attempting automatic repair"
+            if attempt_docker_daemon_auto_repair "container_management_failure"; then
+                log_success "Docker auto-repair completed successfully"
+                # Retry the container management check
+                if sudo docker ps --format "table {{.Names}}\t{{.Status}}" &>/dev/null; then
+                    log_success "Container management check passed after auto-repair"
+                else
+                    log_error "Container management check still failing after auto-repair"
+                    return 1
+                fi
+            else
+                log_error "Docker auto-repair failed - manual intervention required"
+                return 1
+            fi
+        else
+            log_info "AUTO_REPAIR_DOCKER_DAEMON disabled - skipping auto-repair"
+            return 1
+        fi
     fi
     
     # Check 2: Daemon configuration JSON validity
     if [[ -f /etc/docker/daemon.json ]]; then
         if ! jq . /etc/docker/daemon.json &>/dev/null; then
-            log_error "Docker daemon.json contains invalid JSON - restart aborted"
-            return 1
+            log_error "Docker daemon.json contains invalid JSON"
+            
+            # Auto-repair attempt if enabled
+            if [[ "${AUTO_REPAIR_DOCKER_DAEMON:-false}" == "true" ]]; then
+                log_info "AUTO_REPAIR_DOCKER_DAEMON enabled - attempting automatic repair"
+                if attempt_docker_daemon_auto_repair "invalid_daemon_json"; then
+                    log_success "Docker auto-repair completed successfully"
+                    # Retry the JSON validation
+                    if jq . /etc/docker/daemon.json &>/dev/null; then
+                        log_success "Daemon.json validation passed after auto-repair"
+                    else
+                        log_error "Daemon.json still invalid after auto-repair"
+                        return 1
+                    fi
+                else
+                    log_error "Docker auto-repair failed - manual intervention required"
+                    return 1
+                fi
+            else
+                log_info "AUTO_REPAIR_DOCKER_DAEMON disabled - skipping auto-repair"
+                log_error "Restart aborted due to invalid daemon.json"
+                return 1
+            fi
         fi
         log_info "Docker daemon.json validation passed"
     fi
@@ -402,8 +443,29 @@ validate_docker_pre_restart() {
     # Check 3: Seccomp profile verification (if present)
     if [[ -f /etc/docker/seccomp.json ]]; then
         if ! jq . /etc/docker/seccomp.json &>/dev/null; then
-            log_error "Docker seccomp.json contains invalid JSON - restart aborted"
-            return 1
+            log_error "Docker seccomp.json contains invalid JSON"
+            
+            # Auto-repair attempt if enabled
+            if [[ "${AUTO_REPAIR_DOCKER_DAEMON:-false}" == "true" ]]; then
+                log_info "AUTO_REPAIR_DOCKER_DAEMON enabled - attempting automatic repair"
+                if attempt_docker_daemon_auto_repair "invalid_seccomp_json"; then
+                    log_success "Docker auto-repair completed successfully"
+                    # Retry the seccomp validation
+                    if jq . /etc/docker/seccomp.json &>/dev/null; then
+                        log_success "Seccomp.json validation passed after auto-repair"
+                    else
+                        log_error "Seccomp.json still invalid after auto-repair"
+                        return 1
+                    fi
+                else
+                    log_error "Docker auto-repair failed - manual intervention required"
+                    return 1
+                fi
+            else
+                log_info "AUTO_REPAIR_DOCKER_DAEMON disabled - skipping auto-repair"
+                log_error "Restart aborted due to invalid seccomp.json"
+                return 1
+            fi
         fi
         log_info "Docker seccomp.json validation passed"
     fi
@@ -417,6 +479,42 @@ validate_docker_pre_restart() {
     
     log_success "Docker pre-restart safety checks completed"
     return 0
+}
+
+# Docker daemon auto-repair helper function
+# Invokes docker_daemon_repair.sh following JarvisJR modular architecture patterns
+attempt_docker_daemon_auto_repair() {
+    local failure_reason="${1:-unknown_failure}"
+    log_info "Attempting Docker daemon auto-repair for: $failure_reason"
+    
+    # Determine project root for modular script invocation
+    local current_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local project_root="$(dirname "$(dirname "${current_script_dir}")")"
+    local repair_script="${project_root}/scripts/core/docker_daemon_repair.sh"
+    
+    # Verify repair script exists
+    if [[ ! -f "$repair_script" ]]; then
+        log_error "Docker daemon repair script not found: $repair_script"
+        return 1
+    fi
+    
+    # Dry-run mode compatibility
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Would invoke Docker daemon repair script"
+        log_info "[DRY-RUN] Command: bash ${repair_script}"
+        return 0
+    fi
+    
+    # Invoke repair script using JarvisJR modular pattern (bash script.sh)
+    # This maintains compatibility regardless of executable permissions
+    log_info "Invoking Docker daemon repair script"
+    if bash "$repair_script"; then
+        log_success "Docker daemon repair completed successfully"
+        return 0
+    else
+        log_error "Docker daemon repair failed"
+        return 1
+    fi
 }
 
 # Comprehensive safe Docker daemon restart with emergency recovery
