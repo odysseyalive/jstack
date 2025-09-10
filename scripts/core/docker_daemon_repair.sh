@@ -14,6 +14,93 @@ load_config
 export_config
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 🔧 DEPENDENCY VALIDATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+validate_required_dependencies() {
+    log_info "Validating required dependencies for Docker daemon repair"
+    
+    # Array of critical dependencies required for this script
+    local required_deps=("jq" "openssl" "sudo")
+    local missing_deps=()
+    local install_commands=()
+    
+    # Check each required dependency
+    for dep in "${required_deps[@]}"; do
+        if ! command -v "$dep" >/dev/null 2>&1; then
+            log_error "Missing required dependency: $dep"
+            missing_deps+=("$dep")
+            
+            # Add specific installation guidance
+            case "$dep" in
+                "jq")
+                    install_commands+=("jq")
+                    ;;
+                "openssl")
+                    install_commands+=("openssl")
+                    ;;
+                "sudo")
+                    install_commands+=("sudo")
+                    ;;
+            esac
+        else
+            log_success "Found required dependency: $dep"
+        fi
+    done
+    
+    # If dependencies are missing, provide installation guidance and exit
+    if [[ ${#missing_deps[@]} -gt 0 ]]; then
+        log_error "Docker daemon repair cannot proceed without required dependencies"
+        log_error "Missing dependencies: ${missing_deps[*]}"
+        log_info ""
+        log_info "To install missing dependencies on Ubuntu/Debian systems:"
+        log_info "  sudo apt-get update"
+        log_info "  sudo apt-get install -y ${install_commands[*]}"
+        log_info ""
+        log_info "On RHEL/CentOS/Fedora systems:"
+        log_info "  sudo yum install -y ${install_commands[*]}"
+        log_info "  # OR for newer systems:"
+        log_info "  sudo dnf install -y ${install_commands[*]}"
+        log_info ""
+        log_info "On Arch Linux systems:"
+        log_info "  sudo pacman -S ${install_commands[*]}"
+        log_info ""
+        log_error "Please install the missing dependencies and retry the Docker daemon repair"
+        return 1
+    fi
+    
+    # Additional validation for jq functionality
+    log_info "Validating jq JSON processing functionality"
+    if ! echo '{"test": "value"}' | jq '.test' >/dev/null 2>&1; then
+        log_error "jq is installed but not functioning properly for JSON processing"
+        log_error "This script requires functional jq for Docker daemon.json configuration management"
+        return 1
+    fi
+    
+    # Additional validation for openssl functionality
+    log_info "Validating openssl functionality"
+    if ! openssl version >/dev/null 2>&1; then
+        log_error "openssl is installed but not functioning properly"
+        log_error "This script requires functional openssl for security operations"
+        return 1
+    fi
+    
+    # Additional validation for sudo access
+    log_info "Validating sudo access for Docker daemon operations"
+    if ! sudo -n true 2>/dev/null; then
+        log_warning "Sudo access may require password authentication"
+        log_info "Docker daemon repair requires sudo privileges for:"
+        log_info "  - Managing /etc/docker/daemon.json"
+        log_info "  - Creating Docker security profiles"
+        log_info "  - Restarting Docker service"
+        log_info "Please ensure sudo access is available when prompted"
+    fi
+    
+    log_success "All required dependencies validated successfully"
+    return 0
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # 🐳 DOCKER DAEMON CONFIGURATION REPAIR
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -595,6 +682,12 @@ verify_docker_functionality() {
 
 repair_docker_daemon() {
     log_section "Docker Daemon Configuration Repair"
+    
+    # Critical dependency validation - must run before any operations
+    if ! validate_required_dependencies; then
+        log_error "Dependency validation failed - cannot proceed with Docker daemon repair"
+        return 1
+    fi
     
     # Initialize logging
     setup_logging

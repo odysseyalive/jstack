@@ -14,6 +14,76 @@ load_config
 export_config
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 🔧 COMPREHENSIVE DEPENDENCY MANAGEMENT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Run comprehensive dependency validation and installation
+validate_and_install_dependencies() {
+    log_section "Comprehensive Dependency Management"
+    
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Would run comprehensive dependency validation and installation"
+        return 0
+    fi
+    
+    # First, run pre-installation check to identify missing dependencies
+    log_info "Running pre-installation dependency check"
+    if bash "${PROJECT_ROOT}/scripts/core/pre_installation_check.sh" check; then
+        log_success "Pre-installation dependency check passed"
+    else
+        log_warning "Pre-installation check identified missing dependencies"
+        
+        # Ask user for permission to auto-install dependencies
+        if [[ "${FORCE_INSTALL:-false}" != "true" ]]; then
+            log_info "Auto-installing missing dependencies using centralized dependency management"
+            log_info "This will install all required packages for JarvisJR Stack operation"
+            echo ""
+            
+            read -p "Proceed with dependency installation? [Y/n]: " -n 1 -r
+            echo ""
+            if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ ! -z $REPLY ]]; then
+                log_error "Dependency installation cancelled by user"
+                log_info "To install dependencies manually, run:"
+                log_info "  ./scripts/core/install_dependencies.sh"
+                log_info "  ./scripts/core/dependency_management.sh install"
+                return 1
+            fi
+        fi
+        
+        # Auto-install missing dependencies
+        log_info "Installing missing dependencies using centralized management system"
+        if bash "${PROJECT_ROOT}/scripts/core/dependency_management.sh" install; then
+            log_success "Dependencies installed successfully"
+        else
+            log_error "Dependency installation failed"
+            log_info "Try manual installation:"
+            log_info "  ./scripts/core/install_dependencies.sh"
+            return 1
+        fi
+        
+        # Re-validate after installation
+        log_info "Re-validating dependencies after installation"
+        if bash "${PROJECT_ROOT}/scripts/core/pre_installation_check.sh" check; then
+            log_success "All dependencies now available"
+        else
+            log_error "Some dependencies still missing after installation"
+            log_info "Generate dependency report for manual installation:"
+            log_info "  ./scripts/core/dependency_management.sh report"
+            return 1
+        fi
+    fi
+    
+    # Generate dependency report for documentation
+    log_info "Generating dependency report for installation record"
+    bash "${PROJECT_ROOT}/scripts/core/dependency_management.sh" report "$BASE_DIR/logs/dependency_report_$(date '+%Y%m%d_%H%M%S').txt" || true
+    
+    log_success "Comprehensive dependency management completed"
+}
+
+# Run comprehensive dependency validation and installation at startup
+validate_and_install_dependencies
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # 🛡️ HOST OS HARDENING
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -982,16 +1052,7 @@ setup_compliance_monitoring() {
     
     start_section_timer "Compliance Setup"
     
-    # Install jq if not present (required for site registry management)
-    if ! command -v jq &> /dev/null; then
-        log_info "Installing jq for JSON processing"
-        execute_cmd "sudo apt-get update -y" "Update package lists for jq"
-        execute_cmd "sudo apt-get install -y jq" "Install jq JSON processor"
-    else
-        log_info "jq already installed"
-    fi
-    
-    # Setup compliance monitoring system
+    # Setup compliance monitoring system (jq already installed in essential dependencies)
     log_info "Initializing compliance monitoring system"
     if bash "${PROJECT_ROOT}/scripts/security/compliance_monitoring.sh" setup; then
         log_success "Compliance monitoring system initialized"
