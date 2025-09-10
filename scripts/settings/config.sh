@@ -37,7 +37,15 @@ load_config() {
 }
 
 # Validate that required configuration variables are set
+# Validate that required configuration variables are set
 validate_required_config() {
+    # Allow placeholder values in development mode
+    if [[ "${ENABLE_DEVELOPMENT_MODE:-false}" == "true" ]]; then
+        echo "[DEVELOPMENT] Using development mode - placeholder values allowed"
+        echo "[DEVELOPMENT] DOMAIN: ${DOMAIN}, EMAIL: ${EMAIL}"
+        return 0
+    fi
+    
     local required_vars=("DOMAIN" "EMAIL")
     local missing_vars=()
     
