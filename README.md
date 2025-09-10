@@ -272,7 +272,7 @@ docker ps
 ```
 
 ```bash
-tail -f /home/jarvis/jarvis-stack/logs/setup_*.log
+tail -f /home/{your-username}/jstack/logs/setup_*.log
 ```
 
 ```bash
