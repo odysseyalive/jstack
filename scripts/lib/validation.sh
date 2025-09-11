@@ -255,32 +255,9 @@ validate_environment() {
         fi
     done
     
-    # Check Docker Compose availability with improved compatibility detection
-    local docker_compose_available=false
-    
-    # Check for docker compose plugin (modern approach)
-    if docker compose version &> /dev/null; then
-        docker_compose_available=true
-        log_info "Docker Compose plugin detected"
-    # Check for standalone docker-compose command (legacy approach)  
-    elif command -v docker-compose &> /dev/null && docker-compose version &> /dev/null; then
-        docker_compose_available=true
-        log_info "Docker Compose standalone detected"
-    # Check for docker-compose plugin via docker CLI
-    elif docker --help 2>/dev/null | grep -q "compose"; then
-        docker_compose_available=true
-        log_info "Docker Compose plugin available via docker CLI"
-    fi
-    
-    if [[ "$docker_compose_available" == "false" ]]; then
+    # Check Docker Compose availability using unified detection function
+    if ! validate_docker_compose_availability; then
         validation_errors+=("Docker Compose not available - install Docker Desktop or docker-compose-plugin")
-        log_error "Docker Compose validation failed"
-        log_info "Available installation options:"
-        log_info "  - Install docker-compose-plugin: apt install docker-compose-plugin"
-        log_info "  - Install standalone docker-compose: apt install docker-compose"
-        log_info "  - Install Docker Desktop (includes compose)"
-    else
-        log_success "Docker Compose validation passed"
     fi
     
     # Check disk space (require at least 10GB free)

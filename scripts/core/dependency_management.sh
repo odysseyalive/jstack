@@ -499,11 +499,9 @@ verify_installation_success() {
         fi
     done
     
-    # Special check for docker-compose compatibility
-    if docker compose version &>/dev/null 2>&1; then
-        log_success "✓ docker compose plugin available"
-    elif command_exists docker-compose; then
-        log_success "✓ docker-compose standalone available"
+    # Special check for docker-compose compatibility using unified function
+    if validate_docker_compose_availability true; then
+        log_success "✓ docker compose available (method: ${DOCKER_COMPOSE_METHOD})"
     else
         log_error "✗ docker compose not available in any form"
         verification_failed=true
@@ -634,18 +632,18 @@ EOF
 ### Debian/Ubuntu (apt)
 \`\`\`bash
 sudo apt-get update
-sudo apt-get install -y curl wget jq openssl tar gzip docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin nginx certbot python3-certbot-nginx ufw fail2ban apparmor apparmor-utils auditd lsb-release ca-certificates apt-transport-https software-properties-common gnupg lsof sysstat net-tools iputils-ping netcat-openbsd dnsutils
+sudo apt-get install -y curl wget jq openssl tar gzip docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin certbot python3-certbot-nginx ufw fail2ban apparmor apparmor-utils auditd lsb-release ca-certificates apt-transport-https software-properties-common gnupg lsof sysstat net-tools iputils-ping netcat-openbsd dnsutils
 \`\`\`
 
 ### RHEL/CentOS (yum)
 \`\`\`bash
-sudo yum install -y curl wget jq openssl tar gzip nginx certbot python3-certbot-nginx firewalld fail2ban audit lsof bind-utils net-tools iputils
+sudo yum install -y curl wget jq openssl tar gzip certbot python3-certbot-nginx firewalld fail2ban audit lsof bind-utils net-tools iputils
 \`\`\`
 
 ### Arch Linux (pacman)
 \`\`\`bash
 sudo pacman -Sy
-sudo pacman -S --noconfirm curl wget jq openssl tar gzip docker docker-compose nginx certbot ufw fail2ban apparmor audit lsof bind-tools net-tools iputils noto-fonts noto-fonts-emoji ttf-dejavu
+sudo pacman -S --noconfirm curl wget jq openssl tar gzip docker docker-compose certbot ufw fail2ban apparmor audit lsof bind-tools net-tools iputils noto-fonts noto-fonts-emoji ttf-dejavu
 \`\`\`
 
 ## Usage Context

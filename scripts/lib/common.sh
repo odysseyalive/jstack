@@ -315,6 +315,92 @@ generate_secret() {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 🐳 DOCKER COMPOSE DETECTION SYSTEM
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Unified Docker Compose detection function following institutional JarvisJR patterns
+# Provides consistent docker-compose availability checking across all validation scripts
+validate_docker_compose_availability() {
+    local quiet_mode="${1:-false}"
+    local docker_compose_available=false
+    local compose_method=""
+    
+    if [[ "$quiet_mode" != "true" ]]; then
+        log_info "Validating Docker Compose availability"
+    fi
+    
+    # Method 1: Check for docker compose plugin (modern approach - preferred)
+    if docker compose version &> /dev/null; then
+        docker_compose_available=true
+        compose_method="plugin"
+        if [[ "$quiet_mode" != "true" ]]; then
+            log_success "Docker Compose plugin detected"
+        fi
+    # Method 2: Check for standalone docker-compose command (legacy approach)  
+    elif command -v docker-compose &> /dev/null && docker-compose version &> /dev/null; then
+        docker_compose_available=true
+        compose_method="standalone"
+        if [[ "$quiet_mode" != "true" ]]; then
+            log_success "Docker Compose standalone detected"
+        fi
+    # Method 3: Check for docker-compose plugin via docker CLI help (fallback)
+    elif docker --help 2>/dev/null | grep -q "compose"; then
+        docker_compose_available=true
+        compose_method="cli_help"
+        if [[ "$quiet_mode" != "true" ]]; then
+            log_success "Docker Compose plugin available via docker CLI"
+        fi
+    fi
+    
+    # Export compose method for use by other scripts
+    export DOCKER_COMPOSE_METHOD="$compose_method"
+    
+    if [[ "$docker_compose_available" == "false" ]]; then
+        if [[ "$quiet_mode" != "true" ]]; then
+            log_error "Docker Compose not available in any form"
+            log_info "Available installation options:"
+            log_info "  - Install docker-compose-plugin: apt install docker-compose-plugin"
+            log_info "  - Install standalone docker-compose: apt install docker-compose"
+            log_info "  - Install Docker Desktop (includes compose)"
+        fi
+        return 1
+    else
+        if [[ "$quiet_mode" != "true" ]]; then
+            log_success "Docker Compose validation passed using $compose_method method"
+        fi
+        return 0
+    fi
+}
+
+# Get the appropriate docker-compose command based on availability
+get_docker_compose_command() {
+    # Use the previously detected method or detect now
+    if [[ -z "${DOCKER_COMPOSE_METHOD:-}" ]]; then
+        validate_docker_compose_availability true  # quiet mode
+    fi
+    
+    case "${DOCKER_COMPOSE_METHOD:-}" in
+        "plugin"|"cli_help")
+            echo "docker compose"
+            ;;
+        "standalone")
+            echo "docker-compose"
+            ;;
+        *)
+            # Fallback detection
+            if docker compose version &> /dev/null; then
+                echo "docker compose"
+            elif command -v docker-compose &> /dev/null; then
+                echo "docker-compose"
+            else
+                echo ""
+                return 1
+            fi
+            ;;
+    esac
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # 🐳 DOCKER DAEMON FAILURE PREVENTION SYSTEM
 # ═══════════════════════════════════════════════════════════════════════════════
 
