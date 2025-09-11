@@ -54,7 +54,6 @@ declare -A NETWORK_TOOLS=(
     ["netstat"]="Network statistics|net-tools|1.60+|Network diagnostics"
     ["ss"]="Socket statistics|iproute2|4.15+|Network monitoring"
     ["lsof"]="Open files listing|lsof|4.89+|Process diagnostics"
-    ["nginx"]="Web server|nginx|1.18+|Reverse proxy"
 )
 
 # JSON and Data Processing (Critical - Required for configuration)
@@ -266,13 +265,82 @@ validate_all_dependencies() {
         echo ""
     done
     
+    # Validate container nginx capability (replaces system nginx requirement)
+    echo ""
+    if ! validate_container_nginx_capability; then
+        log_error "Container nginx capability validation failed"
+        validation_failed=true
+    fi
+    
     if $validation_failed; then
-        log_error "Dependency validation failed - critical dependencies missing"
+        log_error "Dependency validation failed - critical dependencies missing or container capabilities unavailable"
         return 1
     else
-        log_success "Dependency validation passed - all critical dependencies available"
+        log_success "Dependency validation passed - all critical dependencies available and container nginx capability confirmed"
         return 0
     fi
+}
+
+# Validate container nginx capability (instead of system nginx)
+validate_container_nginx_capability() {
+    log_info "Validating container nginx capability"
+    
+    # Check if Docker is available (required for containerized nginx)
+    if ! command_exists docker; then
+        log_error "Docker not available - cannot deploy container nginx"
+        return 1
+    fi
+    
+    # Check if Docker daemon is running
+    if ! docker info &>/dev/null; then
+        log_warning "Docker daemon not running - nginx container deployment may fail"
+        log_info "Start Docker daemon: sudo systemctl start docker"
+    fi
+    
+    # Check if we can pull nginx image (test connectivity and permissions)
+    log_info "Testing nginx container image availability"
+    if docker pull nginx:alpine --quiet &>/dev/null; then
+        log_success "✓ nginx container image available"
+        # Clean up test image
+        docker rmi nginx:alpine &>/dev/null || true
+    else
+        log_warning "⚠ Could not pull nginx container image"
+        log_info "This may indicate network connectivity or Docker registry issues"
+        log_info "JarvisJR Stack will attempt to use nginx container during installation"
+    fi
+    
+    # Check for port conflicts (80/443 should be available)
+    local port_conflicts=false
+    if command_exists lsof; then
+        if sudo lsof -i :80 2>/dev/null | grep -v nginx | grep -q LISTEN; then
+            log_warning "⚠ Port 80 is occupied by non-nginx service"
+            port_conflicts=true
+        fi
+        if sudo lsof -i :443 2>/dev/null | grep -v nginx | grep -q LISTEN; then
+            log_warning "⚠ Port 443 is occupied by non-nginx service"
+            port_conflicts=true
+        fi
+    elif command_exists netstat; then
+        if netstat -tulpn 2>/dev/null | grep -E ":80.*LISTEN" | grep -v nginx | grep -q .; then
+            log_warning "⚠ Port 80 is occupied by non-nginx service"
+            port_conflicts=true
+        fi
+        if netstat -tulpn 2>/dev/null | grep -E ":443.*LISTEN" | grep -v nginx | grep -q .; then
+            log_warning "⚠ Port 443 is occupied by non-nginx service"
+            port_conflicts=true
+        fi
+    fi
+    
+    if $port_conflicts; then
+        log_warning "Port conflicts detected - nginx container may fail to bind to ports 80/443"
+        log_info "Stop conflicting services before deploying JarvisJR Stack"
+        return 1
+    else
+        log_success "✓ Ports 80/443 are available for nginx container"
+    fi
+    
+    log_success "Container nginx capability validated"
+    return 0
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -291,12 +359,12 @@ install_dependencies_apt() {
     # Update package lists
     execute_cmd "sudo apt-get update -y" "Update package lists"
     
-    # Essential packages (always install)
+    # Essential packages (always install - nginx excluded, using container)
     local essential_packages=(
         "curl" "wget" "jq" "openssl" "tar" "gzip"
         "docker-ce" "docker-ce-cli" "containerd.io" 
         "docker-buildx-plugin" "docker-compose-plugin"
-        "nginx" "certbot" "python3-certbot-nginx"
+        "certbot" "python3-certbot-nginx"
         "ufw" "fail2ban" "apparmor" "apparmor-utils" "auditd"
         "lsb-release" "ca-certificates" "apt-transport-https" 
         "software-properties-common" "gnupg" "lsof"
@@ -332,10 +400,10 @@ install_dependencies_yum() {
         return 0
     fi
     
-    # Essential packages
+    # Essential packages (nginx excluded, using container)
     local essential_packages=(
         "curl" "wget" "jq" "openssl" "tar" "gzip"
-        "nginx" "certbot" "python3-certbot-nginx"
+        "certbot" "python3-certbot-nginx"
         "firewalld" "fail2ban" "audit"
         "lsof" "bind-utils" "net-tools" "iputils"
     )
@@ -355,10 +423,10 @@ install_dependencies_pacman() {
     # Update package database
     execute_cmd "sudo pacman -Sy" "Update package database"
     
-    # Essential packages
+    # Essential packages (nginx excluded, using container)
     local essential_packages=(
         "curl" "wget" "jq" "openssl" "tar" "gzip"
-        "docker" "docker-compose" "nginx" "certbot"
+        "docker" "docker-compose" "certbot"
         "ufw" "fail2ban" "apparmor" "audit"
         "lsof" "bind-tools" "net-tools" "iputils"
         "noto-fonts" "noto-fonts-emoji" "ttf-dejavu"
@@ -417,7 +485,7 @@ verify_installation_success() {
     log_info "Verifying installation success"
     
     local critical_commands=(
-        "docker" "curl" "wget" "jq" "openssl" "nginx" "certbot" "ufw" "systemctl"
+        "docker" "curl" "wget" "jq" "openssl" "certbot" "ufw" "systemctl"
     )
     
     local verification_failed=false

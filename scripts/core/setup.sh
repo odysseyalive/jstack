@@ -303,7 +303,7 @@ validate_and_install_dependencies() {
         log_warning "Pre-installation check identified missing dependencies"
         
         # Ask user for permission to auto-install dependencies
-        if [[ "${FORCE_INSTALL:-false}" != "true" ]]; then
+        if [[ "${FORCE_INSTALL:-false}" != "true" ]] && [[ "${AUTO_INSTALL_DEPENDENCIES:-false}" != "true" ]]; then
             log_info "Auto-installing missing dependencies using centralized dependency management"
             log_info "This will install all required packages for JarvisJR Stack operation"
             echo ""
@@ -316,6 +316,12 @@ validate_and_install_dependencies() {
                 log_info "  ./scripts/core/install_dependencies.sh"
                 log_info "  ./scripts/core/dependency_management.sh install"
                 return 1
+            fi
+        else
+            if [[ "${AUTO_INSTALL_DEPENDENCIES:-false}" == "true" ]]; then
+                log_info "AUTO_INSTALL_DEPENDENCIES=true - proceeding with automatic dependency installation"
+            else
+                log_info "FORCE_INSTALL=true - proceeding with automatic dependency installation"
             fi
         fi
         

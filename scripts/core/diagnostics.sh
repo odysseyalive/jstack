@@ -485,7 +485,7 @@ EOF
     echo ""
     echo "Firewall Status:"
     if command -v ufw &>/dev/null; then
-        ufw status | sed 's/^/  /'
+        sudo ufw status | sed 's/^/  /'
     else
         echo "  UFW not available"
     fi

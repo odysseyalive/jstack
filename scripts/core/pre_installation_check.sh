@@ -14,6 +14,21 @@ source "${PROJECT_ROOT}/scripts/lib/common.sh"
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Check critical dependencies before installation
+# Detect package manager for proper package validation
+detect_package_manager() {
+    if command -v apt-get &>/dev/null; then
+        echo "apt"
+    elif command -v yum &>/dev/null; then
+        echo "yum"
+    elif command -v dnf &>/dev/null; then
+        echo "dnf"
+    elif command -v pacman &>/dev/null; then
+        echo "pacman"
+    else
+        echo "unknown"
+    fi
+}
+
 check_critical_dependencies() {
     log_section "Pre-Installation Dependency Check"
     
@@ -30,7 +45,6 @@ check_critical_dependencies() {
         "openssl:SSL and encryption toolkit"
         "systemctl:Service management"
         "docker:Container runtime"
-        "nginx:Web server"
         "certbot:SSL certificate management"
         "ufw:Firewall management"
     )
@@ -49,23 +63,115 @@ check_critical_dependencies() {
     log_info "Checking critical dependencies..."
     for dep_def in "${critical_deps[@]}"; do
         IFS=':' read -r cmd description <<< "$dep_def"
-        if command -v "$cmd" &>/dev/null; then
-            log_success "✓ $cmd ($description)"
-        else
-            critical_missing+=("$cmd")
-            log_error "✗ $cmd ($description) - CRITICAL"
-        fi
+        
+        # Check system packages that require sudo to detect properly
+        case "$cmd" in
+            "ufw"|"certbot")
+                # Check if package is installed using package manager
+                local package_manager=$(detect_package_manager)
+                case "$package_manager" in
+                    "apt")
+                        if sudo dpkg -l "$cmd" 2>/dev/null | grep -q "^ii"; then
+                            log_success "✓ $cmd ($description)"
+                        else
+                            critical_missing+=("$cmd")
+                            log_error "✗ $cmd ($description) - CRITICAL"
+                        fi
+                        ;;
+                    "yum"|"dnf")
+                        if sudo rpm -q "$cmd" &>/dev/null; then
+                            log_success "✓ $cmd ($description)"
+                        else
+                            critical_missing+=("$cmd")
+                            log_error "✗ $cmd ($description) - CRITICAL"
+                        fi
+                        ;;
+                    "pacman")
+                        if sudo pacman -Q "$cmd" &>/dev/null; then
+                            log_success "✓ $cmd ($description)"
+                        else
+                            critical_missing+=("$cmd")
+                            log_error "✗ $cmd ($description) - CRITICAL"
+                        fi
+                        ;;
+                    *)
+                        # Fallback to command check for unknown package managers
+                        if command -v "$cmd" &>/dev/null; then
+                            log_success "✓ $cmd ($description)"
+                        else
+                            critical_missing+=("$cmd")
+                            log_error "✗ $cmd ($description) - CRITICAL"
+                        fi
+                        ;;
+                esac
+                ;;
+            *)
+                # Standard command availability check for other tools
+                if command -v "$cmd" &>/dev/null; then
+                    log_success "✓ $cmd ($description)"
+                else
+                    critical_missing+=("$cmd")
+                    log_error "✗ $cmd ($description) - CRITICAL"
+                fi
+                ;;
+        esac
     done
     
     log_info "Checking optional dependencies..."
     for dep_def in "${optional_deps[@]}"; do
         IFS=':' read -r cmd description <<< "$dep_def"
-        if command -v "$cmd" &>/dev/null; then
-            log_success "✓ $cmd ($description)"
-        else
-            optional_missing+=("$cmd")
-            log_warning "⚠ $cmd ($description) - OPTIONAL"
-        fi
+        
+        # Check system packages that require sudo to detect properly
+        case "$cmd" in
+            "fail2ban"|"apparmor"|"auditd")
+                # Check if package is installed using package manager
+                local package_manager=$(detect_package_manager)
+                case "$package_manager" in
+                    "apt")
+                        if sudo dpkg -l "$cmd" 2>/dev/null | grep -q "^ii"; then
+                            log_success "✓ $cmd ($description)"
+                        else
+                            optional_missing+=("$cmd")
+                            log_warning "⚠ $cmd ($description) - OPTIONAL"
+                        fi
+                        ;;
+                    "yum"|"dnf")
+                        if sudo rpm -q "$cmd" &>/dev/null; then
+                            log_success "✓ $cmd ($description)"
+                        else
+                            optional_missing+=("$cmd")
+                            log_warning "⚠ $cmd ($description) - OPTIONAL"
+                        fi
+                        ;;
+                    "pacman")
+                        if sudo pacman -Q "$cmd" &>/dev/null; then
+                            log_success "✓ $cmd ($description)"
+                        else
+                            optional_missing+=("$cmd")
+                            log_warning "⚠ $cmd ($description) - OPTIONAL"
+                        fi
+                        ;;
+                    *)
+                        # Fallback to command check for unknown package managers
+                        if command -v "$cmd" &>/dev/null; then
+                            log_success "✓ $cmd ($description)"
+                        else
+                            optional_missing+=("$cmd")
+                            log_warning "⚠ $cmd ($description) - OPTIONAL"
+                        fi
+                        ;;
+                esac
+                ;;
+            *)
+                # Standard command availability check for other tools
+                if command -v "$cmd" &>/dev/null; then
+                    log_success "✓ $cmd ($description)"
+                else
+                    optional_missing+=("$cmd")
+                    log_warning "⚠ $cmd ($description) - OPTIONAL"
+                fi
+                ;;
+        esac
     done
     
     # Report results
@@ -150,6 +256,238 @@ check_docker_availability() {
     return 0
 }
 
+# Check for nginx conflicts (system nginx vs containerized nginx)
+check_nginx_conflicts() {
+    log_info "Checking for nginx conflicts"
+    
+    local nginx_conflicts_detected=false
+    local package_manager=$(detect_package_manager)
+    
+    # Check if system nginx package is installed
+    local nginx_package_installed=false
+    case "$package_manager" in
+        "apt")
+            if sudo dpkg -l nginx nginx-common nginx-core 2>/dev/null | grep -q "^ii"; then
+                nginx_package_installed=true
+            fi
+            ;;
+        "yum"|"dnf")
+            if sudo rpm -q nginx 2>/dev/null | grep -q "nginx"; then
+                nginx_package_installed=true
+            fi
+            ;;
+        "pacman")
+            if sudo pacman -Q nginx 2>/dev/null | grep -q "nginx"; then
+                nginx_package_installed=true
+            fi
+            ;;
+        *)
+            log_warning "Unknown package manager - using command check for nginx"
+            if command -v nginx &>/dev/null; then
+                nginx_package_installed=true
+            fi
+            ;;
+    esac
+    
+    # Check for running nginx processes
+    local nginx_processes_running=false
+    if pgrep -x nginx >/dev/null 2>&1; then
+        nginx_processes_running=true
+    fi
+    
+    # Check if nginx service is enabled/active
+    local nginx_service_active=false
+    if systemctl is-active nginx >/dev/null 2>&1 || systemctl is-enabled nginx >/dev/null 2>&1; then
+        nginx_service_active=true
+    fi
+    
+    # Check if ports 80/443 are in use by nginx
+    local nginx_ports_occupied=false
+    if command -v lsof >/dev/null 2>&1; then
+        if sudo lsof -i :80 2>/dev/null | grep -q nginx || sudo lsof -i :443 2>/dev/null | grep -q nginx; then
+            nginx_ports_occupied=true
+        fi
+    elif command -v netstat >/dev/null 2>&1; then
+        if netstat -tulpn 2>/dev/null | grep -E ":80|:443" | grep -q nginx; then
+            nginx_ports_occupied=true
+        fi
+    fi
+    
+    # Report conflicts
+    if $nginx_package_installed || $nginx_processes_running || $nginx_service_active || $nginx_ports_occupied; then
+        log_warning "Nginx conflicts detected:"
+        
+        if $nginx_package_installed; then
+            log_warning "  ⚠ System nginx package is installed"
+            nginx_conflicts_detected=true
+        fi
+        
+        if $nginx_processes_running; then
+            log_warning "  ⚠ Nginx processes are currently running"
+            nginx_conflicts_detected=true
+        fi
+        
+        if $nginx_service_active; then
+            log_warning "  ⚠ Nginx service is active/enabled"
+            nginx_conflicts_detected=true
+        fi
+        
+        if $nginx_ports_occupied; then
+            log_warning "  ⚠ Nginx is occupying ports 80/443"
+            nginx_conflicts_detected=true
+        fi
+        
+        echo ""
+        log_warning "JarvisJR Stack uses containerized nginx, which conflicts with system nginx"
+        log_info "System nginx must be removed to avoid port conflicts (80/443)"
+        log_info "Container nginx will provide all web server functionality"
+        echo ""
+        log_info "Conflict resolution options:"
+        log_info "  1. Automatic removal: ./jstack.sh --resolve-nginx-conflicts"
+        log_info "  2. Manual removal: ./scripts/core/pre_installation_check.sh remove-nginx"
+        log_info "  3. Force installation: ./jstack.sh --force-install (not recommended)"
+        
+        return 1
+    else
+        log_success "No nginx conflicts detected"
+        log_info "System is ready for containerized nginx deployment"
+        return 0
+    fi
+}
+
+# Remove conflicting system nginx installation
+remove_conflicting_nginx() {
+    log_section "Removing Conflicting System Nginx"
+    
+    if [[ "${DRY_RUN:-false}" == "true" ]]; then
+        log_info "[DRY-RUN] Would remove conflicting system nginx installation"
+        return 0
+    fi
+    
+    local package_manager=$(detect_package_manager)
+    local removal_failed=false
+    
+    # Stop nginx service first
+    log_info "Stopping nginx service if running"
+    if systemctl is-active nginx >/dev/null 2>&1; then
+        if sudo systemctl stop nginx; then
+            log_success "Stopped nginx service"
+        else
+            log_warning "Failed to stop nginx service (continuing anyway)"
+        fi
+    fi
+    
+    # Disable nginx service
+    if systemctl is-enabled nginx >/dev/null 2>&1; then
+        if sudo systemctl disable nginx; then
+            log_success "Disabled nginx service"
+        else
+            log_warning "Failed to disable nginx service (continuing anyway)"
+        fi
+    fi
+    
+    # Remove nginx packages based on package manager
+    log_info "Removing nginx packages using $package_manager package manager"
+    case "$package_manager" in
+        "apt")
+            # Remove nginx packages and dependencies
+            local packages_to_remove=(
+                "nginx" "nginx-common" "nginx-core" "nginx-full" 
+                "nginx-light" "nginx-extras" "nginx-doc"
+            )
+            
+            for package in "${packages_to_remove[@]}"; do
+                if sudo dpkg -l "$package" 2>/dev/null | grep -q "^ii"; then
+                    log_info "Removing package: $package"
+                    if sudo apt-get remove --purge -y "$package" 2>/dev/null; then
+                        log_success "Removed $package"
+                    else
+                        log_warning "Failed to remove $package (may not be critical)"
+                    fi
+                fi
+            done
+            
+            # Clean up any remaining configuration
+            if sudo apt-get autoremove -y 2>/dev/null; then
+                log_success "Cleaned up unused dependencies"
+            fi
+            ;;
+            
+        "yum")
+            if sudo yum remove -y nginx 2>/dev/null; then
+                log_success "Removed nginx package"
+            else
+                log_error "Failed to remove nginx using yum"
+                removal_failed=true
+            fi
+            ;;
+            
+        "dnf")
+            if sudo dnf remove -y nginx 2>/dev/null; then
+                log_success "Removed nginx package"
+            else
+                log_error "Failed to remove nginx using dnf"
+                removal_failed=true
+            fi
+            ;;
+            
+        "pacman")
+            if sudo pacman -R --noconfirm nginx 2>/dev/null; then
+                log_success "Removed nginx package"
+            else
+                log_error "Failed to remove nginx using pacman"
+                removal_failed=true
+            fi
+            ;;
+            
+        *)
+            log_error "Unknown package manager: $package_manager"
+            log_error "Manual nginx removal required"
+            removal_failed=true
+            ;;
+    esac
+    
+    # Clean up configuration directories
+    log_info "Cleaning up nginx configuration directories"
+    local config_dirs=(
+        "/etc/nginx"
+        "/var/log/nginx"
+        "/var/cache/nginx"
+        "/var/lib/nginx"
+    )
+    
+    for dir in "${config_dirs[@]}"; do
+        if [[ -d "$dir" ]]; then
+            log_info "Removing directory: $dir"
+            if sudo rm -rf "$dir" 2>/dev/null; then
+                log_success "Removed $dir"
+            else
+                log_warning "Could not remove $dir (may require manual cleanup)"
+            fi
+        fi
+    done
+    
+    # Verify removal success
+    sleep 2
+    if ! check_nginx_conflicts >/dev/null 2>&1; then
+        log_success "System nginx successfully removed"
+        log_info "JarvisJR Stack can now deploy containerized nginx without conflicts"
+        return 0
+    else
+        log_error "Nginx conflict removal incomplete"
+        if $removal_failed; then
+            log_error "Package removal failed - manual intervention required"
+            log_info ""
+            log_info "Manual removal steps:"
+            log_info "  1. Stop nginx: sudo systemctl stop nginx"
+            log_info "  2. Disable nginx: sudo systemctl disable nginx"
+            log_info "  3. Remove packages: sudo $package_manager remove nginx"
+            log_info "  4. Clean config: sudo rm -rf /etc/nginx"
+        fi
+        return 1
+    fi
+}
+
 # Main pre-installation check
 run_pre_installation_check() {
     log_section "JarvisJR Stack Pre-Installation Validation"
@@ -170,6 +508,13 @@ run_pre_installation_check() {
     
     echo ""
     
+    # Check for nginx conflicts
+    if ! check_nginx_conflicts; then
+        check_failed=true
+    fi
+    
+    echo ""
+    
     # Final result
     if $check_failed; then
         log_error "Pre-installation check failed"
@@ -183,9 +528,12 @@ run_pre_installation_check() {
         log_info "2. Comprehensive dependency management:"
         log_info "   ./scripts/core/dependency_management.sh install"
         log_info ""
-        log_info "3. Manual installation (see DEPENDENCY_MANIFEST.md)"
+        log_info "3. Resolve nginx conflicts:"
+        log_info "   ./scripts/core/pre_installation_check.sh remove-nginx"
         log_info ""
-        log_info "4. Force installation (not recommended):"
+        log_info "4. Manual installation (see DEPENDENCY_MANIFEST.md)"
+        log_info ""
+        log_info "5. Force installation (not recommended):"
         log_info "   ./jstack.sh --force-install"
         log_info ""
         return 1
@@ -212,20 +560,30 @@ main() {
         "docker")
             check_docker_availability
             ;;
+        "nginx-conflicts"|"nginx")
+            check_nginx_conflicts
+            ;;
+        "remove-nginx"|"fix-nginx")
+            remove_conflicting_nginx
+            ;;
         *)
             echo "JarvisJR Stack Pre-Installation Check"
             echo ""
             echo "Usage: $0 [COMMAND]"
             echo ""
             echo "Commands:"
-            echo "  check, validate    Run complete pre-installation check"
-            echo "  dependencies, deps Check dependency availability"
-            echo "  docker            Check Docker installation"
+            echo "  check, validate       Run complete pre-installation check"
+            echo "  dependencies, deps    Check dependency availability"
+            echo "  docker               Check Docker installation"
+            echo "  nginx-conflicts      Check for nginx conflicts only"
+            echo "  remove-nginx         Remove conflicting system nginx"
             echo ""
             echo "Examples:"
-            echo "  $0 check          # Complete validation"
-            echo "  $0 dependencies   # Check dependencies only"
-            echo "  $0 docker         # Check Docker only"
+            echo "  $0 check             # Complete validation"
+            echo "  $0 dependencies      # Check dependencies only"
+            echo "  $0 docker            # Check Docker only"
+            echo "  $0 nginx-conflicts   # Check nginx conflicts only"
+            echo "  $0 remove-nginx      # Remove system nginx"
             ;;
     esac
 }

@@ -170,6 +170,12 @@ DRY_RUN="${DRY_RUN:-false}"
 # This provides enhanced reliability by automatically fixing common Docker daemon configuration issues
 AUTO_REPAIR_DOCKER_DAEMON="true"
 
+# Dependency Installation Configuration
+# Enable automatic dependency installation without user confirmation (true/false)
+# When enabled, missing dependencies (ufw, certbot, jq, etc.) will be installed automatically
+# This is useful for automated deployments and CI/CD environments
+AUTO_INSTALL_DEPENDENCIES="true"
+
 # Docker Daemon Restart Timeout Configuration
 # Maximum time to wait for Docker daemon to become healthy after restart (seconds)
 DOCKER_DAEMON_RESTART_TIMEOUT="90"
