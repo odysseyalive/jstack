@@ -124,13 +124,26 @@ check_docker_availability() {
         log_success "Docker daemon is running"
     fi
     
-    # Check Docker Compose
-    if docker compose version &>/dev/null; then
-        log_success "Docker Compose (plugin) available"
-    elif command -v docker-compose &>/dev/null; then
-        log_success "Docker Compose (standalone) available"
-    else
+    # Check Docker Compose with improved compatibility detection
+    local docker_compose_available=false
+    
+    # Check for docker compose plugin (modern approach)
+    if docker compose version &> /dev/null; then
+        docker_compose_available=true
+        log_success "Docker Compose plugin available"
+    # Check for standalone docker-compose command (legacy approach)  
+    elif command -v docker-compose &> /dev/null && docker-compose version &> /dev/null; then
+        docker_compose_available=true
+        log_success "Docker Compose standalone available"
+    # Check for docker-compose plugin via docker CLI
+    elif docker --help 2>/dev/null | grep -q "compose"; then
+        docker_compose_available=true
+        log_success "Docker Compose plugin available via docker CLI"
+    fi
+    
+    if [[ "$docker_compose_available" == "false" ]]; then
         log_error "Docker Compose not available"
+        log_info "Install options: docker-compose-plugin, docker-compose, or Docker Desktop"
         return 1
     fi
     

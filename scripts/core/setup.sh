@@ -14,6 +14,275 @@ load_config
 export_config
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 🔍 INSTALLATION VERIFICATION FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Verify post-installation functionality
+verify_post_installation_functionality() {
+    log_info "Starting post-installation functionality verification"
+    
+    local verification_failed=false
+    local critical_failures=()
+    local warning_issues=()
+    
+    # Test critical command functionality
+    log_info "Testing critical command functionality..."
+    
+    # Test jq JSON processing
+    if command_exists jq; then
+        if echo '{"test":true,"version":"1.0"}' | jq '.test' &>/dev/null && \
+           echo '{"test":true,"version":"1.0"}' | jq -r '.version' | grep -q "1.0"; then
+            log_success "✓ jq JSON processing functional"
+        else
+            critical_failures+=("jq installed but JSON processing failed")
+            verification_failed=true
+        fi
+    else
+        critical_failures+=("jq command not found after installation")
+        verification_failed=true
+    fi
+    
+    # Test curl HTTP functionality
+    if command_exists curl; then
+        if curl --version &>/dev/null && curl -s --max-time 5 --head https://google.com &>/dev/null; then
+            log_success "✓ curl HTTP functionality verified"
+        else
+            if curl --version &>/dev/null; then
+                warning_issues+=("curl installed but network connectivity limited")
+            else
+                critical_failures+=("curl installed but not functional")
+                verification_failed=true
+            fi
+        fi
+    else
+        critical_failures+=("curl command not found after installation")
+        verification_failed=true
+    fi
+    
+    # Test openssl functionality
+    if command_exists openssl; then
+        if openssl version &>/dev/null && openssl rand -base64 32 &>/dev/null; then
+            log_success "✓ openssl cryptography functional"
+        else
+            critical_failures+=("openssl installed but cryptography functions failed")
+            verification_failed=true
+        fi
+    else
+        critical_failures+=("openssl command not found after installation")
+        verification_failed=true
+    fi
+    
+    # Test Docker functionality with enhanced validation
+    if command_exists docker; then
+        # Test basic Docker command
+        if docker --version &>/dev/null; then
+            log_success "✓ docker command functional"
+            
+            # Test Docker daemon connectivity (may require sudo initially)
+            if docker info &>/dev/null 2>&1; then
+                log_success "✓ docker daemon accessible"
+                
+                # Test container functionality
+                if docker run --rm hello-world &>/dev/null 2>&1; then
+                    log_success "✓ docker container functionality verified"
+                else
+                    warning_issues+=("docker daemon accessible but container test failed")
+                fi
+            elif sudo docker info &>/dev/null 2>&1; then
+                log_success "✓ docker daemon accessible via sudo"
+                warning_issues+=("docker requires sudo access (group membership may need session refresh)")
+                
+                # Test container functionality with sudo
+                if sudo docker run --rm hello-world &>/dev/null 2>&1; then
+                    log_success "✓ docker container functionality verified via sudo"
+                else
+                    warning_issues+=("docker daemon accessible but container test failed")
+                fi
+            else
+                critical_failures+=("docker installed but daemon not accessible")
+                verification_failed=true
+            fi
+        else
+            critical_failures+=("docker installed but command not functional")
+            verification_failed=true
+        fi
+    else
+        critical_failures+=("docker command not found after installation")
+        verification_failed=true
+    fi
+    
+    # Test Docker Compose with comprehensive compatibility check
+    local docker_compose_functional=false
+    if docker compose version &>/dev/null 2>&1; then
+        log_success "✓ docker compose plugin functional"
+        docker_compose_functional=true
+    elif command_exists docker-compose && docker-compose version &>/dev/null 2>&1; then
+        log_success "✓ docker-compose standalone functional"
+        docker_compose_functional=true
+    elif docker --help 2>/dev/null | grep -q "compose"; then
+        log_success "✓ docker compose available via CLI"
+        docker_compose_functional=true
+    fi
+    
+    if [[ "$docker_compose_functional" == "false" ]]; then
+        critical_failures+=("docker compose not functional in any form")
+        verification_failed=true
+    fi
+    
+    # Test nginx availability
+    if command_exists nginx; then
+        if nginx -v &>/dev/null; then
+            log_success "✓ nginx web server functional"
+        else
+            critical_failures+=("nginx installed but not functional")
+            verification_failed=true
+        fi
+    else
+        critical_failures+=("nginx command not found after installation")
+        verification_failed=true
+    fi
+    
+    # Test ufw firewall functionality
+    if command_exists ufw; then
+        if sudo ufw status &>/dev/null; then
+            log_success "✓ ufw firewall functional"
+        else
+            critical_failures+=("ufw installed but not functional")
+            verification_failed=true
+        fi
+    else
+        critical_failures+=("ufw command not found after installation")
+        verification_failed=true
+    fi
+    
+    # Test certbot SSL functionality
+    if command_exists certbot; then
+        if certbot --version &>/dev/null; then
+            log_success "✓ certbot SSL management functional"
+        else
+            critical_failures+=("certbot installed but not functional")
+            verification_failed=true
+        fi
+    else
+        critical_failures+=("certbot command not found after installation")
+        verification_failed=true
+    fi
+    
+    # Test systemctl service management
+    if command_exists systemctl; then
+        if systemctl --version &>/dev/null && systemctl list-units &>/dev/null; then
+            log_success "✓ systemctl service management functional"
+        else
+            critical_failures+=("systemctl installed but not functional")
+            verification_failed=true
+        fi
+    else
+        critical_failures+=("systemctl command not found after installation")
+        verification_failed=true
+    fi
+    
+    # Test network utilities
+    if command_exists dig; then
+        if dig google.com &>/dev/null; then
+            log_success "✓ dig DNS lookup functional"
+        else
+            warning_issues+=("dig installed but DNS lookup failed (network connectivity?)")
+        fi
+    else
+        warning_issues+=("dig DNS utility not found")
+    fi
+    
+    # Test file processing utilities
+    if command_exists tar && command_exists gzip; then
+        local test_dir="/tmp/jarvis_install_test_$$"
+        mkdir -p "$test_dir"
+        echo "test" > "$test_dir/test.txt"
+        
+        if tar -czf "$test_dir/test.tar.gz" -C "$test_dir" test.txt &>/dev/null && \
+           tar -tzf "$test_dir/test.tar.gz" &>/dev/null && \
+           tar -xzf "$test_dir/test.tar.gz" -C "$test_dir" &>/dev/null; then
+            log_success "✓ tar/gzip archive functionality verified"
+        else
+            warning_issues+=("tar/gzip installed but archive functionality failed")
+        fi
+        
+        # Cleanup test
+        rm -rf "$test_dir"
+    else
+        warning_issues+=("tar or gzip utilities missing")
+    fi
+    
+    # Test package manager functionality
+    local package_manager=$(detect_package_manager)
+    case "$package_manager" in
+        "apt")
+            if apt --version &>/dev/null && sudo apt list --installed &>/dev/null; then
+                log_success "✓ apt package manager functional"
+            else
+                warning_issues+=("apt package manager installed but not fully functional")
+            fi
+            ;;
+        "yum")
+            if yum --version &>/dev/null; then
+                log_success "✓ yum package manager functional"
+            else
+                warning_issues+=("yum package manager not fully functional")
+            fi
+            ;;
+        "pacman")
+            if pacman --version &>/dev/null; then
+                log_success "✓ pacman package manager functional"
+            else
+                warning_issues+=("pacman package manager not fully functional")
+            fi
+            ;;
+        *)
+            warning_issues+=("unknown package manager detected")
+            ;;
+    esac
+    
+    # Report verification results
+    echo ""
+    log_info "Installation verification summary:"
+    
+    if [[ ${#critical_failures[@]} -eq 0 ]]; then
+        log_success "✓ All critical systems verified and functional"
+    else
+        log_error "✗ Critical system failures detected:"
+        for failure in "${critical_failures[@]}"; do
+            log_error "  - $failure"
+        done
+    fi
+    
+    if [[ ${#warning_issues[@]} -gt 0 ]]; then
+        log_warning "⚠ Non-critical issues detected:"
+        for warning in "${warning_issues[@]}"; do
+            log_warning "  - $warning"
+        done
+        log_info "These issues may not prevent installation but could affect some features"
+    fi
+    
+    # Return status based on critical failures only
+    if $verification_failed; then
+        log_error "Installation verification failed due to critical system issues"
+        log_info "RECOMMENDED ACTIONS:"
+        log_info "  1. Check package installation logs for errors"
+        log_info "  2. Verify network connectivity for package downloads"
+        log_info "  3. Ensure sufficient disk space and permissions"
+        log_info "  4. Try manual package reinstallation for failed components"
+        log_info "  5. Check system compatibility (Debian 12 recommended)"
+        return 1
+    else
+        if [[ ${#warning_issues[@]} -eq 0 ]]; then
+            log_success "Installation verification completed successfully - all systems functional"
+        else
+            log_success "Installation verification completed with ${#warning_issues[@]} non-critical warnings"
+        fi
+        return 0
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # 🔧 COMPREHENSIVE DEPENDENCY MANAGEMENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -69,6 +338,20 @@ validate_and_install_dependencies() {
             log_error "Some dependencies still missing after installation"
             log_info "Generate dependency report for manual installation:"
             log_info "  ./scripts/core/dependency_management.sh report"
+            return 1
+        fi
+        
+        # Perform comprehensive installation verification
+        log_info "Performing comprehensive installation verification"
+        if verify_post_installation_functionality; then
+            log_success "Installation verification passed - all systems functional"
+        else
+            log_error "Installation verification failed - some systems may not be functional"
+            log_info "TROUBLESHOOTING INFORMATION:"
+            log_info "  - Check system logs for specific errors"
+            log_info "  - Verify package installation with 'dpkg -l | grep package-name'"
+            log_info "  - Try manual dependency verification: ./scripts/core/dependency_management.sh validate"
+            log_info "  - Generate full dependency report: ./scripts/core/dependency_management.sh report"
             return 1
         fi
     fi

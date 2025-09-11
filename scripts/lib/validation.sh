@@ -84,6 +84,158 @@ validate_dns_configuration() {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# 🚪 PORT CONFLICT RESOLUTION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Check if a port has a conflict
+check_port_conflict() {
+    local port="$1"
+    netstat -tuln 2>/dev/null | grep -q ":$port "
+}
+
+# Get detailed information about what's using a port
+get_port_usage_info() {
+    local port="$1"
+    local service_info=""
+    local process_info=""
+    local pid=""
+    local service_name=""
+    
+    # Get network connection info
+    service_info=$(netstat -tuln 2>/dev/null | grep ":$port " | head -1)
+    
+    # Get process information if lsof is available
+    if command_exists lsof; then
+        process_info=$(lsof -i :$port 2>/dev/null | grep LISTEN | head -1)
+        if [[ -n "$process_info" ]]; then
+            pid=$(echo "$process_info" | awk '{print $2}')
+            service_name=$(echo "$process_info" | awk '{print $1}')
+        fi
+    fi
+    
+    # Try alternative methods if lsof didn't work
+    if [[ -z "$pid" ]] && command_exists ss; then
+        local ss_info=$(ss -tlnp 2>/dev/null | grep ":$port ")
+        if [[ -n "$ss_info" ]]; then
+            pid=$(echo "$ss_info" | sed 's/.*pid=\([0-9]*\).*/\1/' | head -1)
+        fi
+    fi
+    
+    # Get service name from systemctl if we have a PID
+    if [[ -n "$pid" ]] && command_exists systemctl; then
+        local systemd_service=$(systemctl status "$pid" 2>/dev/null | grep "Active:" | head -1)
+        if [[ -n "$systemd_service" ]]; then
+            service_name=$(systemctl status "$pid" 2>/dev/null | head -1 | sed 's/.*● \([^.]*\).*/\1/')
+        fi
+    fi
+    
+    echo "service_info:$service_info|process_info:$process_info|pid:$pid|service_name:$service_name"
+}
+
+# Attempt to automatically resolve port conflicts  
+resolve_port_conflict() {
+    local port="$1"
+    
+    log_warning "Port $port conflict detected - attempting resolution"
+    
+    # Get detailed port usage information
+    local port_usage_info=$(get_port_usage_info "$port")
+    local service_info=$(echo "$port_usage_info" | cut -d'|' -f1 | cut -d':' -f2)
+    local process_info=$(echo "$port_usage_info" | cut -d'|' -f2 | cut -d':' -f2)
+    local pid=$(echo "$port_usage_info" | cut -d'|' -f3 | cut -d':' -f2)
+    local service_name=$(echo "$port_usage_info" | cut -d'|' -f4 | cut -d':' -f2)
+    
+    # Display conflict information
+    log_info "Port $port conflict details:"
+    [[ -n "$service_info" ]] && log_info "  Network: $service_info"
+    [[ -n "$process_info" ]] && log_info "  Process: $process_info"
+    [[ -n "$pid" ]] && log_info "  PID: $pid"
+    [[ -n "$service_name" ]] && log_info "  Service: $service_name"
+    
+    # Check for force installation flag
+    if [[ "${FORCE_INSTALL:-false}" == "true" ]]; then
+        log_warning "Force install enabled - proceeding despite port $port conflict"
+        log_warning "WARNING: This may cause service conflicts during operation"
+        return 0
+    fi
+    
+    # Check for interactive mode availability
+    if [[ "${INTERACTIVE_MODE:-true}" != "true" || ! -t 0 ]]; then
+        log_error "Port $port is in use and interactive resolution not available"
+        log_info "Resolution options:"
+        log_info "  1. Stop the conflicting service manually"
+        [[ -n "$service_name" ]] && log_info "     sudo systemctl stop $service_name"
+        [[ -n "$pid" ]] && log_info "     sudo kill $pid"
+        log_info "  2. Use --force flag to continue anyway (not recommended)"
+        log_info "  3. Configure the conflicting service to use a different port"
+        return 1
+    fi
+    
+    # Interactive resolution
+    echo ""
+    log_info "PORT CONFLICT RESOLUTION OPTIONS:"
+    log_info "================================="
+    echo ""
+    echo "  1) Stop the conflicting service (recommended)"
+    echo "  2) Continue anyway (may cause conflicts)"
+    echo "  3) Abort installation"
+    echo ""
+    
+    read -p "Choose resolution option [1-3]: " -r choice
+    
+    case "$choice" in
+        "1")
+            log_info "Attempting to stop conflicting service..."
+            local stopped=false
+            
+            # Try stopping by systemd service name
+            if [[ -n "$service_name" ]] && systemctl is-active "$service_name" &>/dev/null; then
+                if sudo systemctl stop "$service_name"; then
+                    log_success "Service '$service_name' stopped"
+                    stopped=true
+                fi
+            fi
+            
+            # Try stopping by PID if service stop didn't work
+            if [[ "$stopped" == "false" && -n "$pid" ]]; then
+                if sudo kill "$pid" 2>/dev/null; then
+                    log_success "Process $pid terminated"
+                    stopped=true
+                fi
+            fi
+            
+            if [[ "$stopped" == "true" ]]; then
+                sleep 2
+                if ! check_port_conflict "$port"; then
+                    log_success "Port $port is now available"
+                    return 0
+                else
+                    log_error "Port $port still in use after stopping service"
+                    return 1
+                fi
+            else
+                log_error "Failed to stop conflicting service"
+                log_info "Please stop it manually and retry installation"
+                return 1
+            fi
+            ;;
+        "2")
+            log_warning "Continuing with port $port conflict"
+            log_warning "WARNING: This may cause service conflicts during operation"
+            return 0
+            ;;
+        "3")
+            log_info "Installation aborted by user"
+            return 1
+            ;;
+        *)
+            log_error "Invalid choice: $choice"
+            return 1
+            ;;
+    esac
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # 🔧 ENVIRONMENT VALIDATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -103,9 +255,32 @@ validate_environment() {
         fi
     done
     
-    # Check Docker Compose availability (accept either variant)
-    if ! docker compose version &> /dev/null && ! command -v docker-compose &> /dev/null; then
-        validation_errors+=("Docker Compose not available - install Docker Desktop or standalone version")
+    # Check Docker Compose availability with improved compatibility detection
+    local docker_compose_available=false
+    
+    # Check for docker compose plugin (modern approach)
+    if docker compose version &> /dev/null; then
+        docker_compose_available=true
+        log_info "Docker Compose plugin detected"
+    # Check for standalone docker-compose command (legacy approach)  
+    elif command -v docker-compose &> /dev/null && docker-compose version &> /dev/null; then
+        docker_compose_available=true
+        log_info "Docker Compose standalone detected"
+    # Check for docker-compose plugin via docker CLI
+    elif docker --help 2>/dev/null | grep -q "compose"; then
+        docker_compose_available=true
+        log_info "Docker Compose plugin available via docker CLI"
+    fi
+    
+    if [[ "$docker_compose_available" == "false" ]]; then
+        validation_errors+=("Docker Compose not available - install Docker Desktop or docker-compose-plugin")
+        log_error "Docker Compose validation failed"
+        log_info "Available installation options:"
+        log_info "  - Install docker-compose-plugin: apt install docker-compose-plugin"
+        log_info "  - Install standalone docker-compose: apt install docker-compose"
+        log_info "  - Install Docker Desktop (includes compose)"
+    else
+        log_success "Docker Compose validation passed"
     fi
     
     # Check disk space (require at least 10GB free)
@@ -136,11 +311,13 @@ validate_environment() {
         validation_errors+=("EMAIL must be set to your actual email in jstack.config")
     fi
     
-    # Check if ports are available
+    # Check if ports are available with enhanced conflict resolution
     local required_ports=(80 443)
     for port in "${required_ports[@]}"; do
-        if netstat -tuln 2>/dev/null | grep -q ":$port "; then
-            validation_errors+=("Port $port is already in use")
+        if check_port_conflict "$port"; then
+            if ! resolve_port_conflict "$port"; then
+                validation_errors+=("Port $port conflict could not be resolved")
+            fi
         fi
     done
     

@@ -54,6 +54,7 @@ declare -A NETWORK_TOOLS=(
     ["netstat"]="Network statistics|net-tools|1.60+|Network diagnostics"
     ["ss"]="Socket statistics|iproute2|4.15+|Network monitoring"
     ["lsof"]="Open files listing|lsof|4.89+|Process diagnostics"
+    ["nginx"]="Web server|nginx|1.18+|Reverse proxy"
 )
 
 # JSON and Data Processing (Critical - Required for configuration)
@@ -99,7 +100,6 @@ declare -A USER_MANAGEMENT=(
 
 # Web Services (Critical - Web server and SSL)
 declare -A WEB_SERVICES=(
-    ["nginx"]="Web server|nginx|1.18+|Reverse proxy"
     ["certbot"]="SSL certificates|certbot|1.21+|Let's Encrypt automation"
 )
 
@@ -206,7 +206,7 @@ validate_dependency_category() {
             
             # Categorize as critical vs optional based on category
             case "$category" in
-                "Core System Tools"|"Network Tools"|"JSON and Data Processing"|"Docker Tools")
+                "Core System Tools"|"Network Tools"|"JSON and Data Processing"|"Docker Tools"|"Web Services"|"Security Tools")
                     missing_deps+=("$cmd")
                     log_error "✗ $cmd (CRITICAL - $description)"
                     ;;
@@ -258,7 +258,7 @@ validate_all_dependencies() {
         
         if ! validate_dependency_category "$category_name" category_deps; then
             case "$category_name" in
-                "Core System Tools"|"Network Tools"|"JSON and Data Processing"|"Docker Tools")
+                "Core System Tools"|"Network Tools"|"JSON and Data Processing"|"Docker Tools"|"Web Services"|"Security Tools")
                     validation_failed=true
                     ;;
             esac
@@ -395,7 +395,106 @@ auto_install_dependencies() {
     
     # Validate after installation
     log_info "Re-validating dependencies after installation"
-    validate_all_dependencies
+    if validate_all_dependencies; then
+        log_success "Dependency validation passed"
+        
+        # Perform comprehensive verification
+        if verify_installation_success; then
+            log_success "Installation and verification completed successfully"
+            return 0
+        else
+            log_error "Installation verification failed - some dependencies may not be functional"
+            return 1
+        fi
+    else
+        log_error "Dependency validation failed after installation"
+        return 1
+    fi
+}
+
+# Verify installation success by checking actual command availability and functionality
+verify_installation_success() {
+    log_info "Verifying installation success"
+    
+    local critical_commands=(
+        "docker" "curl" "wget" "jq" "openssl" "nginx" "certbot" "ufw" "systemctl"
+    )
+    
+    local verification_failed=false
+    
+    for cmd in "${critical_commands[@]}"; do
+        if command_exists "$cmd"; then
+            log_success "✓ $cmd available"
+        else
+            log_error "✗ $cmd missing after installation"
+            verification_failed=true
+        fi
+    done
+    
+    # Special check for docker-compose compatibility
+    if docker compose version &>/dev/null 2>&1; then
+        log_success "✓ docker compose plugin available"
+    elif command_exists docker-compose; then
+        log_success "✓ docker-compose standalone available"
+    else
+        log_error "✗ docker compose not available in any form"
+        verification_failed=true
+    fi
+    
+    # Functional validation for critical tools
+    log_info "Validating critical tool functionality"
+    
+    # Test jq JSON processing functionality
+    if command_exists jq; then
+        if echo '{"test":true}' | jq .test >/dev/null 2>&1; then
+            log_success "✓ jq JSON processing functional"
+        else
+            log_error "✗ jq present but not functional"
+            verification_failed=true
+        fi
+    fi
+    
+    # Test openssl functionality
+    if command_exists openssl; then
+        if openssl version >/dev/null 2>&1; then
+            log_success "✓ openssl functional"
+        else
+            log_error "✗ openssl present but not functional"
+            verification_failed=true
+        fi
+    fi
+    
+    # Test docker functionality (if available)
+    if command_exists docker; then
+        if docker version >/dev/null 2>&1; then
+            log_success "✓ docker functional"
+        else
+            log_warning "⚠ docker present but may require service start"
+        fi
+    fi
+    
+    # Test systemctl functionality
+    if command_exists systemctl; then
+        if systemctl --version >/dev/null 2>&1; then
+            log_success "✓ systemctl functional"
+        else
+            log_error "✗ systemctl present but not functional"
+            verification_failed=true
+        fi
+    fi
+    
+    if $verification_failed; then
+        log_error "Installation verification failed - some packages may not have installed correctly"
+        log_info "This may indicate:"
+        log_info "  - Package repository issues"
+        log_info "  - Network connectivity problems"
+        log_info "  - Insufficient system resources"
+        log_info "  - Permission or dependency conflicts"
+        return 1
+    else
+        log_success "Installation verification passed - all critical dependencies available and functional"
+        return 0
+    fi
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
