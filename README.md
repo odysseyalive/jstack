@@ -35,13 +35,13 @@ Ready to get started? Check out [docs/quickstart.md](docs/quickstart.md) for a s
 1. **Create a dedicated jarvis user and add it to the docker group (run as root):**
 
  ```bash
- sudo adduser jarvis
+ adduser jarvis
  ```
 
 2. **Add your user to the docker group:**
 
  ```bash
- sudo usermod -aG docker jarvis
+ usermod -aG docker jarvis
  ```
 
 3. **Switch to your jarvis user (login shell):**
