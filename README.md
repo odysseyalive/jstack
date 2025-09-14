@@ -17,7 +17,7 @@ JStack is built for real-world business owners, developers, and automation enthu
 
 ## 🚀 Quick Start
 
-Ready to get started? Check out [quickstart.md](quickstart.md) for a step-by-step guide. You’ll be up and running in 15 minutes or less. All you need is a Debian 12 server, a domain name, and sudo access.
+Ready to get started? Check out [docs/quickstart.md](docs/quickstart.md) for a step-by-step guide. You’ll be up and running in 15 minutes or less. All you need is a Debian 12 server, a domain name, and sudo access.
 
 
 ## Features
@@ -36,38 +36,49 @@ Ready to get started? Check out [quickstart.md](quickstart.md) for a step-by-ste
 
 ### Standard Installation (Recommended for Most Users)
 
-1. **Install and configure the full stack:**
+1. **Clone the repository:**
+	```bash
+	git clone https://github.com/odysseyalive/jstack.git
+	```
+
+2. **Navigate to the directory:**
+	```bash
+	cd jstack
+	```
+
+3. **Refresh sudo credentials:**
+	```bash
+	sudo -v
+	```
+
+4. **Install and configure the full stack:**
 	```bash
 	./jstack.sh --install
 	```
-2. **Validate your setup before install:**
-	```bash
-	./jstack.sh --dry-run
-	```
 
-3. **Manage services:**
-	```bash
-	./jstack.sh up
-	```
-	```bash
-	./jstack.sh down
-	```
-	```bash
-	./jstack.sh restart
-	```
-	```bash
-	./jstack.sh status
-	```
-4. **Diagnostics and compliance:**
-	```bash
-	./jstack.sh diagnostics <service>
-	```
-	```bash
-	./jstack.sh compliance <service>
-	```
-	```bash
-	./jstack.sh validate
-	```
+### Service Management
+
+**Start/stop services:**
+```bash
+./jstack.sh up
+./jstack.sh down
+./jstack.sh restart
+./jstack.sh status
+```
+
+### Diagnostics & Validation
+
+**Run diagnostics and compliance checks:**
+```bash
+./jstack.sh diagnostics <service>
+./jstack.sh compliance <service>
+./jstack.sh validate
+```
+
+**Validate setup before making changes:**
+```bash
+./jstack.sh --dry-run
+```
 
 ### Advanced Site Deployment (For Power Users)
 
@@ -77,6 +88,18 @@ Want to deploy a custom site from a template? Copy a template to `sites/your-sit
 ```
 This is for advanced users who want to go beyond the default stack and launch custom web apps or landing pages.
 
+
+## Documentation
+
+New to JStack? These guides will help you understand each component:
+
+- **[Quickstart Guide](docs/quickstart.md)** - Step-by-step installation walkthrough
+- **[Service Architecture](docs/services.md)** - Understanding n8n, Supabase, NGINX, and Chrome
+- **[Docker & Containers](docs/docker.md)** - How JStack uses Docker for isolation and management
+- **[SSL & Security](docs/security.md)** - Certificates, fail2ban, and security best practices
+- **[Site Templates](docs/site-templates.md)** - Creating and deploying custom sites
+- **[Backup & Recovery](docs/backup.md)** - Data protection and disaster recovery
+- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 
 
 ## Security & Operations
