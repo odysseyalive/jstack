@@ -85,6 +85,10 @@ validate_backup() {
 }
 
 main() {
+  if [ $# -eq 0 ]; then
+    echo "Usage: $0 <backup|restore> [options]" >&2
+    exit 1
+  fi
   CMD="$1"; shift
   case "$CMD" in
     backup)

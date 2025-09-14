@@ -33,3 +33,9 @@ backups/
 tests/unit/
 
 # Add more patterns as needed during development
+.crush.json
+.github
+.specify
+specs/
+tests/
+CRUSH.md

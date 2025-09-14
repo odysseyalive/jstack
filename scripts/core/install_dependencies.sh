@@ -8,6 +8,22 @@ log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
+check_sudo() {
+  if ! sudo -n true 2>/dev/null; then
+    log "Error: This script requires sudo access. Please run 'sudo -v' first or add your user to sudoers."
+    exit 1
+  fi
+}
+
+check_docker_group() {
+  if ! groups | grep -q docker; then
+    log "Warning: User not in docker group. Adding user to docker group..."
+    sudo usermod -aG docker "$USER"
+    log "User added to docker group. You may need to log out and back in for changes to take effect."
+    log "Or run: newgrp docker"
+  fi
+}
+
 install_if_missing() {
   PKG="$1"
   CMD="$2"
@@ -21,31 +37,17 @@ install_if_missing() {
   fi
 }
 
+log "Checking prerequisites..."
+check_sudo
+
 # Docker
 install_if_missing "Docker" "docker" "apt-get update && apt-get install -y docker.io"
+check_docker_group
 
 # Docker Compose
 install_if_missing "Docker Compose" "docker-compose" "apt-get update && apt-get install -y docker-compose"
 
-# NGINX
-if ! dpkg -l | grep -qw nginx; then
-  log "NGINX not found. Installing..."
-  sudo apt-get update && sudo apt-get install -y nginx
-  log "NGINX installed."
-else
-  log "NGINX already installed."
-fi
-
-# Certbot
-install_if_missing "Certbot" "certbot" "apt-get update && apt-get install -y certbot python3-certbot-nginx"
-
-# Fail2ban
-if ! dpkg -l | grep -qw fail2ban; then
-  log "Fail2ban not found. Installing..."
-  sudo apt-get update && sudo apt-get install -y fail2ban
-  log "Fail2ban installed."
-else
-  log "Fail2ban already installed."
-fi
+# Certbot (for SSL certificate management)
+install_if_missing "Certbot" "certbot" "apt-get update && apt-get install -y certbot"
 
 log "Dependency installation completed."

@@ -13,6 +13,9 @@ usage() {
 }
 
 main() {
+  if [ $# -eq 0 ]; then
+    show_usage
+  fi
   ACTION="$1"; shift
   SERVICE="$1"
   case "$ACTION" in

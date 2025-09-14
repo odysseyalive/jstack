@@ -9,13 +9,14 @@ SCRIPTS_CORE="$(dirname "$0")/scripts/core"
 SCRIPTS_SERVICES="$(dirname "$0")/scripts/services"
 
 show_usage() {
-  echo "Usage: $0 [--dry-run|--backup|--reset|--uninstall|--repair|--debug|--install-site <site_dir>] <action> [args]"
+  echo "Usage: $0 [--dry-run|--install|--backup|--reset|--uninstall|--repair|--debug|--install-site <site_dir>] <action> [args]"
   echo "Actions: up, down, restart, status, backup, restore, validate, propagate, diagnostics, compliance, monitor, template, launch"
   exit 1
 }
 
 parse_flags() {
   DRY_RUN=false
+  INSTALL=false
   BACKUP=false
   RESET=false
   UNINSTALL=false
@@ -25,6 +26,7 @@ parse_flags() {
   while [[ "$1" == --* ]]; do
     case "$1" in
     --dry-run) DRY_RUN=true ;;
+    --install) INSTALL=true ;;
     --backup) BACKUP=true ;;
     --reset) RESET=true ;;
     --uninstall) UNINSTALL=true ;;
@@ -38,9 +40,14 @@ parse_flags() {
     esac
     shift
   done
-  ACTION="$1"
-  shift
-  ARGS=("$@")
+  if [ $# -gt 0 ]; then
+    ACTION="$1"
+    shift
+    ARGS=("$@")
+  else
+    ACTION=""
+    ARGS=()
+  fi
 }
 
 run_core_script() {
@@ -65,6 +72,12 @@ run_service_script() {
 
 main() {
   parse_flags "$@"
+  if [ "$INSTALL" = true ]; then
+    # Full stack installation
+    run_core_script install_dependencies
+    run_core_script full_stack_install
+    exit $?
+  fi
   if [ -n "$INSTALL_SITE" ]; then
     # Integrated site install workflow
     SITE_DIR="$INSTALL_SITE"
@@ -94,27 +107,48 @@ main() {
       exit 2
     fi
     # Add NGINX config
-    NGINX_CONF="nginx.conf"
+    NGINX_CONF="nginx/conf.d/${SITE_DOMAIN}.conf"
     SITE_DOMAIN="$(grep -m1 DOMAIN "$SITE_DIR/.env" | cut -d'=' -f2)"
     SITE_PORT="$(grep -m1 PORT "$SITE_DIR/.env" | cut -d'=' -f2)"
     if [ -z "$SITE_DOMAIN" ] || [ -z "$SITE_PORT" ]; then
       echo "Missing DOMAIN or PORT in $SITE_DIR/.env."
       exit 2
     fi
-    NGINX_ENTRY="\nserver {\n    listen 443;\n    server_name $SITE_DOMAIN;\n    location / {\n        proxy_pass http://127.0.0.1:$SITE_PORT;\n    }\n}"
+    NGINX_ENTRY="server {
+    listen 443 ssl;
+    server_name $SITE_DOMAIN;
+    
+    ssl_certificate /etc/letsencrypt/live/$SITE_DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$SITE_DOMAIN/privkey.pem;
+    
+    location / {
+        proxy_pass http://172.17.0.1:$SITE_PORT;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}"
     if [ "$DRY_RUN" = true ]; then
-      echo "[DRY-RUN] Would append NGINX config for $SITE_DOMAIN to $NGINX_CONF:"
-      echo -e "$NGINX_ENTRY"
-      echo "[DRY-RUN] Would reload NGINX."
+      echo "[DRY-RUN] Would create NGINX config for $SITE_DOMAIN at $NGINX_CONF:"
+      echo "$NGINX_ENTRY"
+      echo "[DRY-RUN] Would restart nginx container."
       echo "[DRY-RUN] Would request SSL certificate for $SITE_DOMAIN with Certbot."
     else
-      echo -e "$NGINX_ENTRY" | sudo tee -a "$NGINX_CONF" >/dev/null
-      sudo nginx -s reload
-      echo "NGINX config updated and reloaded for $SITE_DOMAIN."
+      echo "$NGINX_ENTRY" > "$NGINX_CONF"
+      echo "NGINX config created at $NGINX_CONF for $SITE_DOMAIN."
+      # Restart nginx container to reload config
+      docker-compose restart nginx
+      echo "NGINX container restarted."
       EMAIL="$(grep -m1 EMAIL jstack.config.default | cut -d'=' -f2)"
       if [ -n "$EMAIL" ]; then
-        sudo certbot --nginx -d "$SITE_DOMAIN" --non-interactive --agree-tos --email "$EMAIL" || echo "Certbot failed for $SITE_DOMAIN."
+        # Create SSL cert directory
+        mkdir -p "nginx/ssl/live/$SITE_DOMAIN"
+        # Use certbot in standalone mode since nginx is containerized
+        sudo certbot certonly --standalone -d "$SITE_DOMAIN" --non-interactive --agree-tos --email "$EMAIL" --cert-path "nginx/ssl/live/$SITE_DOMAIN/" || echo "Certbot failed for $SITE_DOMAIN."
         echo "SSL certificate requested for $SITE_DOMAIN."
+        # Restart nginx again to load SSL certs
+        docker-compose restart nginx
       else
         echo "No EMAIL found in jstack.config.default, skipping Certbot."
       fi

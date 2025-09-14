@@ -75,6 +75,10 @@ deploy_template() {
 }
 
 main() {
+  if [ $# -eq 0 ]; then
+    echo "Usage: $0 <create|list|update|delete|deploy> [template_name]" >&2
+    exit 1
+  fi
   CMD="$1"; shift
   case "$CMD" in
     create|add)

@@ -24,7 +24,7 @@ services:
     volumes:
       - ./data/n8n:/home/node/.n8n
   supabase:
-    image: supabase/postgres
+    image: supabase/postgres:15.14.1.004
     ports:
       - "5432:5432"
     environment:
@@ -39,9 +39,3 @@ services:
       - "3000:3000"
     volumes:
       - ./data/chrome:/data
-  node-mdx-tailwind:
-    build: ./site-templates/node-mdx-tailwind
-    ports:
-      - "4000:4000"
-    environment:
-      - NODE_ENV=production

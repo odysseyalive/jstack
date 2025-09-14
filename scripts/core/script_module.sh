@@ -3,9 +3,28 @@
 # Usage: script_module.sh <action> <name> [args]
 
 set -e
+
+if [ $# -lt 2 ]; then
+  echo "Usage: $0 <action> <name> [args]" >&2
+  exit 1
+fi
+
 ACTION="$1"
 NAME="$2"
 ARGS="$3"
+
+# Validate script name to prevent path injection
+if [[ ! "$NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  echo "Error: Invalid script name '$NAME'" >&2
+  exit 1
+fi
+
+# Check if script exists
+SCRIPT_PATH="./scripts/core/${NAME}.sh"
+if [ ! -f "$SCRIPT_PATH" ]; then
+  echo "Error: Script '$SCRIPT_PATH' does not exist" >&2
+  exit 1
+fi
 
 case "$ACTION" in
   run_module)

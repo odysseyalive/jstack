@@ -3,6 +3,12 @@
 # Usage: service_container.sh <action> <name> [image] [ports] [env]
 
 set -e
+
+if [ $# -lt 2 ]; then
+  echo "Usage: $0 <action> <name> [image] [ports] [env]" >&2
+  exit 1
+fi
+
 ACTION="$1"
 NAME="$2"
 IMAGE="$3"

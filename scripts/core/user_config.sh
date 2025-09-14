@@ -3,8 +3,19 @@
 # Usage: user_config.sh <action> <config_path>
 
 set -e
+
+if [ $# -lt 2 ]; then
+  echo "Usage: $0 <action> <config_path>" >&2
+  exit 1
+fi
+
 ACTION="$1"
 CONFIG_PATH="$2"
+
+if [ -z "$CONFIG_PATH" ] || [ ! -f "$CONFIG_PATH" ]; then
+  echo "Error: Config file '$CONFIG_PATH' does not exist" >&2
+  exit 1
+fi
 
 case "$ACTION" in
   read_config)

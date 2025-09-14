@@ -17,6 +17,10 @@ log() {
 }
 
 main() {
+  if [ $# -eq 0 ]; then
+    echo "Usage: $0 <action> [target]" >&2
+    exit 1
+  fi
   ACTION="$1"; shift
   TARGET="$1"
   case "$ACTION" in
