@@ -33,7 +33,6 @@ check_docker_permissions() {
     fi
     else
       log "Error: User is not in docker group."
-    fi
     log "Error: Cannot access Docker. Ensure:"
     log "  1. Docker service is running: sudo systemctl status docker"
     log "  2. User is in docker group: groups | grep docker"
