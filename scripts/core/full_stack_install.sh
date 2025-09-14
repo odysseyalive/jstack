@@ -94,6 +94,19 @@ if [ -f "$COMPOSE_FILE" ]; then
   bash "$(dirname "$0")/ssl_cert.sh" generate_self_signed "default" "admin@localhost"
   log "Setting up SSL certificates for service subdomains..."
   bash "$(dirname "$0")/setup_service_subdomains_ssl.sh"
+  log "Preparing SSL certificate(s)..."
+  CONFIG_FILE="$(dirname \"$0\")/../../jstack.config"
+  if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+    log "Stopping nginx so certbot can run in standalone mode..."
+    run_docker_command docker-compose stop nginx
+    log "Attempting SSL certificate issuance for domain $DOMAIN..."
+    sudo certbot certonly --standalone -d "$DOMAIN" --agree-tos --non-interactive --email "$EMAIL"
+    log "Certificate process completed, starting nginx..."
+    run_docker_command docker-compose start nginx
+  else
+    log "Config file $CONFIG_FILE not found; skipping certbot SSL setup."
+  fi
   log "Deploying services via Docker Compose..."
   run_docker_command SUPABASE_USER="$SUPABASE_USER" SUPABASE_PASSWORD="$SUPABASE_PASSWORD" N8N_BASIC_AUTH_USER="$N8N_BASIC_AUTH_USER" N8N_BASIC_AUTH_PASSWORD="$N8N_BASIC_AUTH_PASSWORD" docker-compose -f "$COMPOSE_FILE" up -d
   log "Services deployed."
