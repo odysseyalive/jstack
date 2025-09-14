@@ -3,389 +3,417 @@
 When things go wrong, don't panic. Most JStack issues have simple fixes. Work through these steps systematically.
 
 ## Quick Diagnostic Commands
-
-Start here when something isn't working:
-
+- Check overall system status
 ```bash
-# Check overall system status
 ./jstack.sh status
-
-# Run full diagnostics
+```
+- Run full diagnostics
+```bash
 ./jstack.sh diagnostics
-
-# Validate your configuration
+```
+- Validate your configuration
+```bash
 ./jstack.sh validate
-
-# Preview what dry-run would do
+```
+- Preview dry-run
+```bash
 ./jstack.sh --dry-run
 ```
 
 ## Common Issues & Solutions
 
 ### "Cannot access Docker" Error
-
-**Symptoms:** 
+**Symptoms:**
 ```
 Error: Cannot access Docker. Ensure:
   1. Docker service is running
   2. User is in docker group
 ```
-
 **Solutions:**
+- Check if Docker is running
 ```bash
-# Check if Docker is running
 sudo systemctl status docker
-
-# Start Docker if stopped
+```
+- Start Docker if stopped
+```bash
 sudo systemctl start docker
-
-# Add user to docker group
+```
+- Add user to docker group
+```bash
 sudo usermod -aG docker $USER
-
-# Apply group membership without logout
+```
+- Apply group membership without logout
+```bash
 newgrp docker
-
-# Test Docker access
+```
+- Test Docker access
+```bash
 docker ps
 ```
 
 ### Services Won't Start
-
-**Check what's wrong:**
+- See which containers are running
 ```bash
-# See which containers are running
 docker-compose ps
-
-# Check logs for errors
+```
+- Check logs for errors
+```bash
 docker-compose logs
-
-# Check specific service
+```
+- Check specific service logs
+```bash
 docker-compose logs nginx
+```
+```bash
 docker-compose logs n8n
+```
+```bash
 docker-compose logs supabase-db
 ```
-
 **Common fixes:**
+- Port already in use
 ```bash
-# Port already in use
 sudo netstat -tlnp | grep :80
+```
+```bash
 sudo netstat -tlnp | grep :443
-# Kill process using the port or change config
-
-# Restart everything
+```
+- Restart everything
+```bash
 ./jstack.sh restart
-
-# Rebuild containers
+```
+- Rebuild containers
+```bash
 docker-compose down
+```
+```bash
 docker-compose up -d --build
 ```
 
 ### SSL Certificate Issues
-
-**Symptoms:** Browser shows "Not Secure" or certificate errors
-
-**Check certificates:**
+- List certificates
 ```bash
-# List certificates
 ls -la nginx/ssl/
-
-# Check certificate expiry
+```
+- Check certificate expiry
+```bash
 openssl x509 -in nginx/ssl/live/yourdomain.com/cert.pem -text -noout | grep "Not After"
-
-# Test SSL configuration
+```
+- Test SSL configuration
+```bash
 docker-compose exec nginx nginx -t
 ```
-
 **Fix certificates:**
+- Regenerate self-signed for testing
 ```bash
-# Regenerate self-signed for testing
 bash scripts/core/ssl_cert.sh generate_self_signed yourdomain.com admin@yourdomain.com
-
-# Get real Let's Encrypt certificate
+```
+- Get real Let's Encrypt certificate
+```bash
 bash scripts/core/setup_ssl_certbot.sh yourdomain.com
-
-# Restart NGINX after cert changes
+```
+- Restart NGINX after cert changes
+```bash
 docker-compose restart nginx
 ```
 
 ### Can't Access n8n or Supabase
-
-**Check service URLs:**
-- n8n: `https://n8n.yourdomain.com`
-- Supabase: `https://studio.yourdomain.com`
-
-**Verify DNS and domains:**
+- Check service URLs:
+  - n8n: `https://n8n.yourdomain.com`
+  - Supabase: `https://studio.yourdomain.com`
+- Check if domain resolves to your server
 ```bash
-# Check if domain resolves to your server
 nslookup n8n.yourdomain.com
+```
+```bash
 dig yourdomain.com
-
-# Check NGINX routing
+```
+- Check NGINX routing
+```bash
 docker-compose exec nginx cat /etc/nginx/conf.d/n8n.yourdomain.com.conf
 ```
-
 **Reset credentials:**
+- Check current environment
 ```bash
-# Check current environment
 grep N8N_BASIC_AUTH docker-compose.yml
-
-# Set new credentials
+```
+- Set new credentials
+```bash
 export N8N_BASIC_AUTH_USER="newuser"
+```
+```bash
 export N8N_BASIC_AUTH_PASSWORD="newpass"
+```
+```bash
 docker-compose up -d n8n
 ```
 
 ### Database Connection Errors
-
-**Check database status:**
+- Is database running?
 ```bash
-# Is database running?
 docker-compose ps supabase-db
-
-# Can we connect?
+```
+- Can we connect?
+```bash
 docker-compose exec supabase-db pg_isready
-
-# Check database logs
+```
+- Check database logs
+```bash
 docker-compose logs supabase-db
 ```
-
 **Fix database issues:**
+- Restart database
 ```bash
-# Restart database
 docker-compose restart supabase-db
-
-# Check disk space (common cause)
+```
+- Check disk space (common cause)
+```bash
 df -h
-
-# Restore from backup if corrupted
+```
+- Restore from backup if corrupted
+```bash
 ./jstack.sh --restore backup-filename.tar.gz
 ```
 
 ### Permission Issues
-
 **Symptoms:** Services can't read/write files, permission denied errors
-
-**Fix permissions:**
+- Fix all workspace permissions
 ```bash
-# Fix all workspace permissions
 ./scripts/core/fix_workspace_permissions.sh
-
-# Check current ownership
+```
+- Check current ownership
+```bash
 ls -la data/
+```
+```bash
 ls -la nginx/
-
-# Manual fix if needed
+```
+- Manual fix if needed
+```bash
 sudo chown -R $USER:docker data/
+```
+```bash
 sudo chown -R $USER:docker nginx/
+```
+```bash
 sudo chmod -R 755 data/
 ```
 
 ### Out of Disk Space
-
-**Check disk usage:**
+- Check disk usage (overall)
 ```bash
-# Overall disk space
 df -h
-
-# Docker space usage
+```
+- Docker space usage
+```bash
 docker system df
-
-# Large files in project
+```
+- Large files in project
+```bash
 du -sh data/* nginx/* logs/*
 ```
-
-**Free up space:**
+- Clean Docker unused data
 ```bash
-# Clean Docker unused data
 docker system prune -a
-
-# Remove old logs
-find logs/ -name "*.log" -mtime +30 -delete
-
-# Clean old backups
-ls -la backups/
-# Delete old ones manually
 ```
+- Remove old logs
+```bash
+find logs/ -name "*.log" -mtime +30 -delete
+```
+- Clean old backups
+```bash
+ls -la backups/
+```
+# Delete old ones manually as needed
 
 ### NGINX Configuration Errors
-
-**Test configuration:**
+- Check NGINX syntax
 ```bash
-# Check NGINX syntax
 docker-compose exec nginx nginx -t
-
-# View NGINX error log
+```
+- View NGINX error log
+```bash
 docker-compose logs nginx | grep error
-
-# Check configuration files
+```
+- Check configuration files
+```bash
 ls -la nginx/conf.d/
 ```
-
 **Fix common NGINX issues:**
+- Edit the problematic .conf file in nginx/conf.d/
+- Restart after fixing
 ```bash
-# Syntax error in config
-# Edit the problematic .conf file in nginx/conf.d/
-
-# Restart after fixing
 docker-compose restart nginx
-
-# Reset to default if needed
-cp nginx/conf.d/default.conf nginx/conf.d/yourdomain.com.conf
-# Edit with your domain name
 ```
+- Reset to default if needed
+```bash
+cp nginx/conf.d/default.conf nginx/conf.d/yourdomain.com.conf
+```
+# Edit with your domain name as needed
 
 ### Chrome/Puppeteer Issues
-
-**Check Chrome service:**
+- Is Chrome running?
 ```bash
-# Is Chrome running?
 docker-compose ps chrome
-
-# Check Chrome logs
+```
+- Check Chrome logs
+```bash
 docker-compose logs chrome
-
-# Restart Chrome
+```
+- Restart Chrome
+```bash
 docker-compose restart chrome
 ```
 
 ### n8n Workflow Problems
-
 **Common workflow issues:**
-- **Credentials:** Check connection settings in n8n interface
-- **Timeouts:** Increase timeout values in workflow settings  
-- **Memory:** Restart n8n if workflows are complex
-- **Database connections:** Verify Supabase credentials
-
-**Reset n8n:**
+- Check connection settings in n8n interface
+- Increase timeout values in workflow settings
+- Restart n8n if workflows are complex
+- Verify Supabase credentials
+- Restart n8n service
 ```bash
-# Restart n8n service
 docker-compose restart n8n
-
-# Clear n8n cache (stops all workflows temporarily)
+```
+- Clear n8n cache (stops all workflows temporarily)
+```bash
 docker-compose exec n8n rm -rf /home/node/.n8n/cache
+```
+```bash
 docker-compose restart n8n
 ```
 
-## System Resource Issues
-
-### High CPU Usage
+### System Resource Issues
+- Check which container is using CPU
 ```bash
-# Check which container is using CPU
 docker stats
-
-# Check system load
+```
+- Check system load
+```bash
 top
+```
+```bash
 htop
 ```
-
-### High Memory Usage
+- Container memory usage
 ```bash
-# Container memory usage
 docker stats --no-stream
-
-# System memory
+```
+- System memory
+```bash
 free -h
-
-# Kill memory-heavy processes if needed
+```
+- Kill memory-heavy processes if needed
+```bash
 docker-compose restart [service-name]
 ```
-
-### Network Issues
+- Check open ports
 ```bash
-# Check open ports
 sudo netstat -tlnp
-
-# Test internal container communication
+```
+- Test internal container communication
+```bash
 docker-compose exec n8n ping supabase-db
+```
+```bash
 docker-compose exec n8n ping chrome
-
-# Check Docker networks
+```
+- Check Docker networks
+```bash
 docker network ls
+```
+```bash
 docker network inspect jstack_default
 ```
 
 ## Recovery Procedures
 
-### Complete System Reset
+- Complete system reset
 ```bash
-# Nuclear option - starts fresh (keeps your data)
 ./jstack.sh down
+```
+```bash
 docker system prune -a
+```
+```bash
 ./jstack.sh --install
 ```
-
-### Restore from Backup
+- Restore from backup
 ```bash
-# List available backups
 ls -la backups/
-
-# Restore specific backup
+```
+```bash
 ./jstack.sh --restore backups/backup-2024-01-15.tar.gz
 ```
-
-### Rebuild Single Service
+- Rebuild single service
 ```bash
-# Rebuild just one problematic service
 docker-compose stop n8n
+```
+```bash
 docker-compose rm n8n
+```
+```bash
 docker-compose up -d n8n
 ```
 
 ## Getting Help
-
-### Collect Diagnostic Information
+- Save system info for support
 ```bash
-# Save system info for support
 ./jstack.sh diagnostics > diagnostic-output.txt
-
-# Include Docker info
+```
+- Include Docker info
+```bash
 docker version >> diagnostic-output.txt
+```
+```bash
 docker-compose version >> diagnostic-output.txt
-
-# Include recent logs
+```
+- Include recent logs
+```bash
 docker-compose logs --tail=100 >> diagnostic-output.txt
 ```
-
-### Check JStack Logs
+- Check JStack logs
 ```bash
-# Installation logs
 cat logs/install.log
-
-# Service-specific logs
+```
+- Service-specific logs
+```bash
 docker-compose logs [service-name]
-
-# System logs
+```
+- System logs
+```bash
 journalctl -u docker
 ```
 
 ### Before Asking for Help
-
-1. **Run diagnostics:** `./jstack.sh diagnostics`
-2. **Check logs:** `docker-compose logs`
-3. **Try dry-run:** `./jstack.sh --dry-run`
-4. **Document the error:** Copy exact error messages
-5. **Note what changed:** What were you doing when it broke?
+1. Run diagnostics: `./jstack.sh diagnostics`
+2. Check logs: `docker-compose logs`
+3. Try dry-run: `./jstack.sh --dry-run`
+4. Document the error: Copy exact error messages
+5. Note what changed: What were you doing when it broke?
 
 ## Prevention Tips
-
-**Regular maintenance:**
+- Weekly health check
 ```bash
-# Weekly health check
 ./jstack.sh status
+```
+```bash
 ./jstack.sh validate
-
-# Monthly cleanup
+```
+- Monthly cleanup
+```bash
 docker system prune
+```
+```bash
 ./jstack.sh --backup
-
-# Keep configs backed up
+```
+- Keep configs backed up
+```bash
 cp -r nginx/conf.d/ backups/nginx-configs-$(date +%Y%m%d)/
 ```
-
-**Monitor disk space:**
+- Monitor disk space weekly
 ```bash
-# Add to crontab for weekly checks
 echo "0 0 * * 0 df -h | mail -s 'Disk Space Report' you@domain.com" | crontab -
 ```
 
-Remember: Most issues are temporary. Work through the steps methodically, and your JStack will be running smoothly again.
+Most issues are temporary. Work through the steps methodically, and your JStack will be running smoothly again.

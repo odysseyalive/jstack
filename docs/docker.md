@@ -12,14 +12,16 @@ JStack uses Docker to package each service in its own container. Think of contai
 ## Understanding Your Containers
 
 ### What's Running
+- See all containers and their status
 ```bash
-# See all containers and their status
 docker-compose ps
-
-# See resource usage
+```
+- See resource usage
+```bash
 docker stats
-
-# See which ports are exposed
+```
+- See which ports are exposed
+```bash
 docker-compose port [service-name]
 ```
 
@@ -33,58 +35,78 @@ docker-compose port [service-name]
 ## Essential Docker Commands
 
 ### Starting and Stopping
+- Start all services
 ```bash
-# Start all services
 ./jstack.sh up
-# OR
+```
+- Start all services (docker-compose)
+```bash
 docker-compose up -d
-
-# Stop all services
+```
+- Stop all services
+```bash
 ./jstack.sh down
-# OR
+```
+- Stop all services (docker-compose)
+```bash
 docker-compose down
-
-# Restart specific service
+```
+- Restart specific service
+```bash
 docker-compose restart nginx
 ```
 
 ### Checking Logs
+- View logs for all services
 ```bash
-# View logs for all services
 docker-compose logs
-
-# View logs for specific service
+```
+- View logs for specific service
+```bash
 docker-compose logs n8n
-
-# Follow logs in real-time
+```
+- Follow logs in real-time
+```bash
 docker-compose logs -f supabase-db
-
-# View last 50 lines
+```
+- View last 50 lines
+```bash
 docker-compose logs --tail=50 nginx
 ```
 
 ### Getting Into Containers
+- Open shell in NGINX container
 ```bash
-# Open shell in NGINX container
 docker-compose exec nginx /bin/bash
-
-# Run one-off command in container
+```
+- Run one-off command in container
+```bash
 docker-compose exec supabase-db psql -U postgres
-
-# Check NGINX configuration
+```
+- Check NGINX configuration
+```bash
 docker-compose exec nginx nginx -t
 ```
 
 ## Data Persistence - Where Your Stuff Lives
 
 JStack maps container data to your workspace so nothing gets lost:
-
 ```bash
 ./data/supabase/     # Database files
-./data/n8n/          # Workflow data  
+```
+```bash
+./data/n8n/          # Workflow data
+```
+```bash
 ./data/chrome/       # Browser cache/data
+```
+```bash
 ./nginx/conf.d/      # Website configs
+```
+```bash
 ./nginx/ssl/         # SSL certificates
+```
+```bash
 ./logs/              # Application logs
 ```
 
@@ -93,42 +115,45 @@ JStack maps container data to your workspace so nothing gets lost:
 ## Container Lifecycle Management
 
 ### Updating Services
+- Pull latest images
 ```bash
-# Pull latest images
 docker-compose pull
-
-# Recreate containers with new images
+```
+- Recreate containers with new images
+```bash
 docker-compose up -d --force-recreate
 ```
 
 ### Rebuilding After Changes
+- Rebuild and restart everything
 ```bash
-# Rebuild and restart everything
 docker-compose down
+```
+```bash
 docker-compose up -d --build
 ```
 
 ### Cleaning Up
+- Remove stopped containers
 ```bash
-# Remove stopped containers
 docker container prune
-
-# Remove unused images (frees disk space)
+```
+- Remove unused images (frees disk space)
+```bash
 docker image prune
-
-# Remove unused volumes (be careful!)
+```
+- Remove unused volumes (be careful!)
+```bash
 docker volume prune
 ```
 
 ## Network Communication
-
-Containers talk to each other using internal networks:
-
+- View networks
 ```bash
-# View networks
 docker network ls
-
-# Inspect JStack network
+```
+- Inspect JStack network
+```bash
 docker network inspect jstack_default
 ```
 
@@ -141,18 +166,17 @@ docker network inspect jstack_default
 This means n8n can connect to the database using `supabase-db:5432` instead of external IPs.
 
 ## Resource Management
-
 ### Monitor Resource Usage
+- Real-time stats
 ```bash
-# Real-time stats
 docker stats
-
-# Container details
+```
+- Container details
+```bash
 docker-compose top
 ```
 
-### Limit Resources (if needed)
-Edit `docker-compose.yml` to add limits:
+### Limit Resources (edit docker-compose.yml)
 ```yaml
 services:
   n8n:
@@ -166,94 +190,113 @@ services:
 ## Troubleshooting Docker Issues
 
 ### Container Won't Start
+- Check what's wrong
 ```bash
-# Check what's wrong
 docker-compose logs [service-name]
-
-# Check if ports are already used
+```
+- Check if ports are already used
+```bash
 netstat -tlnp | grep :80
+```
+```bash
 netstat -tlnp | grep :443
 ```
 
 ### Permission Issues
+- Fix workspace permissions
 ```bash
-# Fix workspace permissions
 ./scripts/core/fix_workspace_permissions.sh
-
-# Check file ownership
+```
+- Check file ownership
+```bash
 ls -la data/
 ```
 
 ### Out of Disk Space
+- See disk usage
 ```bash
-# See disk usage
 df -h
-
-# Clean up Docker
+```
+- Clean up Docker
+```bash
 docker system prune -a
 ```
 
 ### Database Connection Issues
+- Check if database is accepting connections
 ```bash
-# Check if database is accepting connections
 docker-compose exec supabase-db pg_isready
-
-# Connect to database directly
+```
+- Connect to database directly
+```bash
 docker-compose exec supabase-db psql -U postgres
 ```
 
 ## Docker Compose Commands Cheat Sheet
-
+- Start services in background
 ```bash
-# Start services in background
 docker-compose up -d
-
-# Stop and remove containers
+```
+- Stop and remove containers
+```bash
 docker-compose down
-
-# View service status
+```
+- View service status
+```bash
 docker-compose ps
-
-# Follow logs for all services
+```
+- Follow logs for all services
+```bash
 docker-compose logs -f
-
-# Restart specific service
+```
+- Restart specific service
+```bash
 docker-compose restart [service]
-
-# Rebuild service from scratch
+```
+- Rebuild service from scratch
+```bash
 docker-compose up -d --build [service]
-
-# Scale service (run multiple instances)
+```
+- Scale service (run multiple instances)
+```bash
 docker-compose up -d --scale n8n=2
 ```
 
 ## Security Best Practices
-
-**Rootless containers:** JStack services run as non-root users where possible
-**Network isolation:** Containers only expose necessary ports
-**Volume mounting:** Only specific directories are accessible
-**No privileged mode:** Containers can't access host system features
+- Rootless containers: JStack services run as non-root users where possible
+- Network isolation: Containers only expose necessary ports
+- Volume mounting: Only specific directories are accessible
+- No privileged mode: Containers can't access host system features
 
 ## Backup Strategy
-
-Your containers are disposable—your data isn't:
-1. **Regular backups:** Use `./jstack.sh --backup`
-2. **Data folders:** Copy `data/`, `nginx/`, `logs/` directories
-3. **Docker configs:** Keep `docker-compose.yml` and `.env` files safe
-
-## Advanced Tips
-
-### Custom Environment Variables
-Create `.env` file in project root:
+- Regular backups
 ```bash
-N8N_BASIC_AUTH_USER=yourusername
-N8N_BASIC_AUTH_PASSWORD=yourpassword
-SUPABASE_USER=dbuser
-SUPABASE_PASSWORD=dbpassword
+./jstack.sh --backup
+```
+- Data folders
+```bash
+cp -r data/ nginx/ logs/ backups/
+```
+- Docker configs
+```bash
+cp docker-compose.yml .env backups/
 ```
 
-### Adding New Services
-Edit `docker-compose.yml` to add services:
+## Advanced Tips
+### Custom Environment Variables (create .env in project root)
+```bash
+N8N_BASIC_AUTH_USER=yourusername
+```
+```bash
+N8N_BASIC_AUTH_PASSWORD=yourpassword
+```
+```bash
+SUPABASE_USER=dbuser
+```
+```bash
+SUPABASE_PASSWORD=dbpassword
+```
+### Adding New Services (edit docker-compose.yml)
 ```yaml
 services:
   your-app:
@@ -263,12 +306,11 @@ services:
     volumes:
       - "./data/your-app:/app/data"
 ```
-
 ### Health Checks
-Services have built-in health checks. Check status:
+- Check status
 ```bash
 docker-compose ps
-# Look for "healthy" status
 ```
+# Look for "healthy" status in output
 
 Remember: Containers are temporary, data is permanent. Focus on managing your data, and let Docker handle the infrastructure.

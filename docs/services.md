@@ -17,14 +17,16 @@ JStack gives you four powerful services that work together to create your AI Sec
 - Monitor websites and alert you to changes
 
 **Managing n8n:**
+- Check if n8n is running
 ```bash
-# Check if n8n is running
 ./jstack.sh status
-
-# Restart n8n if it's acting up
+```
+- Restart n8n if it's acting up
+```bash
 docker-compose restart n8n
-
-# View n8n logs
+```
+- View n8n logs
+```bash
 docker-compose logs n8n
 ```
 
@@ -43,14 +45,16 @@ docker-compose logs n8n
 - Run SQL queries and view data
 
 **Managing Supabase:**
+- Check database status
 ```bash
-# Check database status
 ./jstack.sh status
-
-# Restart Supabase stack
+```
+- Restart Supabase stack
+```bash
 docker-compose restart supabase-db supabase-kong supabase-auth supabase-rest supabase-realtime supabase-storage supabase-meta
-
-# View database logs
+```
+- View database logs
+```bash
 docker-compose logs supabase-db
 ```
 
@@ -69,14 +73,16 @@ docker-compose logs supabase-db
 - Static file serving
 
 **Managing NGINX:**
+- Restart NGINX after config changes
 ```bash
-# Restart NGINX after config changes
 docker-compose restart nginx
-
-# Check NGINX configuration
+```
+- Check NGINX configuration
+```bash
 docker-compose exec nginx nginx -t
-
-# View access logs
+```
+- View access logs
+```bash
 docker-compose logs nginx
 ```
 
@@ -95,11 +101,12 @@ docker-compose logs nginx
 - Test your websites
 
 **Managing Chrome:**
+- Restart Chrome service
 ```bash
-# Restart Chrome service
 docker-compose restart chrome
-
-# View Chrome logs
+```
+- View Chrome logs
+```bash
 docker-compose logs chrome
 ```
 
@@ -128,36 +135,34 @@ Supabase provides:
 
 ## Quick Health Checks
 
-**Check all services at once:**
+- Check all services at once
 ```bash
 ./jstack.sh status
 ```
-
-**Check specific service:**
+- Check specific service status
 ```bash
 docker-compose ps
+```
+- View logs for specific service
+```bash
 docker-compose logs [service-name]
 ```
-
-**Restart everything if something's broken:**
+- Restart everything if something's broken
 ```bash
 ./jstack.sh restart
 ```
 
 ## Service URLs Cheat Sheet
-
 Replace `yourdomain.com` with your actual domain:
-
-- **n8n Workflows:** `https://n8n.yourdomain.com`
-- **Supabase Studio:** `https://studio.yourdomain.com`
-- **Your Main Site:** `https://yourdomain.com`
-- **API Endpoints:** `https://api.yourdomain.com`
+- n8n Workflows: `https://n8n.yourdomain.com`
+- Supabase Studio: `https://studio.yourdomain.com`
+- Your Main Site: `https://yourdomain.com`
+- API Endpoints: `https://api.yourdomain.com`
 
 ## Next Steps
-
-- **New to automation?** Start with simple n8n workflows
-- **Need a database?** Explore Supabase's built-in table editor
-- **Want to add sites?** Check out [site-templates.md](site-templates.md)
-- **Having issues?** See [troubleshooting.md](troubleshooting.md)
+- New to automation? Start with simple n8n workflows
+- Need a database? Explore Supabase's built-in table editor
+- Want to add sites? Check out [site-templates.md](site-templates.md)
+- Having issues? See [troubleshooting.md](troubleshooting.md)
 
 Your services are now working 24/7. Focus on building workflows and managing data—JStack handles the infrastructure.

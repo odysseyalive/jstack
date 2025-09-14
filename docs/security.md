@@ -11,66 +11,58 @@ JStack secures your infrastructure by default. Here's how SSL certificates, fire
 **Auto-renewal:** Certificates renew automatically before expiration
 
 ### Certificate Locations
+- Real SSL certificates (Let's Encrypt)
 ```bash
-# Real SSL certificates (Let's Encrypt)
-nginx/ssl/live/yourdomain.com/
-├── cert.pem        # Your certificate
-├── chain.pem       # Certificate chain
-├── fullchain.pem   # cert + chain (used by NGINX)
-└── privkey.pem     # Private key
-
-# Self-signed certificates (for testing)
-nginx/ssl/selfsigned/
-├── yourdomain.com.crt
-└── yourdomain.com.key
+ls -la nginx/ssl/live/yourdomain.com/
+```
+- Self-signed certificates (for testing)
+```bash
+ls -la nginx/ssl/selfsigned/
 ```
 
 ### Managing SSL Certificates
-
-**Check certificate status:**
+- List all certificates
 ```bash
-# List all certificates
 ls -la nginx/ssl/live/*/
-
-# Check expiration date
+```
+- Check expiration date
+```bash
 openssl x509 -in nginx/ssl/live/yourdomain.com/cert.pem -text -noout | grep "Not After"
-
-# Test certificate validity
+```
+- Test certificate validity
+```bash
 openssl x509 -in nginx/ssl/live/yourdomain.com/cert.pem -text -noout
 ```
-
-**Generate certificates manually:**
+- Create self-signed for testing
 ```bash
-# Create self-signed for testing
 bash scripts/core/ssl_cert.sh generate_self_signed yourdomain.com admin@yourdomain.com
-
-# Get Let's Encrypt certificate
+```
+- Get Let's Encrypt certificate
+```bash
 bash scripts/core/setup_ssl_certbot.sh yourdomain.com
-
-# Setup SSL for all service subdomains
+```
+- Setup SSL for all service subdomains
+```bash
 bash scripts/core/setup_service_subdomains_ssl.sh
 ```
-
-**Force certificate renewal:**
+- Renew specific domain
 ```bash
-# Renew specific domain
 certbot renew --cert-name yourdomain.com
-
-# Renew all certificates
+```
+- Renew all certificates
+```bash
 certbot renew
-
-# Restart NGINX after renewal
+```
+- Restart NGINX after renewal
+```bash
 docker-compose restart nginx
 ```
 
 ## NGINX Security Configuration
 
 ### Security Headers
-
-JStack automatically adds security headers to all sites:
-
+Edit files in `nginx/conf.d/*.conf` to add headers:
 ```nginx
-# In nginx/conf.d/*.conf files
 add_header X-Frame-Options "SAMEORIGIN" always;
 add_header X-Content-Type-Options "nosniff" always;
 add_header X-XSS-Protection "1; mode=block" always;
@@ -79,57 +71,34 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" alway
 ```
 
 ### Rate Limiting
-
-**Default rate limits:**
-- 10 requests per second per IP
-- Burst of 20 requests
-- 429 status code for exceeded limits
-
-**Customize rate limiting:**
-Edit `nginx/nginx.conf`:
+Edit `nginx/nginx.conf` to adjust limits:
 ```nginx
-# Adjust rate limiting
 limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
 limit_req_zone $binary_remote_addr zone=web:10m rate=30r/s;
 ```
 
 ### SSL Configuration
-
-**Strong SSL settings in NGINX:**
+Add these to your NGINX SSL config:
 ```nginx
-# Only modern TLS versions
 ssl_protocols TLSv1.2 TLSv1.3;
-
-# Strong cipher suites
 ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
-
-# SSL optimizations
 ssl_session_cache shared:SSL:10m;
 ssl_session_timeout 10m;
 ```
 
 ## Fail2ban Protection
-
-### What Fail2ban Does
-
-**SSH protection:** Blocks IPs after failed SSH attempts
-**NGINX protection:** Blocks IPs after HTTP 404/403 patterns
-**Automatic unban:** IPs are unbanned after configured time
-
-### Managing Fail2ban
-
-**Check ban status:**
+- See banned IPs
 ```bash
-# See banned IPs
 sudo fail2ban-client status sshd
+```
+```bash
 sudo fail2ban-client status nginx-http-auth
-
-# Unban specific IP
+```
+- Unban specific IP
+```bash
 sudo fail2ban-client set sshd unbanip 192.168.1.100
 ```
-
-**Configure ban rules:**
-Edit `/etc/fail2ban/jail.local`:
+- Configure ban rules (edit /etc/fail2ban/jail.local)
 ```ini
 [sshd]
 enabled = true
@@ -142,287 +111,248 @@ enabled = true
 maxretry = 5
 bantime = 1800
 ```
-
-**Restart Fail2ban after changes:**
+- Restart Fail2ban after changes
 ```bash
 sudo systemctl restart fail2ban
+```
+```bash
 sudo systemctl status fail2ban
 ```
 
 ## Firewall Configuration
-
-### Default Firewall Rules
-
-JStack configures UFW (Uncomplicated Firewall):
-
+- Check current rules
 ```bash
-# Check current rules
 sudo ufw status
-
-# Default JStack rules
-sudo ufw allow 22/tcp    # SSH
-sudo ufw allow 80/tcp    # HTTP
-sudo ufw allow 443/tcp   # HTTPS
+```
+- Default JStack rules
+```bash
+sudo ufw allow 22/tcp
+```
+```bash
+sudo ufw allow 80/tcp
+```
+```bash
+sudo ufw allow 443/tcp
+```
+```bash
 sudo ufw enable
 ```
-
-### Custom Firewall Rules
-
-**Allow specific services:**
+- Allow database access from specific IP
 ```bash
-# Allow database access from specific IP
 sudo ufw allow from 192.168.1.100 to any port 5432
-
-# Allow custom application port
+```
+- Allow custom application port
+```bash
 sudo ufw allow 8080/tcp
-
-# Block specific IP
+```
+- Block specific IP
+```bash
 sudo ufw deny from 192.168.1.200
 ```
-
-**Remove rules:**
+- List numbered rules
 ```bash
-# List numbered rules
 sudo ufw status numbered
-
-# Delete rule by number
+```
+- Delete rule by number
+```bash
 sudo ufw delete 3
 ```
 
 ## Container Security
-
-### Rootless Containers
-
-**JStack security principles:**
-- Services run as non-root users when possible
-- Containers have limited system access
-- No privileged mode containers
-
-**Check container users:**
+- See what user containers run as
 ```bash
-# See what user containers run as
 docker-compose exec n8n whoami
+```
+```bash
 docker-compose exec supabase-db whoami
 ```
-
-### Network Isolation
-
-**Container networks:**
+- View Docker networks
 ```bash
-# View Docker networks
 docker network ls
-
-# Inspect JStack network
+```
+- Inspect JStack network
+```bash
 docker network inspect jstack_default
 ```
-
-**Network security:**
-- Containers can only communicate on defined networks
-- External access only through NGINX reverse proxy
-- Database not directly accessible from internet
-
-### Volume Security
-
-**Data protection:**
+- Check volume permissions
 ```bash
-# Check volume permissions
 ls -la data/
+```
+```bash
 ls -la nginx/
-
-# Fix permissions if needed
+```
+- Fix permissions if needed
+```bash
 ./scripts/core/fix_workspace_permissions.sh
 ```
 
 ## Security Best Practices
-
-### Strong Passwords
-
-**Change default credentials:**
+- Update n8n/Supabase credentials
 ```bash
-# Update n8n credentials
 export N8N_BASIC_AUTH_USER="your-secure-username"
+```
+```bash
 export N8N_BASIC_AUTH_PASSWORD="your-long-secure-password"
-
-# Update Supabase credentials  
+```
+```bash
 export SUPABASE_USER="your-db-username"
+```
+```bash
 export SUPABASE_PASSWORD="your-long-secure-db-password"
-
-# Apply changes
+```
+- Apply changes
+```bash
 docker-compose up -d
 ```
-
-### Regular Updates
-
-**Keep system updated:**
+- Update system packages
 ```bash
-# Update system packages
 sudo apt update && sudo apt upgrade
-
-# Update Docker images
+```
+- Update Docker images
+```bash
 docker-compose pull
+```
+```bash
 docker-compose up -d
-
-# Update JStack scripts
+```
+- Update JStack scripts
+```bash
 git pull origin main
 ```
-
-### Backup Security
-
-**Secure your backups:**
+- Encrypt backups
 ```bash
-# Encrypt backups
 tar -czf - data/ nginx/ | gpg --cipher-algo AES256 --compress-algo 1 --symmetric --output backup-$(date +%Y%m%d).tar.gz.gpg
-
-# Decrypt backups
+```
+- Decrypt backups
+```bash
 gpg --decrypt backup-20240115.tar.gz.gpg | tar -xzf -
 ```
 
-### Access Control
-
-**Limit SSH access:**
-Edit `/etc/ssh/sshd_config`:
+## Access Control
+Edit `/etc/ssh/sshd_config` as needed:
 ```bash
-# Disable root login
 PermitRootLogin no
-
-# Use key-based authentication
+```
+```bash
 PasswordAuthentication no
+```
+```bash
 PubkeyAuthentication yes
-
-# Limit users
+```
+```bash
 AllowUsers yourusername
 ```
-
-**Restart SSH after changes:**
+- Restart SSH after changes
 ```bash
 sudo systemctl restart sshd
 ```
 
 ## Security Monitoring
-
-### Log Monitoring
-
-**Check security logs:**
+- SSH attempts
 ```bash
-# SSH attempts
 sudo journalctl -u ssh
-
-# NGINX access logs
+```
+- NGINX access logs
+```bash
 docker-compose logs nginx | grep -E "(404|403|401)"
-
-# Fail2ban logs
+```
+- Fail2ban logs
+```bash
 sudo journalctl -u fail2ban
 ```
-
-### Automated Alerts
-
-**Setup log monitoring:**
+- Install logwatch
 ```bash
-# Install logwatch
 sudo apt install logwatch
-
-# Configure email alerts
+```
+- Configure email alerts
+```bash
 sudo nano /etc/logwatch/conf/logwatch.conf
+```
 # Set MailTo = your@email.com
-
-# Test logwatch
+- Test logwatch
+```bash
 sudo logwatch --detail low --mailto your@email.com --service ssh
 ```
-
-### Security Compliance Checks
-
-**Run security validation:**
+- Run security validation
 ```bash
-# JStack compliance check
 ./jstack.sh compliance
-
-# Check SSL configuration
+```
+- Check SSL configuration
+```bash
 ./jstack.sh validate
-
-# Test SSL strength
+```
+- Test SSL strength
+```bash
 testssl.sh yourdomain.com
 ```
 
 ## Incident Response
-
-### Suspected Breach
-
-**Immediate steps:**
+- Check active connections
 ```bash
-# Check active connections
 sudo netstat -tlnp
-
-# Review recent logins
+```
+- Review recent logins
+```bash
 last -20
-
-# Check running processes
+```
+- Check running processes
+```bash
 ps aux | grep -v grep
-
-# Review fail2ban logs
+```
+- Review fail2ban logs
+```bash
 sudo fail2ban-client status
 ```
-
-**Block suspicious activity:**
+- Block IP immediately
 ```bash
-# Block IP immediately
 sudo ufw deny from 192.168.1.200
-
-# Ban IP in fail2ban
+```
+- Ban IP in fail2ban
+```bash
 sudo fail2ban-client set sshd banip 192.168.1.200
 ```
-
-### Recovery Steps
-
-**If compromised:**
-1. **Isolate:** Block suspicious IPs
-2. **Backup:** Save current state for analysis
-3. **Reset:** Change all passwords immediately
-4. **Update:** Apply all security updates
-5. **Monitor:** Watch logs closely for 48 hours
-
-**Password reset process:**
+- Change system password
 ```bash
-# Change system password
 passwd
-
-# Reset n8n credentials
+```
+- Reset n8n/database credentials and apply changes
+```bash
 export N8N_BASIC_AUTH_USER="newuser"
+```
+```bash
 export N8N_BASIC_AUTH_PASSWORD="newpassword"
-
-# Reset database credentials
+```
+```bash
 export SUPABASE_PASSWORD="newdbpassword"
-
-# Apply changes
+```
+```bash
 docker-compose up -d
 ```
 
 ## Certificate Automation
-
-### Auto-renewal Setup
-
-**Certbot auto-renewal:**
+- Check if auto-renewal is active
 ```bash
-# Check if auto-renewal is active
 sudo systemctl status certbot.timer
-
-# Enable auto-renewal
+```
+- Enable auto-renewal
+```bash
 sudo systemctl enable certbot.timer
+```
+```bash
 sudo systemctl start certbot.timer
-
-# Test renewal process
+```
+- Test renewal process
+```bash
 sudo certbot renew --dry-run
 ```
-
-**Custom renewal hook:**
-Create `/etc/letsencrypt/renewal-hooks/deploy/nginx-reload.sh`:
+- Custom renewal hook example (/etc/letsencrypt/renewal-hooks/deploy/nginx-reload.sh):
 ```bash
 #!/bin/bash
 docker-compose -f /path/to/jstack/docker-compose.yml restart nginx
 ```
-
-Make it executable:
+- Make renewal hook executable
 ```bash
 sudo chmod +x /etc/letsencrypt/renewal-hooks/deploy/nginx-reload.sh
 ```
 
-Your JStack is now secured with industry-standard practices. Regular monitoring and updates keep it secure as threats evolve.
+Regular monitoring and updates keep your stack secure as threats evolve.
