@@ -2,6 +2,7 @@ version: '3.8'
 services:
   nginx:
     image: nginx
+    restart: unless-stopped
     ports:
       - "443:443"
     volumes:
@@ -15,6 +16,7 @@ services:
       - chrome
   n8n:
     image: n8nio/n8n
+    restart: unless-stopped
     ports:
       - "5678:5678"
     environment:
@@ -25,6 +27,7 @@ services:
       - ./data/n8n:/home/node/.n8n
   supabase:
     image: supabase/postgres:15.14.1.004
+    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
@@ -35,6 +38,7 @@ services:
       - ./data/supabase:/var/lib/postgresql/data
   chrome:
     image: browserless/chrome
+    restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
