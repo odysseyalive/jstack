@@ -1,5 +1,4 @@
 # Ignore user config and secrets
-jstack.config.default
 .env
 site-templates/*/.env
 nginx/ssl/*.key

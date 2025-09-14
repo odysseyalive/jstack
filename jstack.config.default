@@ -1,0 +1,44 @@
+# JStack Default Configuration
+
+# Domain and SSL
+DOMAIN="example.com"
+EMAIL="admin@example.com"
+SSL_ENABLED=true
+
+# SSL Certificate Details
+SSL_COUNTRY="US"
+SSL_STATE="State"
+SSL_CITY="City"
+SSL_ORGANIZATION="Organization"
+SSL_ORG_UNIT="OrgUnit"
+
+# Service Subdomains
+N8N_URL="n8n.example.com"
+SUPABASE_URL="supabase.example.com"
+CHROME_URL="chrome.example.com"
+# Add more service URLs as needed
+
+# Ports
+NGINX_PORT=443
+SUPABASE_PORT=5432
+N8N_PORT=5678
+CHROME_PORT=3000
+
+# Supabase
+SUPABASE_DB="jstack_db"
+SUPABASE_USER=""
+SUPABASE_PASSWORD="" # To be set securely at install time
+
+# n8n
+N8N_ENV="production"
+N8N_BASIC_AUTH_USER=""
+N8N_BASIC_AUTH_PASSWORD="" # To be set securely at install time
+
+# Dry-run and backup
+DRY_RUN=false
+BACKUP_ENABLED=true
+
+# Debug
+DEBUG=false
+
+# Add more configuration options as needed
