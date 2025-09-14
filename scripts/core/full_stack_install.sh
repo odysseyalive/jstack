@@ -24,11 +24,32 @@ check_service_and_start() {
 
 check_docker_permissions() {
   if ! docker ps >/dev/null 2>&1; then
+    log "Cannot access Docker directly. Checking if user is in docker group..."
+    if groups | grep -q docker; then
+      log "User is in docker group. Attempting to use newgrp docker to apply group membership..."
+      if newgrp docker -c "docker ps >/dev/null 2>&1"; then
+        log "Docker access successful after newgrp docker."
+        export USE_NEWGRP_DOCKER=1
+        return 0
+      else
+        log "Error: Still cannot access Docker after newgrp docker."
+      fi
+    else
+      log "Error: User is not in docker group."
+    fi
     log "Error: Cannot access Docker. Ensure:"
     log "  1. Docker service is running: sudo systemctl status docker"
     log "  2. User is in docker group: groups | grep docker"
     log "  3. If recently added to docker group, log out and back in or run: newgrp docker"
     exit 1
+  fi
+}
+
+run_docker_command() {
+  if [ "$USE_NEWGRP_DOCKER" = "1" ]; then
+    newgrp docker -c "$*"
+  else
+    "$@"
   fi
 }
 
@@ -74,7 +95,7 @@ if [ -f "$COMPOSE_FILE" ]; then
   log "Setting up SSL certificates for service subdomains..."
   bash "$(dirname "$0")/setup_service_subdomains_ssl.sh"
   log "Deploying services via Docker Compose..."
-  SUPABASE_USER="$SUPABASE_USER" SUPABASE_PASSWORD="$SUPABASE_PASSWORD" N8N_BASIC_AUTH_USER="$N8N_BASIC_AUTH_USER" N8N_BASIC_AUTH_PASSWORD="$N8N_BASIC_AUTH_PASSWORD" docker-compose -f "$COMPOSE_FILE" up -d
+  run_docker_command SUPABASE_USER="$SUPABASE_USER" SUPABASE_PASSWORD="$SUPABASE_PASSWORD" N8N_BASIC_AUTH_USER="$N8N_BASIC_AUTH_USER" N8N_BASIC_AUTH_PASSWORD="$N8N_BASIC_AUTH_PASSWORD" docker-compose -f "$COMPOSE_FILE" up -d
   log "Services deployed."
 else
   log "docker-compose.yml not found at $COMPOSE_FILE."
