@@ -46,12 +46,19 @@ Ready to get started? Check out [docs/quickstart.md](docs/quickstart.md) for a s
 	cd jstack
 	```
 
-3. **Refresh sudo credentials:**
+3. **Add your user to the docker group:**
+	```bash
+	sudo usermod -aG docker $USER
+	```
+
+4. **Log out and back in, or reboot (required for Docker permissions to take effect).**
+
+5. **Refresh sudo credentials:**
 	```bash
 	sudo -v
 	```
 
-4. **Install and configure the full stack:**
+6. **Install and configure the full stack:**
 	```bash
 	./jstack.sh --install
 	```

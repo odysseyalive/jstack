@@ -26,14 +26,11 @@ check_docker_permissions() {
   if ! docker ps >/dev/null 2>&1; then
     log "Cannot access Docker directly. Checking if user is in docker group..."
     if groups | grep -q docker; then
-      log "User is in docker group. Attempting to use newgrp docker to apply group membership..."
-      if newgrp docker -c "docker ps >/dev/null 2>&1"; then
-        log "Docker access successful after newgrp docker."
-        export USE_NEWGRP_DOCKER=1
-        return 0
-      else
-        log "Error: Still cannot access Docker after newgrp docker."
-      fi
+      log "User is in docker group. You must log out and log back in (or reboot) before installing if you were just added to the docker group."
+      return 0
+    else
+      log "Error: User is not in docker group. Run: sudo usermod -aG docker $USER, then log out/in or reboot, before running install again."
+    fi
     else
       log "Error: User is not in docker group."
     fi
