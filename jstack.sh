@@ -84,9 +84,9 @@ main() {
   if [ "$CERTBOT" = true ]; then
     CONFIG_FILE="$(dirname "$0")/jstack.config"
     [ -f "$CONFIG_FILE" ] && source "$CONFIG_FILE"
-    run_core_script orchestrate stop nginx nginx
+    run_core_script orchestrate stop nginx
     sudo certbot certonly --standalone -d "$DOMAIN" --agree-tos --non-interactive --email "$EMAIL"
-    run_core_script orchestrate start nginx nginx
+    run_core_script orchestrate start nginx
     exit $?
   fi
   if [ -n "$INSTALL_SITE" ]; then
