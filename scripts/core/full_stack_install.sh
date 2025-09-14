@@ -71,6 +71,8 @@ if [ -f "$COMPOSE_FILE" ]; then
   fi
   log "Generating default SSL certificate for nginx..."
   bash "$(dirname "$0")/ssl_cert.sh" generate_self_signed "default" "admin@localhost"
+  log "Setting up SSL certificates for service subdomains..."
+  bash "$(dirname "$0")/setup_service_subdomains_ssl.sh"
   log "Deploying services via Docker Compose..."
   SUPABASE_USER="$SUPABASE_USER" SUPABASE_PASSWORD="$SUPABASE_PASSWORD" N8N_BASIC_AUTH_USER="$N8N_BASIC_AUTH_USER" N8N_BASIC_AUTH_PASSWORD="$N8N_BASIC_AUTH_PASSWORD" docker-compose -f "$COMPOSE_FILE" up -d
   log "Services deployed."
