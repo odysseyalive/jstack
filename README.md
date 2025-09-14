@@ -38,7 +38,7 @@ Ready to get started? Check out [docs/quickstart.md](docs/quickstart.md) for a s
  sudo adduser jarvis
  ```
 
-1. **Add your user to the docker group:**
+2. **Add your user to the docker group:**
 
  ```bash
  sudo usermod -aG docker jarvis
