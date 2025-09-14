@@ -1,0 +1,35 @@
+# Ignore user config and secrets
+jstack.config.default
+.env
+site-templates/*/.env
+nginx/ssl/*.key
+
+# Node.js artifacts
+node_modules/
+dist/
+*.log
+
+# Docker artifacts
+**/docker-volumes/
+**/backup/
+**/.docker/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+
+# Build/test output
+coverage/
+*.out
+
+# Ignore generated sites and runtime/output
+sites/
+logs/
+backups/
+tests/unit/
+
+# Add more patterns as needed during development

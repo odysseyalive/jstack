@@ -1,0 +1,47 @@
+version: '3.8'
+services:
+  nginx:
+    image: nginx
+    ports:
+      - "443:443"
+    volumes:
+      - ./site-templates:/usr/share/nginx/html:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/letsencrypt
+    depends_on:
+      - n8n
+      - supabase
+      - chrome
+  n8n:
+    image: n8nio/n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=change_me
+      - N8N_ENV=production
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+  supabase:
+    image: supabase/postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=jstack_db
+      - POSTGRES_USER=jstack_user
+      - POSTGRES_PASSWORD=change_me
+    volumes:
+      - ./data/supabase:/var/lib/postgresql/data
+  chrome:
+    image: browserless/chrome
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data/chrome:/data
+  node-mdx-tailwind:
+    build: ./site-templates/node-mdx-tailwind
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production

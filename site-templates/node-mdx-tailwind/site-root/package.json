@@ -1,0 +1,14 @@
+{
+  "name": "node-mdx-tailwind-template",
+  "config": {
+    "envHandling": "Secrets/credentials must be provided as environment variables at runtime."
+  },
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server.js",
+    "build": "echo 'No build step for starter.'"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
