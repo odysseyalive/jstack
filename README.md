@@ -32,7 +32,7 @@ Ready to get started? Check out [docs/quickstart.md](docs/quickstart.md) for a s
 
 ### Standard Installation (Recommended for Most Users)
 
-1. **Create a dedicated jarvis user and add it to the docker group:**
+1. **Create a dedicated jarvis user and add it to the docker group (run as root):**
 
  ```bash
  sudo adduser jarvis
