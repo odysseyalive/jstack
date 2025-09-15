@@ -14,7 +14,9 @@ log() {
 }
 
 log "Fixing permissions for all workspace directories..."
-for DIR in "$WORKSPACE/data/supabase" "$WORKSPACE/data/n8n" "$WORKSPACE/data/chrome" "$WORKSPACE/nginx/conf.d" "$WORKSPACE/nginx/ssl" "$WORKSPACE/backups" "$WORKSPACE/logs"; do
+
+# Handle directories with regular user permissions (excluding Supabase which manages its own)
+for DIR in "$WORKSPACE/data/n8n" "$WORKSPACE/data/chrome" "$WORKSPACE/nginx/conf.d" "$WORKSPACE/nginx/ssl" "$WORKSPACE/backups" "$WORKSPACE/logs"; do
   if [ -d "$DIR" ]; then
     # Validate DIR
     if [[ "$DIR" != $(realpath "$WORKSPACE"/*) ]]; then
@@ -25,7 +27,6 @@ for DIR in "$WORKSPACE/data/supabase" "$WORKSPACE/data/n8n" "$WORKSPACE/data/chr
     sudo chmod -R 770 "$DIR"
     log "Permissions fixed for $DIR."
   fi
-
 done
 
 if [ -f "$WORKSPACE/nginx/nginx.conf" ]; then
