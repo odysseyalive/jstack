@@ -121,7 +121,7 @@ main() {
     SITE_DOMAIN="$(grep -m1 DOMAIN "$SITE_DIR/.env" | cut -d'=' -f2)"
     SITE_PORT="$(grep -m1 PORT "$SITE_DIR/.env" | cut -d'=' -f2)"
     SITE_CONTAINER="$(grep -m1 CONTAINER "$SITE_DIR/.env" | cut -d'=' -f2 2>/dev/null || echo "")"
-    
+
     if [ -z "$SITE_DOMAIN" ] || [ -z "$SITE_PORT" ]; then
       echo "Missing DOMAIN or PORT in $SITE_DIR/.env."
       echo "Required format:"
@@ -130,21 +130,21 @@ main() {
       echo "  CONTAINER=mysite_app  # optional - uses docker networking if provided"
       exit 2
     fi
-    
+
     if [ "$DRY_RUN" = true ]; then
       echo "[DRY-RUN] Would generate nginx config for $SITE_DOMAIN (port $SITE_PORT)"
       echo "[DRY-RUN] Would add $SITE_DOMAIN to SSL certificate"
       echo "[DRY-RUN] Would restart nginx container"
     else
       echo "Setting up nginx and SSL for $SITE_DOMAIN..."
-      
+
       # Use our robust SSL system to generate config and handle SSL
       source "$(dirname "$0")/scripts/core/setup_service_subdomains_ssl.sh"
-      
+
       # Generate nginx config for the site
       if generate_site_nginx_config "$SITE_DOMAIN" "$SITE_PORT" "$SITE_CONTAINER"; then
         echo "✓ Nginx config created for $SITE_DOMAIN"
-        
+
         # Add domain to SSL certificate
         if install_site_ssl_certificate "$SITE_DOMAIN"; then
           echo "✓ SSL certificate configured for $SITE_DOMAIN"
