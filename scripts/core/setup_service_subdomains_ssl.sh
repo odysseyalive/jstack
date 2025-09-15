@@ -40,23 +40,48 @@ for SUBDOMAIN in "${SERVICE_SUBDOMAINS[@]}"; do
     continue
   fi
   
-  # Try Let's Encrypt first (will fail if domain doesn't resolve)
-  if command -v certbot >/dev/null 2>&1; then
-    log "Attempting Let's Encrypt certificate for $SUBDOMAIN..."
-    if certbot certonly --standalone \
-      --non-interactive \
-      --agree-tos \
-      --email "$EMAIL" \
-      --domains "$SUBDOMAIN" \
-      --config-dir ./nginx/ssl \
-      --work-dir ./nginx/ssl/work \
-      --logs-dir ./nginx/ssl/logs \
-      --http-01-port 80 \
-      2>/dev/null; then
-      log "✓ Let's Encrypt certificate obtained for $SUBDOMAIN"
-      continue
-    else
-      log "⚠ Let's Encrypt failed for $SUBDOMAIN, generating self-signed certificate..."
+  # Check if domain resolves before attempting Let's Encrypt
+  if command -v dig >/dev/null 2>&1; then
+    if ! dig +short "$SUBDOMAIN" | grep -q .; then
+      log "⚠ $SUBDOMAIN does not resolve in DNS, skipping Let's Encrypt..."
+    elif command -v certbot >/dev/null 2>&1; then
+      log "Attempting Let's Encrypt certificate for $SUBDOMAIN..."
+      if certbot certonly --standalone \
+        --non-interactive \
+        --agree-tos \
+        --email "$EMAIL" \
+        --domains "$SUBDOMAIN" \
+        --config-dir ./nginx/ssl \
+        --work-dir ./nginx/ssl/work \
+        --logs-dir ./nginx/ssl/logs \
+        --http-01-port 80 \
+        2>/dev/null; then
+        log "✓ Let's Encrypt certificate obtained for $SUBDOMAIN"
+        continue
+      else
+        log "⚠ Let's Encrypt failed for $SUBDOMAIN, generating self-signed certificate..."
+      fi
+    fi
+  elif command -v nslookup >/dev/null 2>&1; then
+    if ! nslookup "$SUBDOMAIN" >/dev/null 2>&1; then
+      log "⚠ $SUBDOMAIN does not resolve in DNS, skipping Let's Encrypt..."
+    elif command -v certbot >/dev/null 2>&1; then
+      log "Attempting Let's Encrypt certificate for $SUBDOMAIN..."
+      if certbot certonly --standalone \
+        --non-interactive \
+        --agree-tos \
+        --email "$EMAIL" \
+        --domains "$SUBDOMAIN" \
+        --config-dir ./nginx/ssl \
+        --work-dir ./nginx/ssl/work \
+        --logs-dir ./nginx/ssl/logs \
+        --http-01-port 80 \
+        2>/dev/null; then
+        log "✓ Let's Encrypt certificate obtained for $SUBDOMAIN"
+        continue
+      else
+        log "⚠ Let's Encrypt failed for $SUBDOMAIN, generating self-signed certificate..."
+      fi
     fi
   fi
   
@@ -94,3 +119,13 @@ if [ "$DOMAIN" != "example.com" ]; then
 fi
 
 log "✓ Service subdomain SSL setup complete"
+
+log "Restarting Docker services to apply SSL certificates..."
+if command -v docker-compose >/dev/null 2>&1; then
+    docker-compose down
+    docker-compose up -d
+    log "✓ Docker services restarted successfully"
+else
+    log "ERROR: docker-compose not found, please restart services manually"
+    exit 1
+fi
