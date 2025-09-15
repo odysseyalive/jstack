@@ -192,8 +192,10 @@ if [ -f "$COMPOSE_FILE" ]; then
     NGINX_CONF_DIR="$(dirname "$0")/../../nginx/conf.d"
     log "Creating simplified nginx config for SSL certificate acquisition..."
     
-    # Ensure webroot directory exists
-    mkdir -p "$(dirname "$0")/../../nginx/certbot/www/.well-known/acme-challenge"
+    # Ensure webroot directory exists with proper permissions
+    WEBROOT_DIR="$(dirname "$0")/../../nginx/certbot/www"
+    sudo mkdir -p "$WEBROOT_DIR/.well-known/acme-challenge"
+    sudo chown -R $(whoami):$(whoami) "$(dirname "$0")/../../nginx/certbot/"
     
     # Backup existing configs
     mkdir -p "$(dirname "$0")/../../nginx/conf.d.backup"
