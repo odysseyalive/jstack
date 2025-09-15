@@ -31,8 +31,6 @@ check_docker_permissions() {
     else
       log "Error: User is not in docker group. Run: sudo usermod -aG docker $USER, then log out/in or reboot, before running install again."
     fi
-    else
-      log "Error: User is not in docker group."
     log "Error: Cannot access Docker. Ensure:"
     log "  1. Docker service is running: sudo systemctl status docker"
     log "  2. User is in docker group: groups | grep docker"
