@@ -96,20 +96,50 @@ main() {
     CONFIG_FILE="$(dirname "$0")/jstack.config"
     [ -f "$CONFIG_FILE" ] && source "$CONFIG_FILE"
     
-    # Step 1: Ensure all services are up except nginx
-    echo "Starting all services except nginx..."
-    docker-compose up -d supabase-db supabase-kong supabase-auth supabase-rest supabase-meta supabase-studio n8n chrome certbot
+    # Step 1: Create simplified nginx configs for ACME challenge only
+    echo "Creating temporary nginx configs for ACME challenges..."
+    NGINX_CONF_DIR="./nginx/conf.d"
     
-    # Step 2: Wait for services to be ready
-    echo "Waiting for services to initialize..."
-    sleep 30
+    # Backup existing configs
+    mkdir -p ./nginx/conf.d.backup
+    cp -r ./nginx/conf.d/* ./nginx/conf.d.backup/ 2>/dev/null || true
     
-    # Step 3: Start nginx (should work now that upstreams exist)
-    echo "Starting nginx..."
-    docker-compose up -d nginx
+    # Create minimal config for ACME challenges
+    cat > "$NGINX_CONF_DIR/acme-only.conf" <<'EOF'
+# Temporary config for ACME challenges only
+server {
+    listen 8080 default_server;
+    server_name _;
     
-    # Step 4: Wait for nginx to be stable
-    sleep 10
+    # ACME challenge location for Let's Encrypt
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        try_files $uri =404;
+    }
+    
+    # Redirect all other traffic to a simple response
+    location / {
+        return 200 "ACME validation server";
+        add_header Content-Type text/plain;
+    }
+}
+EOF
+    
+    # Remove other configs temporarily
+    find "$NGINX_CONF_DIR" -name "*.conf" ! -name "acme-only.conf" -delete
+    
+    # Step 2: Start nginx with minimal config
+    echo "Starting nginx with ACME-only configuration..."
+    docker-compose restart nginx
+    
+    # Step 3: Wait for nginx to be ready
+    echo "Waiting for nginx to start..."
+    sleep 15
+    
+    # Step 4: Test ACME path
+    echo "Testing ACME challenge path..."
+    mkdir -p ./nginx/certbot/www/.well-known/acme-challenge
+    echo "test-challenge" > ./nginx/certbot/www/.well-known/acme-challenge/test
     
     # Step 5: Get SSL certificates using webroot method
     echo "Attempting to get SSL certificates..."
@@ -122,9 +152,16 @@ main() {
       fi
     done
     
-    # Step 6: Reload nginx to pick up new certificates
-    echo "Reloading nginx with new certificates..."
-    docker-compose exec nginx nginx -s reload || echo "Nginx reload failed, restarting container..."
+    # Step 6: Restore original nginx configs
+    echo "Restoring original nginx configurations..."
+    rm -f "$NGINX_CONF_DIR/acme-only.conf"
+    cp -r ./nginx/conf.d.backup/* "$NGINX_CONF_DIR/" 2>/dev/null || true
+    rm -rf ./nginx/conf.d.backup
+    
+    # Step 7: Start all services and restart nginx with full config
+    echo "Starting all services with full configuration..."
+    docker-compose up -d
+    sleep 30
     docker-compose restart nginx
     
     echo "SSL certificate fix completed."
