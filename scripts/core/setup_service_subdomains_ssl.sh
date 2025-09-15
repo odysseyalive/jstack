@@ -120,8 +120,23 @@ bootstrap_ssl_certificates() {
         log "⚠ No email configured, using unsafe registration"
     fi
     
-    # Request certificates using webroot mode
-    if docker-compose run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot $email_arg $domain_args --rsa-key-size 2048 --agree-tos --force-renewal --non-interactive >/dev/null 2>&1; then
+    # Check if certificates already exist
+    local cert_exists=false
+    if docker-compose run --rm --entrypoint="" certbot ls | grep -q "$DOMAIN"; then
+        log "⚠ Certificates already exist for $DOMAIN, attempting renewal..."
+        cert_exists=true
+    fi
+    
+    # Request certificates using webroot mode with timeout
+    local cert_command=""
+    if [ "$cert_exists" = true ]; then
+        cert_command="certbot renew --cert-name $DOMAIN --force-renewal --non-interactive"
+    else
+        cert_command="certbot certonly --webroot -w /var/www/certbot $email_arg $domain_args --rsa-key-size 2048 --agree-tos --non-interactive"
+    fi
+    
+    log "Running: $cert_command"
+    if timeout 180 docker-compose run --rm --entrypoint="" certbot $cert_command; then
         log "✓ Real SSL certificates acquired successfully"
         
         # Step 8: Reload nginx with real certificates

@@ -254,14 +254,26 @@ EOF
     run_docker_command docker-compose -f "$COMPOSE_FILE" restart nginx
     sleep 15
     
-    # Get SSL certificates using webroot method
+    # Get SSL certificates using webroot method with timeout
     log "Attempting SSL certificate issuance for service subdomains..."
     for SUBDOMAIN in "api.$DOMAIN" "n8n.$DOMAIN" "studio.$DOMAIN"; do
       log "Getting SSL certificate for $SUBDOMAIN..."
-      if docker-compose -f "$COMPOSE_FILE" run --rm certbot certonly --webroot -w /var/www/certbot -d "$SUBDOMAIN" --agree-tos --non-interactive --email "$EMAIL"; then
-        log "✓ SSL certificate obtained for $SUBDOMAIN"
+      
+      # Check if certificate already exists
+      if docker-compose -f "$COMPOSE_FILE" run --rm --entrypoint="" certbot certbot certificates | grep -q "$SUBDOMAIN"; then
+        log "⚠ Certificate for $SUBDOMAIN already exists, attempting renewal..."
+        if timeout 120 docker-compose -f "$COMPOSE_FILE" run --rm certbot renew --cert-name "$SUBDOMAIN" --force-renewal --non-interactive; then
+          log "✓ SSL certificate renewed for $SUBDOMAIN"
+        else
+          log "⚠ Failed to renew SSL certificate for $SUBDOMAIN - continuing with existing certificate"
+        fi
       else
-        log "⚠ Failed to get SSL certificate for $SUBDOMAIN - continuing with self-signed"
+        log "Requesting new certificate for $SUBDOMAIN..."
+        if timeout 120 docker-compose -f "$COMPOSE_FILE" run --rm certbot certonly --webroot -w /var/www/certbot -d "$SUBDOMAIN" --agree-tos --non-interactive --email "$EMAIL"; then
+          log "✓ SSL certificate obtained for $SUBDOMAIN"
+        else
+          log "⚠ Failed to get SSL certificate for $SUBDOMAIN - continuing with self-signed"
+        fi
       fi
     done
     

@@ -61,12 +61,17 @@ generate_all_secrets() {
     JWT_SECRET=$(generate_jwt_secret)
     log "✓ Generated JWT secret"
     
+    # Generate database password
+    SUPABASE_PASSWORD=$(generate_random_key 24)
+    log "✓ Generated database password"
+    
     # Generate API keys
     ANON_KEY=$(generate_anon_key "$JWT_SECRET")
     SERVICE_ROLE_KEY=$(generate_service_role_key "$JWT_SECRET")
     log "✓ Generated Supabase API keys"
     
     # Export variables for use by other scripts
+    export SUPABASE_PASSWORD="$SUPABASE_PASSWORD"
     export SUPABASE_JWT_SECRET="$JWT_SECRET"
     export SUPABASE_ANON_KEY="$ANON_KEY"
     export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
@@ -81,6 +86,7 @@ generate_all_secrets() {
         
         # Save to both .env.secrets and .env (without auto-generated password)
         cat > "$SECRETS_FILE" << EOF
+SUPABASE_PASSWORD=$SUPABASE_PASSWORD
 SUPABASE_JWT_SECRET=$JWT_SECRET
 SUPABASE_ANON_KEY=$ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
@@ -88,7 +94,8 @@ SUPABASE_SERVICE_KEY=$SERVICE_ROLE_KEY
 EOF
         
         cat > "$ENV_FILE" << EOF
-# Supabase Database Configuration (password will be prompted during install)
+# Supabase Database Configuration
+SUPABASE_PASSWORD=$SUPABASE_PASSWORD
 SUPABASE_JWT_SECRET=$JWT_SECRET
 SUPABASE_ANON_KEY=$ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
