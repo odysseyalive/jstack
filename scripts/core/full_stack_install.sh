@@ -253,6 +253,28 @@ EOF
       fi
     done
     
+    # Copy certificates to nginx certbot volume and fix permissions
+    log "Copying certificates to nginx volume and setting permissions..."
+    if [ -d "/etc/letsencrypt/archive" ]; then
+      sudo cp -r /etc/letsencrypt/archive "$(dirname "$0")/../../nginx/certbot/conf/" 2>/dev/null || true
+    fi
+    if [ -d "/etc/letsencrypt/live" ]; then
+      # Copy live directory, excluding any existing ones
+      for cert_dir in /etc/letsencrypt/live/*/; do
+        cert_name=$(basename "$cert_dir")
+        if [ "$cert_name" != "*" ] && [ ! -d "$(dirname "$0")/../../nginx/certbot/conf/live/$cert_name" ]; then
+          sudo cp -r "$cert_dir" "$(dirname "$0")/../../nginx/certbot/conf/live/"
+        fi
+      done
+    fi
+    
+    # Fix ownership and permissions for nginx container (user 101)
+    sudo chown -R 101:101 "$(dirname "$0")/../../nginx/certbot/conf/live/" "$(dirname "$0")/../../nginx/certbot/conf/archive/" 2>/dev/null || true
+    sudo chmod -R 755 "$(dirname "$0")/../../nginx/certbot/conf/live/" "$(dirname "$0")/../../nginx/certbot/conf/archive/" 2>/dev/null || true
+    sudo chmod 644 "$(dirname "$0")/../../nginx/certbot/conf/archive/"*/fullchain*.pem "$(dirname "$0")/../../nginx/certbot/conf/archive/"*/cert*.pem "$(dirname "$0")/../../nginx/certbot/conf/archive/"*/chain*.pem 2>/dev/null || true
+    sudo chmod 600 "$(dirname "$0")/../../nginx/certbot/conf/archive/"*/privkey*.pem 2>/dev/null || true
+    log "✓ Certificates copied and permissions set"
+    
     # Restore original nginx configs
     log "Restoring full nginx configurations..."
     rm -f "$NGINX_CONF_DIR/acme-only.conf"
