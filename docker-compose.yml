@@ -51,6 +51,8 @@ services:
       - POSTGRES_DB=postgres
       - JWT_SECRET=${SUPABASE_JWT_SECRET}
       - JWT_EXP=3600
+      - SUPABASE_AUTH_ADMIN_PASSWORD=${SUPABASE_PASSWORD}
+      - AUTHENTICATOR_PASSWORD=${SUPABASE_PASSWORD}
     volumes:
       - ./data/supabase:/var/lib/postgresql/data
     healthcheck:
