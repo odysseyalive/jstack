@@ -522,64 +522,10 @@ server {
 }
 EOF
 
-    # Generate Chrome config
-    log "Creating chrome.${DOMAIN}.conf..."
-    cat > "$nginx_conf_dir/chrome.${DOMAIN}.conf" << EOF
-# Chrome/Puppeteer Browser - JStack Configuration
-
-# HTTP server for ACME challenges
-server {
-    listen 80;
-    server_name chrome.${DOMAIN};
-    
-    # ACME challenge location for Let's Encrypt
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-    
-    # Redirect all other traffic to HTTPS
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
-}
-
-# HTTPS server
-server {
-    listen 443 ssl;
-    server_name chrome.${DOMAIN};
-    ssl_certificate /etc/letsencrypt/live/chrome.${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/chrome.${DOMAIN}/privkey.pem;
-
-    # Security headers
-    add_header X-Frame-Options DENY;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
-
-    # Proxy to Chrome/Puppeteer
-    location / {
-        proxy_pass http://chrome:3000;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$host;
-        proxy_set_header X-Forwarded-Port \$server_port;
-        
-        # WebSocket support
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        
-        # Timeouts
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-}
-EOF
-
     log "✓ All NGINX configuration files generated successfully"
+    
+    # Note: Chrome service is not exposed publicly for security
+    # Access Chrome internally via http://chrome:3000 from your applications
 }
 
 # Update NGINX config files with actual domain

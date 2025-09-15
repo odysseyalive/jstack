@@ -181,7 +181,7 @@ if [ -f "$COMPOSE_FILE" ]; then
   CONFIG_FILE="$(dirname "$0")/../../jstack.config"
   if [ -f "$CONFIG_FILE" ]; then
     source "$CONFIG_FILE"
-    for subdomain in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN"; do
+    for subdomain in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN"; do
       log "Generating startup SSL certificate for $subdomain..."
       bash "$(dirname "$0")/ssl_cert.sh" generate_self_signed "$subdomain" "$EMAIL"
     done
@@ -252,7 +252,7 @@ EOF
     
     # Get SSL certificates using webroot method
     log "Attempting SSL certificate issuance for service subdomains..."
-    for SUBDOMAIN in "api.$DOMAIN" "n8n.$DOMAIN" "studio.$DOMAIN" "chrome.$DOMAIN"; do
+    for SUBDOMAIN in "api.$DOMAIN" "n8n.$DOMAIN" "studio.$DOMAIN"; do
       log "Getting SSL certificate for $SUBDOMAIN..."
       if docker-compose -f "$COMPOSE_FILE" run --rm certbot certonly --webroot -w /var/www/certbot -d "$SUBDOMAIN" --agree-tos --non-interactive --email "$EMAIL"; then
         log "✓ SSL certificate obtained for $SUBDOMAIN"
