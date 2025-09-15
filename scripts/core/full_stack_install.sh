@@ -170,24 +170,8 @@ if [ -f "$COMPOSE_FILE" ]; then
   bash "$(dirname "$0")/ssl_cert.sh" generate_self_signed "default" "admin@localhost"
   log "Setting up SSL certificates for service subdomains..."
   bash "$(dirname "$0")/setup_service_subdomains_ssl.sh"
-  log "Preparing SSL certificate(s)..."
-  CONFIG_FILE="$(dirname "$0")/../../jstack.config"
-  if [ -f "$CONFIG_FILE" ]; then
-    source "$CONFIG_FILE"
-    log "Attempting SSL certificate issuance for service subdomains..."
-    
-    # Get certificates for each service subdomain
-    for SUBDOMAIN in "api.$DOMAIN" "n8n.$DOMAIN" "studio.$DOMAIN" "chrome.$DOMAIN"; do
-      log "Getting SSL certificate for $SUBDOMAIN..."
-      if sudo certbot certonly --webroot -w /var/www/certbot -d "$SUBDOMAIN" --agree-tos --non-interactive --email "$EMAIL"; then
-        log "✓ SSL certificate obtained for $SUBDOMAIN"
-      else
-        log "⚠ Failed to get SSL certificate for $SUBDOMAIN - continuing with self-signed"
-      fi
-    done
-  else
-    log "Config file $CONFIG_FILE not found; skipping certbot SSL setup."
-  fi
+  
+  # Deploy services first (without full nginx configs)
   log "Deploying services via Docker Compose..."
   SUPABASE_USER="$SUPABASE_USER" \
   SUPABASE_PASSWORD="$SUPABASE_PASSWORD" \
@@ -198,6 +182,70 @@ if [ -f "$COMPOSE_FILE" ]; then
   N8N_BASIC_AUTH_PASSWORD="$N8N_BASIC_AUTH_PASSWORD" \
   run_docker_command docker-compose -f "$COMPOSE_FILE" up -d
   log "Services deployed."
+  
+  log "Preparing SSL certificate acquisition..."
+  CONFIG_FILE="$(dirname "$0")/../../jstack.config"
+  if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+    
+    # Create simple nginx config for ACME challenges
+    NGINX_CONF_DIR="$(dirname "$0")/../../nginx/conf.d"
+    log "Creating simplified nginx config for SSL certificate acquisition..."
+    
+    # Ensure webroot directory exists
+    mkdir -p "$(dirname "$0")/../../nginx/certbot/www/.well-known/acme-challenge"
+    
+    # Backup existing configs
+    mkdir -p "$(dirname "$0")/../../nginx/conf.d.backup"
+    cp -r "$NGINX_CONF_DIR"/* "$(dirname "$0")/../../nginx/conf.d.backup/" 2>/dev/null || true
+    
+    # Remove complex configs and create simple ACME-only config
+    rm -f "$NGINX_CONF_DIR"/*.conf
+    cat > "$NGINX_CONF_DIR/acme-only.conf" <<'EOF'
+server {
+    listen 80 default_server;
+    server_name _;
+    
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        try_files $uri =404;
+    }
+    
+    location / {
+        return 200 "ACME validation server";
+        add_header Content-Type text/plain;
+    }
+}
+EOF
+    
+    # Restart nginx with simple config
+    log "Starting nginx with ACME-only configuration..."
+    run_docker_command docker-compose -f "$COMPOSE_FILE" restart nginx
+    sleep 15
+    
+    # Get SSL certificates using webroot method
+    log "Attempting SSL certificate issuance for service subdomains..."
+    for SUBDOMAIN in "api.$DOMAIN" "n8n.$DOMAIN" "studio.$DOMAIN" "chrome.$DOMAIN"; do
+      log "Getting SSL certificate for $SUBDOMAIN..."
+      if sudo certbot certonly --webroot -w "$(dirname "$0")/../../nginx/certbot/www" -d "$SUBDOMAIN" --agree-tos --non-interactive --email "$EMAIL"; then
+        log "✓ SSL certificate obtained for $SUBDOMAIN"
+      else
+        log "⚠ Failed to get SSL certificate for $SUBDOMAIN - continuing with self-signed"
+      fi
+    done
+    
+    # Restore original nginx configs
+    log "Restoring full nginx configurations..."
+    rm -f "$NGINX_CONF_DIR/acme-only.conf"
+    cp -r "$(dirname "$0")/../../nginx/conf.d.backup"/* "$NGINX_CONF_DIR/" 2>/dev/null || true
+    rm -rf "$(dirname "$0")/../../nginx/conf.d.backup"
+    
+    # Restart nginx with full configs
+    log "Restarting nginx with full configuration..."
+    run_docker_command docker-compose -f "$COMPOSE_FILE" restart nginx
+  else
+    log "Config file $CONFIG_FILE not found; skipping certbot SSL setup."
+  fi
 else
   log "docker-compose.yml not found at $COMPOSE_FILE."
 fi

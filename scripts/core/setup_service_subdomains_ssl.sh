@@ -165,12 +165,13 @@ bootstrap_ssl_certificates() {
 # Main execution
 log "Setting up SSL certificates for service subdomains..."
 
-# Bootstrap SSL certificates
-if bootstrap_ssl_certificates; then
-    log "✓ SSL certificate setup completed successfully"
-else
-    log "⚠ SSL certificate setup completed with fallback certificates"
-fi
+# Bootstrap SSL certificates - DISABLED, handled by main installation script
+#if bootstrap_ssl_certificates; then
+#    log "✓ SSL certificate setup completed successfully"
+#else
+#    log "⚠ SSL certificate setup completed with fallback certificates"
+#fi
+log "Skipping SSL bootstrap - will be handled by main installation process"
 
 # Set proper permissions
 find nginx/certbot/conf -name "*.pem" -exec chmod 600 {} \; 2>/dev/null || true
@@ -203,7 +204,7 @@ generate_site_nginx_config() {
 
 # HTTP server for ACME challenges
 server {
-    listen 8080;
+    listen 80;
     server_name ${site_domain};
     
     # ACME challenge location for Let's Encrypt
@@ -219,10 +220,10 @@ server {
 
 # HTTPS server
 server {
-    listen 8443 ssl;
+    listen 443 ssl;
     server_name ${site_domain};
-    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
 
     # Security headers
     add_header X-Frame-Options SAMEORIGIN;
@@ -320,7 +321,7 @@ generate_nginx_configs() {
     cat > "$nginx_conf_dir/default.conf" << EOF
 # Default site config for JStack NGINX (workspace-managed)
 server {
-    listen 8080;
+    listen 80;
     server_name _;
     
     # ACME challenge location for Let's Encrypt
@@ -335,10 +336,10 @@ server {
 }
 
 server {
-    listen 8443 ssl;
+    listen 443 ssl;
     server_name _;
-    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
     location / {
         root   /usr/share/nginx/html;
         index  index.html index.htm;
@@ -353,7 +354,7 @@ EOF
 
 # HTTP server for ACME challenges
 server {
-    listen 8080;
+    listen 80;
     server_name api.${DOMAIN};
     
     # ACME challenge location for Let's Encrypt
@@ -369,10 +370,10 @@ server {
 
 # HTTPS server
 server {
-    listen 8443 ssl;
+    listen 443 ssl;
     server_name api.${DOMAIN};
-    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
 
     # Security headers
     add_header X-Frame-Options DENY;
@@ -410,7 +411,7 @@ EOF
 
 # HTTP server for ACME challenges
 server {
-    listen 8080;
+    listen 80;
     server_name studio.${DOMAIN};
     
     # ACME challenge location for Let's Encrypt
@@ -426,10 +427,10 @@ server {
 
 # HTTPS server
 server {
-    listen 8443 ssl;
+    listen 443 ssl;
     server_name studio.${DOMAIN};
-    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
 
     # Security headers
     add_header X-Frame-Options SAMEORIGIN;
@@ -467,7 +468,7 @@ EOF
 
 # HTTP server for ACME challenges
 server {
-    listen 8080;
+    listen 80;
     server_name n8n.${DOMAIN};
     
     # ACME challenge location for Let's Encrypt
@@ -483,10 +484,10 @@ server {
 
 # HTTPS server
 server {
-    listen 8443 ssl;
+    listen 443 ssl;
     server_name n8n.${DOMAIN};
-    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
 
     # Security headers
     add_header X-Frame-Options SAMEORIGIN;
@@ -524,7 +525,7 @@ EOF
 
 # HTTP server for ACME challenges
 server {
-    listen 8080;
+    listen 80;
     server_name chrome.${DOMAIN};
     
     # ACME challenge location for Let's Encrypt
@@ -540,10 +541,10 @@ server {
 
 # HTTPS server
 server {
-    listen 8443 ssl;
+    listen 443 ssl;
     server_name chrome.${DOMAIN};
-    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
 
     # Security headers
     add_header X-Frame-Options DENY;
