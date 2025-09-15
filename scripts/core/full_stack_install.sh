@@ -242,6 +242,22 @@ EOF
     cp -r "$(dirname "$0")/../../nginx/conf.d.backup"/* "$NGINX_CONF_DIR/" 2>/dev/null || true
     rm -rf "$(dirname "$0")/../../nginx/conf.d.backup"
     
+    # Wait for Kong and other upstream services to be ready
+    log "Waiting for upstream services to be ready..."
+    sleep 30
+    for i in {1..6}; do
+      if docker-compose exec supabase-kong curl -s http://localhost:8000 >/dev/null 2>&1; then
+        log "✓ Kong service is ready"
+        break
+      fi
+      if [ $i -eq 6 ]; then
+        log "⚠ Kong service not ready, proceeding anyway"
+      else
+        log "Waiting for Kong service... (attempt $i/6)"
+        sleep 10
+      fi
+    done
+    
     # Restart nginx with full configs
     log "Restarting nginx with full configuration..."
     run_docker_command docker-compose -f "$COMPOSE_FILE" restart nginx
