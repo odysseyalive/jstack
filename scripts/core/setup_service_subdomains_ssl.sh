@@ -312,6 +312,7 @@ install_site_ssl_certificate() {
 # Generate NGINX config files dynamically
 generate_nginx_configs() {
     log "Generating NGINX configuration files for domain: $DOMAIN"
+    echo "DEBUG: DOMAIN variable inside generate_nginx_configs: '$DOMAIN'"
     
     local nginx_conf_dir="nginx/conf.d"
     mkdir -p "$nginx_conf_dir"
