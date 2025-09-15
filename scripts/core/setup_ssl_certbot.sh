@@ -28,3 +28,13 @@ done
 chmod 600 ./nginx/ssl/*.key
 log "SSL certificate setup completed."
 
+log "Restarting Docker services to apply SSL certificates..."
+if command -v docker-compose >/dev/null 2>&1; then
+    docker-compose down
+    docker-compose up -d
+    log "✓ Docker services restarted successfully"
+else
+    log "ERROR: docker-compose not found, please restart services manually"
+    exit 1
+fi
+

@@ -9,9 +9,13 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/letsencrypt
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
     depends_on:
       - n8n
-      - supabase-kong
       - chrome
   n8n:
     image: n8nio/n8n
