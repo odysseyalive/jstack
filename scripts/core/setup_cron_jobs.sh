@@ -16,7 +16,7 @@ setup_ssl_renewal_cron() {
   log "Setting up SSL certificate renewal cron job..."
   
   # Create cron job for SSL renewal (daily at 2 AM)
-  CRON_SSL="0 2 * * * /usr/bin/certbot renew --quiet && cd $JSTACK_ROOT && docker-compose restart nginx"
+  CRON_SSL="0 2 * * * /usr/bin/certbot renew --quiet && cd \"$JSTACK_ROOT\" && docker-compose restart nginx"
   
   # Check if cron job already exists
   if ! crontab -l 2>/dev/null | grep -q "certbot renew"; then
@@ -31,10 +31,10 @@ setup_backup_cron() {
   log "Setting up automated backup cron jobs..."
   
   # Daily backup at 3 AM
-  CRON_DAILY="0 3 * * * cd $JSTACK_ROOT && bash scripts/core/backup_restore.sh backup --full"
+  CRON_DAILY="0 3 * * * cd \"$JSTACK_ROOT\" && bash scripts/core/backup_restore.sh backup --full"
   
   # Weekly cleanup (keep last 7 daily backups)
-  CRON_CLEANUP="0 4 * * 0 find $JSTACK_ROOT/backups -name 'jstack_full_*.tar.gz' -mtime +7 -delete"
+  CRON_CLEANUP="0 4 * * 0 find \"$JSTACK_ROOT/backups\" -name 'jstack_full_*.tar.gz' -mtime +7 -delete"
   
   # Check if backup cron jobs already exist
   if ! crontab -l 2>/dev/null | grep -q "backup_restore.sh"; then
