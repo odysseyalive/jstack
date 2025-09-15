@@ -38,10 +38,10 @@ Ready to get started? Check out [docs/quickstart.md](docs/quickstart.md) for a s
 adduser jarvis
 ```
 
-2. **Add your user to the docker group:**
+2. **Add your user to sudoer and the docker group:**
 
 ```bash
-usermod -aG docker jarvis
+usermod -aG sudo,users,docker jarvis
 ```
 
 3. **Switch to your jarvis user (login shell):**
@@ -237,4 +237,3 @@ All service data, configs, logs, and SSL certs are mapped to your working direct
 ## License
 
 MIT — Commercial use, modification, and distribution permitted. No strings attached.
-
