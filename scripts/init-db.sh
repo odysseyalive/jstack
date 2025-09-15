@@ -10,6 +10,21 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     CREATE ROLE anon NOLOGIN NOINHERIT;
     CREATE ROLE authenticated NOLOGIN NOINHERIT;
     CREATE ROLE service_role NOLOGIN NOINHERIT BYPASSRLS;
+    
+    -- Grant schema permissions
+    GRANT ALL PRIVILEGES ON SCHEMA public TO supabase_auth_admin;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO supabase_auth_admin;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO supabase_auth_admin;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO supabase_auth_admin;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO supabase_auth_admin;
+    
+    GRANT ALL PRIVILEGES ON SCHEMA public TO authenticator;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO authenticator;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO authenticator;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO authenticator;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO authenticator;
+    
+    -- Grant roles to authenticator
     GRANT anon TO authenticator;
     GRANT authenticated TO authenticator;
     GRANT service_role TO authenticator;
