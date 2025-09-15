@@ -31,6 +31,12 @@ main() {
           mkdir -p "$DIR"
         fi
       done
+      # Fix potential Kong configuration directory issue
+      KONG_YML_PATH="$(dirname "$0")/../../data/supabase/kong.yml"
+      if [ -d "$KONG_YML_PATH" ]; then
+        log "Removing problematic kong.yml directory: $KONG_YML_PATH"
+        rm -rf "$KONG_YML_PATH"
+      fi
       if [ -z "$TARGET" ]; then
         log "Starting all services via Docker Compose..."
         docker-compose -f "$COMPOSE_FILE" up -d
