@@ -1,0 +1,14 @@
+services:
+  node-app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./site-root:/app
+    working_dir: /app
+    environment:
+      - NODE_ENV=production
+      - DOMAIN=${DOMAIN:-example.com}
+      - PORT=4000
+    command: ["npm", "start"]

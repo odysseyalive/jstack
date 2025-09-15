@@ -117,51 +117,43 @@ main() {
       echo "No docker-compose.yml found in $SITE_DIR."
       exit 2
     fi
-    # Add NGINX config
-    NGINX_CONF="nginx/conf.d/${SITE_DOMAIN}.conf"
+    # Add NGINX config and SSL certificate
     SITE_DOMAIN="$(grep -m1 DOMAIN "$SITE_DIR/.env" | cut -d'=' -f2)"
     SITE_PORT="$(grep -m1 PORT "$SITE_DIR/.env" | cut -d'=' -f2)"
+    SITE_CONTAINER="$(grep -m1 CONTAINER "$SITE_DIR/.env" | cut -d'=' -f2 2>/dev/null || echo "")"
+    
     if [ -z "$SITE_DOMAIN" ] || [ -z "$SITE_PORT" ]; then
       echo "Missing DOMAIN or PORT in $SITE_DIR/.env."
+      echo "Required format:"
+      echo "  DOMAIN=mysite.example.com"
+      echo "  PORT=3000"
+      echo "  CONTAINER=mysite_app  # optional - uses docker networking if provided"
       exit 2
     fi
-    NGINX_ENTRY="server {
-    listen 443 ssl;
-    server_name $SITE_DOMAIN;
     
-    ssl_certificate /etc/letsencrypt/live/$SITE_DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$SITE_DOMAIN/privkey.pem;
-    
-    location / {
-        proxy_pass http://172.17.0.1:$SITE_PORT;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}"
     if [ "$DRY_RUN" = true ]; then
-      echo "[DRY-RUN] Would create NGINX config for $SITE_DOMAIN at $NGINX_CONF:"
-      echo "$NGINX_ENTRY"
-      echo "[DRY-RUN] Would restart nginx container."
-      echo "[DRY-RUN] Would request SSL certificate for $SITE_DOMAIN with Certbot."
+      echo "[DRY-RUN] Would generate nginx config for $SITE_DOMAIN (port $SITE_PORT)"
+      echo "[DRY-RUN] Would add $SITE_DOMAIN to SSL certificate"
+      echo "[DRY-RUN] Would restart nginx container"
     else
-      echo "$NGINX_ENTRY" > "$NGINX_CONF"
-      echo "NGINX config created at $NGINX_CONF for $SITE_DOMAIN."
-      # Restart nginx container to reload config
-      docker-compose restart nginx
-      echo "NGINX container restarted."
-      EMAIL="$(grep -m1 EMAIL jstack.config.default | cut -d'=' -f2)"
-      if [ -n "$EMAIL" ]; then
-        # Create SSL cert directory
-        mkdir -p "nginx/ssl/live/$SITE_DOMAIN"
-        # Use certbot in standalone mode since nginx is containerized
-        sudo certbot certonly --standalone -d "$SITE_DOMAIN" --non-interactive --agree-tos --email "$EMAIL" --cert-path "nginx/ssl/live/$SITE_DOMAIN/" || echo "Certbot failed for $SITE_DOMAIN."
-        echo "SSL certificate requested for $SITE_DOMAIN."
-        # Restart nginx again to load SSL certs
-        docker-compose restart nginx
+      echo "Setting up nginx and SSL for $SITE_DOMAIN..."
+      
+      # Use our robust SSL system to generate config and handle SSL
+      source "$(dirname "$0")/scripts/core/setup_service_subdomains_ssl.sh"
+      
+      # Generate nginx config for the site
+      if generate_site_nginx_config "$SITE_DOMAIN" "$SITE_PORT" "$SITE_CONTAINER"; then
+        echo "✓ Nginx config created for $SITE_DOMAIN"
+        
+        # Add domain to SSL certificate
+        if install_site_ssl_certificate "$SITE_DOMAIN"; then
+          echo "✓ SSL certificate configured for $SITE_DOMAIN"
+        else
+          echo "⚠ SSL setup failed, but site will work with certificate warnings"
+        fi
       else
-        echo "No EMAIL found in jstack.config.default, skipping Certbot."
+        echo "ERROR: Failed to generate nginx config for $SITE_DOMAIN"
+        exit 1
       fi
     fi
     echo "Site $SITE_DOMAIN installed from $SITE_DIR."

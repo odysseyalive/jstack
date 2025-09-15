@@ -1,7 +1,13 @@
 # Ignore user config and secrets
 .env
+.env.secrets
+jstack.config
 site-templates/*/.env
 nginx/ssl/*.key
+
+# Ignore generated nginx configs (created dynamically by install script)
+nginx/conf.d/*.conf
+nginx/certbot/
 
 # Node.js artifacts
 node_modules/

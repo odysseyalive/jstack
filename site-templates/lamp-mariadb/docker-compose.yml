@@ -1,0 +1,16 @@
+services:
+  lamp-app:
+    build:
+      context: .
+      args:
+        - DBUSER=${DBUSER:-mariadb_user}
+        - DBPASS=${DBPASS:-secure_password}
+    restart: unless-stopped
+    ports:
+      - "4002:80"
+    volumes:
+      - ./site-root/public_html:/var/www/html
+    environment:
+      - DOMAIN=${DOMAIN:-example.com}
+      - DBUSER=${DBUSER:-mariadb_user}
+      - DBPASS=${DBPASS:-secure_password}

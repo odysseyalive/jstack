@@ -83,6 +83,50 @@ if [ -f "$COMPOSE_FILE" ]; then
     exit 1
   fi
   
+  log "Setting up configuration..."
+  
+  # Create user config file if it doesn't exist
+  CONFIG_FILE="$(dirname "$0")/../../jstack.config"
+  CONFIG_DEFAULT="$(dirname "$0")/../../jstack.config.default"
+  
+  if [ ! -f "$CONFIG_FILE" ]; then
+    log "Creating user configuration file..."
+    cp "$CONFIG_DEFAULT" "$CONFIG_FILE"
+    
+    # Prompt for domain configuration
+    echo ""
+    echo "Domain Configuration:"
+    echo "Please enter your domain name (e.g., mydomain.com)"
+    echo "This will be used for SSL certificates and subdomain configuration."
+    echo "Subdomains will be: api.DOMAIN, studio.DOMAIN, n8n.DOMAIN, chrome.DOMAIN"
+    echo ""
+    
+    read -r -p "Enter your domain name [example.com]: " USER_DOMAIN
+    USER_DOMAIN=${USER_DOMAIN:-example.com}
+    
+    read -r -p "Enter your email for SSL certificates [admin@${USER_DOMAIN}]: " USER_EMAIL
+    USER_EMAIL=${USER_EMAIL:-admin@${USER_DOMAIN}}
+    
+    # Update the config file with user values
+    sed -i "s/DOMAIN=\"example.com\"/DOMAIN=\"${USER_DOMAIN}\"/" "$CONFIG_FILE"
+    sed -i "s/EMAIL=\"admin@example.com\"/EMAIL=\"${USER_EMAIL}\"/" "$CONFIG_FILE"
+    
+    # Update service URLs in config
+    sed -i "s/n8n.example.com/n8n.${USER_DOMAIN}/" "$CONFIG_FILE"
+    sed -i "s/api.example.com/api.${USER_DOMAIN}/" "$CONFIG_FILE"
+    sed -i "s/studio.example.com/studio.${USER_DOMAIN}/" "$CONFIG_FILE"
+    sed -i "s/chrome.example.com/chrome.${USER_DOMAIN}/" "$CONFIG_FILE"
+    
+    log "✓ Configuration saved to jstack.config"
+    log "✓ Domain: $USER_DOMAIN"
+    log "✓ Email: $USER_EMAIL"
+  else
+    log "Using existing configuration file: $CONFIG_FILE"
+  fi
+  
+  # Load the configuration
+  source "$CONFIG_FILE"
+  
   log "Prompting for required credentials..."
   # Prompt for N8N and Supabase credentials if not set
   if [ -z "$SUPABASE_USER" ]; then
@@ -96,6 +140,21 @@ if [ -f "$COMPOSE_FILE" ]; then
   fi
   if [ -z "$N8N_BASIC_AUTH_PASSWORD" ]; then
     read -r -s -p "Enter n8n admin password: " N8N_BASIC_AUTH_PASSWORD; echo
+  fi
+  
+  # Update .env file with domain and email configuration
+  ENV_FILE="$(dirname "$0")/../../.env"
+  
+  # Add or update EMAIL variable
+  if [ -n "$EMAIL" ]; then
+    sed -i "/^EMAIL=/d" "$ENV_FILE" 2>/dev/null || true
+    echo "EMAIL=$EMAIL" >> "$ENV_FILE"
+  fi
+  
+  # Add or update DOMAIN variable  
+  if [ -n "$DOMAIN" ]; then
+    sed -i "/^DOMAIN=/d" "$ENV_FILE" 2>/dev/null || true
+    echo "DOMAIN=$DOMAIN" >> "$ENV_FILE"
   fi
   
   # Update .env file with user-provided password

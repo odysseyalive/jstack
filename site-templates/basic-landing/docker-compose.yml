@@ -1,0 +1,10 @@
+services:
+  basic-landing:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "4001:80"
+    volumes:
+      - ./site-root/public_html:/usr/share/nginx/html:ro
+    environment:
+      - DOMAIN=${DOMAIN:-example.com}

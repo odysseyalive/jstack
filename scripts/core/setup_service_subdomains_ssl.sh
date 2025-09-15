@@ -1,11 +1,17 @@
 #!/bin/bash
-# JStack Service Subdomains SSL Setup Script
+# JStack Service Subdomains SSL Setup Script - Fixed Version
 # Usage: setup_service_subdomains_ssl.sh
 
 set -e
 
 # Load configuration
-source jstack.config.default 2>/dev/null || true
+CONFIG_FILE="$(dirname "$0")/../../jstack.config"
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+else
+    # Fallback to default config
+    source "$(dirname "$0")/../../jstack.config.default" 2>/dev/null || true
+fi
 
 # Extract domain from config
 DOMAIN="${DOMAIN:-example.com}"
@@ -15,121 +21,569 @@ log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
-# Service subdomains from config
-SERVICE_SUBDOMAINS=(
-  "api.${DOMAIN}"
-  "studio.${DOMAIN}"
-  "n8n.${DOMAIN}"
-  "chrome.${DOMAIN}"
-)
+# Bootstrap SSL certificates using nginx-certbot webroot approach
+bootstrap_ssl_certificates() {
+    log "Bootstrapping SSL certificates for $DOMAIN and subdomains..."
+    
+    local all_domains="${DOMAIN} api.${DOMAIN} studio.${DOMAIN} n8n.${DOMAIN} chrome.${DOMAIN}"
+    local certbot_dir="./nginx/certbot"
+    
+    # Step 1: Create directories
+    log "Creating SSL certificate directories..."
+    mkdir -p "$certbot_dir/conf" "$certbot_dir/www"
+    
+    # Step 2: Download recommended TLS parameters if needed
+    log "Ensuring TLS parameters are available..."
+    if [[ ! -f "$certbot_dir/conf/options-ssl-nginx.conf" ]]; then
+        curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf > "$certbot_dir/conf/options-ssl-nginx.conf"
+        log "✓ Downloaded SSL nginx config"
+    fi
+    
+    if [[ ! -f "$certbot_dir/conf/ssl-dhparams.pem" ]]; then
+        curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem > "$certbot_dir/conf/ssl-dhparams.pem"
+        log "✓ Downloaded SSL DH params"
+    fi
+    
+    # Step 3: Create dummy certificate for nginx to start
+    log "Creating dummy certificate for $all_domains..."
+    mkdir -p "$certbot_dir/conf/live/$DOMAIN"
+    
+    if docker-compose run --rm --entrypoint="" certbot sh -c "openssl req -x509 -nodes -newkey rsa:2048 -days 1 -keyout '/etc/letsencrypt/live/$DOMAIN/privkey.pem' -out '/etc/letsencrypt/live/$DOMAIN/fullchain.pem' -subj '/CN=$DOMAIN'" >/dev/null 2>&1; then
+        log "✓ Dummy certificate created"
+    else
+        log "⚠ Failed to create dummy certificate using docker, falling back to direct openssl"
+        openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -keyout "$certbot_dir/conf/live/$DOMAIN/privkey.pem" \
+            -out "$certbot_dir/conf/live/$DOMAIN/fullchain.pem" \
+            -subj "/CN=$DOMAIN" >/dev/null 2>&1
+        log "✓ Dummy certificate created with fallback method"
+    fi
+    
+    # Step 4: Start nginx with dummy certificates
+    log "Starting nginx with dummy certificates..."
+    if docker-compose up --force-recreate -d nginx >/dev/null 2>&1; then
+        log "✓ Nginx started with dummy certificates"
+        sleep 10  # Give nginx time to fully start
+    else
+        log "⚠ Failed to start nginx, trying restart..."
+        docker-compose restart nginx >/dev/null 2>&1 || true
+        sleep 10
+    fi
+    
+    # Step 5: Check if domains resolve
+    log "Checking domain resolution..."
+    local domains_resolved=0
+    for domain in $all_domains; do
+        if command -v dig >/dev/null 2>&1; then
+            if dig +short "$domain" A | grep -q .; then
+                log "✓ $domain resolves"
+                domains_resolved=$((domains_resolved + 1))
+            else
+                log "⚠ $domain does not resolve"
+            fi
+        else
+            log "⚠ dig not available, skipping DNS check"
+            domains_resolved=5  # Assume all resolve if we can't check
+            break
+        fi
+    done
+    
+    if [ $domains_resolved -eq 0 ]; then
+        log "⚠ No domains resolve - SSL setup will fail"
+        log "⚠ Please configure DNS for: $all_domains"
+        return 1
+    fi
+    
+    # Step 6: Delete dummy certificates
+    log "Deleting dummy certificates..."
+    if docker-compose run --rm --entrypoint="" certbot sh -c "rm -Rf /etc/letsencrypt/live/$DOMAIN && rm -Rf /etc/letsencrypt/archive/$DOMAIN && rm -Rf /etc/letsencrypt/renewal/$DOMAIN.conf" >/dev/null 2>&1; then
+        log "✓ Dummy certificates deleted"
+    else
+        # Fallback - delete locally if docker command fails
+        rm -rf "$certbot_dir/conf/live/$DOMAIN" "$certbot_dir/conf/archive/$DOMAIN" "$certbot_dir/conf/renewal/$DOMAIN.conf" 2>/dev/null || true
+        log "✓ Dummy certificates deleted (fallback)"
+    fi
+    
+    # Step 7: Request real certificates using webroot
+    log "Requesting real Let's Encrypt certificates..."
+    
+    # Build domain arguments
+    local domain_args=""
+    for domain in $all_domains; do
+        domain_args="$domain_args -d $domain"
+    done
+    
+    # Select email argument
+    local email_arg="--email $EMAIL"
+    if [[ -z "$EMAIL" || "$EMAIL" == "admin@example.com" ]]; then
+        email_arg="--register-unsafely-without-email"
+        log "⚠ No email configured, using unsafe registration"
+    fi
+    
+    # Request certificates using webroot mode
+    if docker-compose run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot $email_arg $domain_args --rsa-key-size 2048 --agree-tos --force-renewal --non-interactive >/dev/null 2>&1; then
+        log "✓ Real SSL certificates acquired successfully"
+        
+        # Step 8: Reload nginx with real certificates
+        log "Reloading nginx with real certificates..."
+        if docker-compose exec nginx nginx -s reload >/dev/null 2>&1; then
+            log "✓ Nginx reloaded with real certificates"
+        else
+            log "⚠ Failed to reload nginx, restarting container..."
+            docker-compose restart nginx >/dev/null 2>&1
+            log "✓ Nginx restarted with real certificates"
+        fi
+        
+        return 0
+    else
+        log "⚠ Failed to acquire real SSL certificates"
+        log "⚠ This could be due to:"
+        log "  - Domain DNS not pointing to this server"
+        log "  - Rate limiting from Let's Encrypt"
+        log "  - Firewall blocking port 80"
+        log "⚠ Nginx will continue running with self-signed certificates"
+        
+        # Generate self-signed certificates as fallback
+        log "Generating self-signed certificates as fallback..."
+        mkdir -p "$certbot_dir/conf/live/$DOMAIN"
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout "$certbot_dir/conf/live/$DOMAIN/privkey.pem" \
+            -out "$certbot_dir/conf/live/$DOMAIN/fullchain.pem" \
+            -subj "/C=${SSL_COUNTRY:-US}/ST=${SSL_STATE:-State}/L=${SSL_CITY:-City}/O=${SSL_ORGANIZATION:-Organization}/OU=${SSL_ORG_UNIT:-IT}/CN=$DOMAIN" \
+            >/dev/null 2>&1
+        
+        log "✓ Self-signed certificate generated as fallback"
+        
+        # Reload nginx with self-signed certs
+        docker-compose exec nginx nginx -s reload >/dev/null 2>&1 || docker-compose restart nginx >/dev/null 2>&1
+        log "✓ Nginx reloaded with self-signed certificates"
+        
+        return 1
+    fi
+}
 
+# Main execution
 log "Setting up SSL certificates for service subdomains..."
 
-# Create SSL directories
-mkdir -p nginx/ssl/live nginx/ssl/work nginx/ssl/logs
-
-for SUBDOMAIN in "${SERVICE_SUBDOMAINS[@]}"; do
-  log "Setting up SSL for $SUBDOMAIN..."
-  
-  # Create directory for this domain
-  mkdir -p "nginx/ssl/live/$SUBDOMAIN"
-  
-  # Check if certificates already exist
-  if [ -f "nginx/ssl/live/$SUBDOMAIN/fullchain.pem" ] && [ -f "nginx/ssl/live/$SUBDOMAIN/privkey.pem" ]; then
-    log "SSL certificates already exist for $SUBDOMAIN, skipping..."
-    continue
-  fi
-  
-  # Check if domain resolves before attempting Let's Encrypt
-  if command -v dig >/dev/null 2>&1; then
-    if ! dig +short "$SUBDOMAIN" | grep -q .; then
-      log "⚠ $SUBDOMAIN does not resolve in DNS, skipping Let's Encrypt..."
-    elif command -v certbot >/dev/null 2>&1; then
-      log "Attempting Let's Encrypt certificate for $SUBDOMAIN..."
-      if certbot certonly --standalone \
-        --non-interactive \
-        --agree-tos \
-        --email "$EMAIL" \
-        --domains "$SUBDOMAIN" \
-        --config-dir ./nginx/ssl \
-        --work-dir ./nginx/ssl/work \
-        --logs-dir ./nginx/ssl/logs \
-        --http-01-port 80 \
-        2>/dev/null; then
-        log "✓ Let's Encrypt certificate obtained for $SUBDOMAIN"
-        continue
-      else
-        log "⚠ Let's Encrypt failed for $SUBDOMAIN, generating self-signed certificate..."
-      fi
-    fi
-  elif command -v nslookup >/dev/null 2>&1; then
-    if ! nslookup "$SUBDOMAIN" >/dev/null 2>&1; then
-      log "⚠ $SUBDOMAIN does not resolve in DNS, skipping Let's Encrypt..."
-    elif command -v certbot >/dev/null 2>&1; then
-      log "Attempting Let's Encrypt certificate for $SUBDOMAIN..."
-      if certbot certonly --standalone \
-        --non-interactive \
-        --agree-tos \
-        --email "$EMAIL" \
-        --domains "$SUBDOMAIN" \
-        --config-dir ./nginx/ssl \
-        --work-dir ./nginx/ssl/work \
-        --logs-dir ./nginx/ssl/logs \
-        --http-01-port 80 \
-        2>/dev/null; then
-        log "✓ Let's Encrypt certificate obtained for $SUBDOMAIN"
-        continue
-      else
-        log "⚠ Let's Encrypt failed for $SUBDOMAIN, generating self-signed certificate..."
-      fi
-    fi
-  fi
-  
-  # Generate self-signed certificate as fallback
-  openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout "nginx/ssl/live/$SUBDOMAIN/privkey.pem" \
-    -out "nginx/ssl/live/$SUBDOMAIN/fullchain.pem" \
-    -subj "/C=${SSL_COUNTRY:-US}/ST=${SSL_STATE:-State}/L=${SSL_CITY:-City}/O=${SSL_ORGANIZATION:-Organization}/OU=${SSL_ORG_UNIT:-IT}/CN=$SUBDOMAIN" \
-    2>/dev/null
-  
-  log "✓ Self-signed certificate generated for $SUBDOMAIN"
-done
+# Bootstrap SSL certificates
+if bootstrap_ssl_certificates; then
+    log "✓ SSL certificate setup completed successfully"
+else
+    log "⚠ SSL certificate setup completed with fallback certificates"
+fi
 
 # Set proper permissions
-find nginx/ssl -name "*.pem" -exec chmod 600 {} \;
-find nginx/ssl -type d -exec chmod 700 {} \;
+find nginx/certbot/conf -name "*.pem" -exec chmod 600 {} \; 2>/dev/null || true
+find nginx/certbot/conf -type d -exec chmod 700 {} \; 2>/dev/null || true
 
-log "✓ SSL certificate setup completed for all service subdomains"
+# Generate site-specific nginx config for --install-site
+generate_site_nginx_config() {
+    local site_domain="$1"
+    local site_port="$2"
+    local site_container="$3"
+    
+    if [[ -z "$site_domain" || -z "$site_port" ]]; then
+        log "ERROR: generate_site_nginx_config requires domain and port"
+        return 1
+    fi
+    
+    # Default to external proxy if no container name provided
+    local proxy_target="http://172.17.0.1:${site_port}"
+    if [[ -n "$site_container" ]]; then
+        proxy_target="http://${site_container}:${site_port}"
+    fi
+    
+    log "Generating nginx config for site: $site_domain"
+    
+    local nginx_conf_dir="nginx/conf.d"
+    mkdir -p "$nginx_conf_dir"
+    
+    cat > "$nginx_conf_dir/${site_domain}.conf" << EOF
+# Site Configuration for ${site_domain} - JStack
+
+# HTTP server for ACME challenges
+server {
+    listen 8080;
+    server_name ${site_domain};
+    
+    # ACME challenge location for Let's Encrypt
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    
+    # Redirect all other traffic to HTTPS
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+# HTTPS server
+server {
+    listen 8443 ssl;
+    server_name ${site_domain};
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+
+    # Security headers
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+    # Proxy to site
+    location / {
+        proxy_pass ${proxy_target};
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
+        
+        # WebSocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+EOF
+
+    log "✓ Generated nginx config for $site_domain"
+}
+
+# Install SSL certificate for additional site domain
+install_site_ssl_certificate() {
+    local site_domain="$1"
+    
+    if [[ -z "$site_domain" ]]; then
+        log "ERROR: install_site_ssl_certificate requires domain"
+        return 1
+    fi
+    
+    log "Installing SSL certificate for site: $site_domain"
+    
+    # Add the site domain to our certificate (Let's Encrypt supports multiple SANs)
+    local all_domains="${DOMAIN} api.${DOMAIN} studio.${DOMAIN} n8n.${DOMAIN} chrome.${DOMAIN} ${site_domain}"
+    local certbot_dir="./nginx/certbot"
+    
+    # Build domain arguments
+    local domain_args=""
+    for domain in $all_domains; do
+        domain_args="$domain_args -d $domain"
+    done
+    
+    # Select email argument
+    local email_arg="--email $EMAIL"
+    if [[ -z "$EMAIL" || "$EMAIL" == "admin@example.com" ]]; then
+        email_arg="--register-unsafely-without-email"
+        log "⚠ No email configured, using unsafe registration"
+    fi
+    
+    # Request updated certificate with new domain
+    if docker-compose run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot $email_arg $domain_args --rsa-key-size 2048 --agree-tos --force-renewal --expand --non-interactive >/dev/null 2>&1; then
+        log "✓ SSL certificate updated to include $site_domain"
+        
+        # Reload nginx
+        if docker-compose exec nginx nginx -s reload >/dev/null 2>&1; then
+            log "✓ Nginx reloaded with updated certificate"
+        else
+            log "⚠ Failed to reload nginx, restarting container..."
+            docker-compose restart nginx >/dev/null 2>&1
+            log "✓ Nginx restarted"
+        fi
+        
+        return 0
+    else
+        log "⚠ Failed to update SSL certificate for $site_domain"
+        log "⚠ You may need to:"
+        log "  - Ensure $site_domain points to this server"
+        log "  - Check Let's Encrypt rate limits"
+        log "⚠ The site will work with a certificate warning"
+        return 1
+    fi
+}
+
+# Generate NGINX config files dynamically
+generate_nginx_configs() {
+    log "Generating NGINX configuration files for domain: $DOMAIN"
+    
+    local nginx_conf_dir="nginx/conf.d"
+    mkdir -p "$nginx_conf_dir"
+    
+    # Generate default.conf
+    log "Creating default.conf..."
+    cat > "$nginx_conf_dir/default.conf" << EOF
+# Default site config for JStack NGINX (workspace-managed)
+server {
+    listen 8080;
+    server_name _;
+    
+    # ACME challenge location for Let's Encrypt
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    
+    # Redirect all other traffic to HTTPS
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+server {
+    listen 8443 ssl;
+    server_name _;
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+}
+EOF
+
+    # Generate API config (Supabase Kong)
+    log "Creating api.${DOMAIN}.conf..."
+    cat > "$nginx_conf_dir/api.${DOMAIN}.conf" << EOF
+# Supabase API Gateway (Kong) - JStack Configuration
+
+# HTTP server for ACME challenges
+server {
+    listen 8080;
+    server_name api.${DOMAIN};
+    
+    # ACME challenge location for Let's Encrypt
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    
+    # Redirect all other traffic to HTTPS
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+# HTTPS server
+server {
+    listen 8443 ssl;
+    server_name api.${DOMAIN};
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+
+    # Security headers
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+    # Proxy to Supabase Kong API Gateway
+    location / {
+        proxy_pass http://supabase-kong:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
+        
+        # WebSocket support for realtime
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+EOF
+
+    # Generate Studio config (Supabase Studio)
+    log "Creating studio.${DOMAIN}.conf..."
+    cat > "$nginx_conf_dir/studio.${DOMAIN}.conf" << EOF
+# Supabase Studio Dashboard - JStack Configuration
+
+# HTTP server for ACME challenges
+server {
+    listen 8080;
+    server_name studio.${DOMAIN};
+    
+    # ACME challenge location for Let's Encrypt
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    
+    # Redirect all other traffic to HTTPS
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+# HTTPS server
+server {
+    listen 8443 ssl;
+    server_name studio.${DOMAIN};
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+
+    # Security headers
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+    # Proxy to Supabase Studio
+    location / {
+        proxy_pass http://supabase-studio:3000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
+        
+        # WebSocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+EOF
+
+    # Generate N8N config
+    log "Creating n8n.${DOMAIN}.conf..."
+    cat > "$nginx_conf_dir/n8n.${DOMAIN}.conf" << EOF
+# n8n Workflow Automation - JStack Configuration
+
+# HTTP server for ACME challenges
+server {
+    listen 8080;
+    server_name n8n.${DOMAIN};
+    
+    # ACME challenge location for Let's Encrypt
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    
+    # Redirect all other traffic to HTTPS
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+# HTTPS server
+server {
+    listen 8443 ssl;
+    server_name n8n.${DOMAIN};
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+
+    # Security headers
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+    # Proxy to n8n
+    location / {
+        proxy_pass http://n8n:5678;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
+        
+        # WebSocket support for n8n
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+EOF
+
+    # Generate Chrome config
+    log "Creating chrome.${DOMAIN}.conf..."
+    cat > "$nginx_conf_dir/chrome.${DOMAIN}.conf" << EOF
+# Chrome/Puppeteer Browser - JStack Configuration
+
+# HTTP server for ACME challenges
+server {
+    listen 8080;
+    server_name chrome.${DOMAIN};
+    
+    # ACME challenge location for Let's Encrypt
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    
+    # Redirect all other traffic to HTTPS
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+# HTTPS server
+server {
+    listen 8443 ssl;
+    server_name chrome.${DOMAIN};
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+
+    # Security headers
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+    # Proxy to Chrome/Puppeteer
+    location / {
+        proxy_pass http://chrome:3000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
+        
+        # WebSocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+EOF
+
+    log "✓ All NGINX configuration files generated successfully"
+}
 
 # Update NGINX config files with actual domain
-if [ "$DOMAIN" != "example.com" ]; then
-  log "Updating NGINX configs with domain: $DOMAIN"
-  for conf_file in nginx/conf.d/*.example.com.conf; do
-    if [ -f "$conf_file" ]; then
-      # Extract service name from filename
-      service_name=$(basename "$conf_file" .example.com.conf)
-      new_conf_file="nginx/conf.d/${service_name}.${DOMAIN}.conf"
-      
-      # Replace example.com with actual domain
-      sed "s/example\.com/${DOMAIN}/g" "$conf_file" > "$new_conf_file"
-      rm "$conf_file"
-      log "✓ Updated $service_name config for $DOMAIN"
-    fi
-  done
-fi
+log "Updating NGINX configs with domain: $DOMAIN"
+
+# Remove any existing example.com config files
+rm -f nginx/conf.d/*.example.com.conf 2>/dev/null || true
+
+# Generate all nginx configs dynamically
+generate_nginx_configs
 
 log "✓ Service subdomain SSL setup complete"
-
-log "Restarting Docker services to apply SSL certificates..."
-if command -v docker-compose >/dev/null 2>&1; then
-    # Source environment files if they exist
-    [ -f ".env" ] && set -a && source .env && set +a
-    [ -f ".env.secrets" ] && set -a && source .env.secrets && set +a
-    
-    docker-compose down
-    docker-compose up -d
-    log "✓ Docker services restarted successfully"
-else
-    log "ERROR: docker-compose not found, please restart services manually"
-    exit 1
-fi
