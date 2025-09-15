@@ -246,7 +246,7 @@ EOF
     log "Attempting SSL certificate issuance for service subdomains..."
     for SUBDOMAIN in "api.$DOMAIN" "n8n.$DOMAIN" "studio.$DOMAIN" "chrome.$DOMAIN"; do
       log "Getting SSL certificate for $SUBDOMAIN..."
-      if sudo certbot certonly --webroot -w "$(dirname "$0")/../../nginx/certbot/www" -d "$SUBDOMAIN" --agree-tos --non-interactive --email "$EMAIL"; then
+      if docker-compose -f "$COMPOSE_FILE" run --rm certbot certonly --webroot -w /var/www/certbot -d "$SUBDOMAIN" --agree-tos --non-interactive --email "$EMAIL"; then
         log "✓ SSL certificate obtained for $SUBDOMAIN"
       else
         log "⚠ Failed to get SSL certificate for $SUBDOMAIN - continuing with self-signed"
