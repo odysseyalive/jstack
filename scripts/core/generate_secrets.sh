@@ -79,21 +79,16 @@ generate_all_secrets() {
         SECRETS_FILE="$SCRIPT_DIR/../../.env.secrets"
         ENV_FILE="$SCRIPT_DIR/../../.env"
         
-        # Generate a secure password for Supabase
-        SUPABASE_PASSWORD=$(generate_random_key 32)
-        
-        # Save to both .env.secrets and .env
+        # Save to both .env.secrets and .env (without auto-generated password)
         cat > "$SECRETS_FILE" << EOF
 SUPABASE_JWT_SECRET=$JWT_SECRET
 SUPABASE_ANON_KEY=$ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
 SUPABASE_SERVICE_KEY=$SERVICE_ROLE_KEY
-SUPABASE_PASSWORD=$SUPABASE_PASSWORD
 EOF
         
         cat > "$ENV_FILE" << EOF
-# Supabase Database Configuration
-SUPABASE_PASSWORD=$SUPABASE_PASSWORD
+# Supabase Database Configuration (password will be prompted during install)
 SUPABASE_JWT_SECRET=$JWT_SECRET
 SUPABASE_ANON_KEY=$ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY

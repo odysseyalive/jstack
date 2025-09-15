@@ -97,6 +97,16 @@ if [ -f "$COMPOSE_FILE" ]; then
   if [ -z "$N8N_BASIC_AUTH_PASSWORD" ]; then
     read -r -s -p "Enter n8n admin password: " N8N_BASIC_AUTH_PASSWORD; echo
   fi
+  
+  # Update .env file with user-provided password
+  if [ -n "$SUPABASE_PASSWORD" ]; then
+    sed -i "/^SUPABASE_PASSWORD=/d" "$(dirname "$0")/../../.env" 2>/dev/null || true
+    echo "SUPABASE_PASSWORD=$SUPABASE_PASSWORD" >> "$(dirname "$0")/../../.env"
+    
+    sed -i "/^SUPABASE_PASSWORD=/d" "$(dirname "$0")/../../.env.secrets" 2>/dev/null || true
+    echo "SUPABASE_PASSWORD=$SUPABASE_PASSWORD" >> "$(dirname "$0")/../../.env.secrets"
+  fi
+  
   log "Generating default SSL certificate for nginx..."
   bash "$(dirname "$0")/ssl_cert.sh" generate_self_signed "default" "admin@localhost"
   log "Setting up SSL certificates for service subdomains..."
