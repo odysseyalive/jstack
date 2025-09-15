@@ -44,25 +44,10 @@ bootstrap_ssl_certificates() {
         log "✓ Downloaded SSL DH params"
     fi
     
-    # Step 3: Create dummy certificate for nginx to start
-    log "Creating dummy certificate for $all_domains..."
-    mkdir -p "$certbot_dir/conf/live/$DOMAIN"
-    
-    if docker-compose run --rm --entrypoint="" certbot sh -c "openssl req -x509 -nodes -newkey rsa:2048 -days 1 -keyout '/etc/letsencrypt/live/$DOMAIN/privkey.pem' -out '/etc/letsencrypt/live/$DOMAIN/fullchain.pem' -subj '/CN=$DOMAIN'" >/dev/null 2>&1; then
-        log "✓ Dummy certificate created"
-    else
-        log "⚠ Failed to create dummy certificate using docker, falling back to direct openssl"
-        openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
-            -keyout "$certbot_dir/conf/live/$DOMAIN/privkey.pem" \
-            -out "$certbot_dir/conf/live/$DOMAIN/fullchain.pem" \
-            -subj "/CN=$DOMAIN" >/dev/null 2>&1
-        log "✓ Dummy certificate created with fallback method"
-    fi
-    
-    # Step 4: Start nginx with dummy certificates
-    log "Starting nginx with dummy certificates..."
+    # Step 3: Start nginx with existing configs
+    log "Starting nginx with existing configs..."
     if docker-compose up --force-recreate -d nginx >/dev/null 2>&1; then
-        log "✓ Nginx started with dummy certificates"
+        log "✓ Nginx started with existing configs"
         sleep 10  # Give nginx time to fully start
     else
         log "⚠ Failed to start nginx, trying restart..."
@@ -70,7 +55,7 @@ bootstrap_ssl_certificates() {
         sleep 10
     fi
     
-    # Step 5: Check if domains resolve
+    # Step 4: Check if domains resolve
     log "Checking domain resolution..."
     local domains_resolved=0
     for domain in $all_domains; do
@@ -94,17 +79,7 @@ bootstrap_ssl_certificates() {
         return 1
     fi
     
-    # Step 6: Delete dummy certificates
-    log "Deleting dummy certificates..."
-    if docker-compose run --rm --entrypoint="" certbot sh -c "rm -Rf /etc/letsencrypt/live/$DOMAIN && rm -Rf /etc/letsencrypt/archive/$DOMAIN && rm -Rf /etc/letsencrypt/renewal/$DOMAIN.conf" >/dev/null 2>&1; then
-        log "✓ Dummy certificates deleted"
-    else
-        # Fallback - delete locally if docker command fails
-        rm -rf "$certbot_dir/conf/live/$DOMAIN" "$certbot_dir/conf/archive/$DOMAIN" "$certbot_dir/conf/renewal/$DOMAIN.conf" 2>/dev/null || true
-        log "✓ Dummy certificates deleted (fallback)"
-    fi
-    
-    # Step 7: Request real certificates using webroot
+    # Step 4: Request real certificates using webroot
     log "Requesting real Let's Encrypt certificates..."
     
     # Build domain arguments
@@ -139,7 +114,7 @@ bootstrap_ssl_certificates() {
     if timeout 180 docker-compose run --rm --entrypoint="" certbot $cert_command; then
         log "✓ Real SSL certificates acquired successfully"
         
-        # Step 8: Reload nginx with real certificates
+        # Step 5: Reload nginx with real certificates
         log "Reloading nginx with real certificates..."
         if docker-compose exec nginx nginx -s reload >/dev/null 2>&1; then
             log "✓ Nginx reloaded with real certificates"
@@ -227,9 +202,10 @@ server {
         root /var/www/certbot;
     }
     
-    # Redirect all other traffic to HTTPS
+    # Serve landing page during setup
     location / {
-        return 301 https://\$host\$request_uri;
+        root /usr/share/nginx/html/default;
+        index index.html;
     }
 }
 
@@ -344,9 +320,10 @@ server {
         root /var/www/certbot;
     }
     
-    # Redirect all other traffic to HTTPS
+    # Serve landing page during setup
     location / {
-        return 301 https://\$host\$request_uri;
+        root /usr/share/nginx/html/default;
+        index index.html;
     }
 }
 
@@ -377,9 +354,10 @@ server {
         root /var/www/certbot;
     }
     
-    # Redirect all other traffic to HTTPS
+    # Serve landing page during setup
     location / {
-        return 301 https://\$host\$request_uri;
+        root /usr/share/nginx/html/default;
+        index index.html;
     }
 }
 
@@ -434,9 +412,10 @@ server {
         root /var/www/certbot;
     }
     
-    # Redirect all other traffic to HTTPS
+    # Serve landing page during setup
     location / {
-        return 301 https://\$host\$request_uri;
+        root /usr/share/nginx/html/default;
+        index index.html;
     }
 }
 
@@ -495,9 +474,10 @@ server {
         root /var/www/certbot;
     }
     
-    # Redirect all other traffic to HTTPS
+    # Serve landing page during setup
     location / {
-        return 301 https://\$host\$request_uri;
+        root /usr/share/nginx/html/default;
+        index index.html;
     }
 }
 

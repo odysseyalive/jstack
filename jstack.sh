@@ -148,6 +148,11 @@ main() {
         # Add domain to SSL certificate
         if install_site_ssl_certificate "$SITE_DOMAIN"; then
           echo "✓ SSL certificate configured for $SITE_DOMAIN"
+          
+          # Enable HTTPS redirects for this site
+          echo "Enabling HTTPS redirects for $SITE_DOMAIN..."
+          bash "$(dirname "$0")/scripts/core/enable_https_redirects.sh"
+          echo "✓ HTTPS redirects enabled for $SITE_DOMAIN"
         else
           echo "⚠ SSL setup failed, but site will work with certificate warnings"
         fi

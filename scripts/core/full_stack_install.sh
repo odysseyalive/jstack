@@ -171,18 +171,7 @@ if [ -f "$COMPOSE_FILE" ]; then
     echo "SUPABASE_PASSWORD=$SUPABASE_PASSWORD" >>"$(dirname "$0")/../../.env.secrets"
   fi
 
-  log "Generating default SSL certificate for nginx..."
-  bash "$(dirname "$0")/ssl_cert.sh" generate_self_signed "default" "admin@localhost"
 
-  # Generate startup certificates for all subdomains
-  CONFIG_FILE="$(dirname "$0")/../../jstack.config"
-  if [ -f "$CONFIG_FILE" ]; then
-    source "$CONFIG_FILE"
-    for subdomain in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN"; do
-      log "Generating startup SSL certificate for $subdomain..."
-      bash "$(dirname "$0")/ssl_cert.sh" generate_self_signed "$subdomain" "$EMAIL"
-    done
-  fi
   log "Setting up SSL certificates for service subdomains..."
   bash "$(dirname "$0")/setup_service_subdomains_ssl.sh"
 
@@ -223,31 +212,8 @@ if [ -f "$COMPOSE_FILE" ]; then
     sudo mkdir -p "$WEBROOT_DIR/.well-known/acme-challenge"
     sudo chown -R $(whoami):$(whoami) "$(dirname "$0")/../../nginx/certbot/"
 
-    # Backup existing configs
-    mkdir -p "$(dirname "$0")/../../nginx/conf.d.backup"
-    cp -r "$NGINX_CONF_DIR"/* "$(dirname "$0")/../../nginx/conf.d.backup/" 2>/dev/null || true
-
-    # Remove complex configs and create simple ACME-only config
-    rm -f "$NGINX_CONF_DIR"/*.conf
-    cat >"$NGINX_CONF_DIR/acme-only.conf" <<'EOF'
-server {
-    listen 80 default_server;
-    server_name _;
-    
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-        try_files $uri =404;
-    }
-    
-    location / {
-        return 200 "ACME validation server";
-        add_header Content-Type text/plain;
-    }
-}
-EOF
-
-    # Restart nginx with simple config
-    log "Starting nginx with ACME-only configuration..."
+    # Restart nginx with existing configs
+    log "Starting nginx with existing configuration..."
     run_docker_command docker-compose -f "$COMPOSE_FILE" restart nginx
     sleep 15
 
@@ -296,12 +262,6 @@ EOF
     sudo chmod 600 "$(dirname "$0")/../../nginx/certbot/conf/archive/"*/privkey*.pem 2>/dev/null || true
     log "✓ Certificates copied and permissions set"
 
-    # Restore original nginx configs
-    log "Restoring full nginx configurations..."
-    rm -f "$NGINX_CONF_DIR/acme-only.conf"
-    cp -r "$(dirname "$0")/../../nginx/conf.d.backup"/* "$NGINX_CONF_DIR/" 2>/dev/null || true
-    rm -rf "$(dirname "$0")/../../nginx/conf.d.backup"
-
     # Wait for Kong and other upstream services to be ready
     log "Waiting for upstream services to be ready..."
     sleep 30
@@ -317,6 +277,10 @@ EOF
         sleep 10
       fi
     done
+
+    # Enable HTTPS redirects after SSL certificates are acquired
+    log "Enabling HTTPS redirects for production configuration..."
+    bash "$(dirname "$0")/enable_https_redirects.sh"
 
     # Restart nginx with full configs
     log "Restarting nginx with full configuration..."
