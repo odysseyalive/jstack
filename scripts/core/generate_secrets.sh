@@ -5,9 +5,10 @@
 
 set -e
 
-# Script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/script_module.sh"
+# Basic logging function
+log() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
 
 # Check if OpenSSL is available
 check_openssl() {
@@ -74,7 +75,8 @@ generate_all_secrets() {
     
     # Optionally save to a temporary file for docker-compose
     if [ "$1" = "--save-env" ]; then
-        SECRETS_FILE="$(dirname "$SCRIPT_DIR")/.env.secrets"
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        SECRETS_FILE="$SCRIPT_DIR/../../.env.secrets"
         cat > "$SECRETS_FILE" << EOF
 SUPABASE_JWT_SECRET=$JWT_SECRET
 SUPABASE_ANON_KEY=$ANON_KEY

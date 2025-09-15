@@ -72,7 +72,16 @@ done
 if [ -f "$COMPOSE_FILE" ]; then
   log "Generating secure secrets..."
   # Generate secrets for Supabase
-  source "$(dirname "$0")/generate_secrets.sh" --save-env
+  bash "$(dirname "$0")/generate_secrets.sh" --save-env
+  
+  # Source the generated environment file to get the variables
+  SECRETS_FILE="$(dirname "$0")/../../.env.secrets"
+  if [ -f "$SECRETS_FILE" ]; then
+    source "$SECRETS_FILE"
+  else
+    log "Error: Failed to generate secrets file"
+    exit 1
+  fi
   
   log "Prompting for required credentials..."
   # Prompt for N8N and Supabase credentials if not set
