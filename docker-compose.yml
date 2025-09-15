@@ -104,8 +104,6 @@ services:
       - KONG_NGINX_PROXY_PROXY_BUFFERS=64 160k
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-    volumes:
-      - ./data/supabase/kong.yml:/home/kong/kong.yml:ro
     entrypoint: |
       bash -c '
       cat > /home/kong/kong.yml <<EOF
