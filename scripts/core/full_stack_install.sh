@@ -208,6 +208,10 @@ if [ -f "$COMPOSE_FILE" ]; then
   run_docker_command docker-compose -f "$COMPOSE_FILE" up -d
   log "Services deployed."
   
+  # Fix Supabase database user passwords
+  log "Fixing Supabase database user passwords..."
+  bash "$(dirname "$0")/../fix-supabase-passwords.sh"
+  
   log "Preparing SSL certificate acquisition..."
   CONFIG_FILE="$(dirname "$0")/../../jstack.config"
   if [ -f "$CONFIG_FILE" ]; then
