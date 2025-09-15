@@ -58,7 +58,6 @@ services:
       - SUPABASE_PASSWORD=${SUPABASE_PASSWORD}
     volumes:
       - ./data/supabase:/var/lib/postgresql/data
-      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
       interval: 5s
