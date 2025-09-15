@@ -7,10 +7,10 @@ set -e
 echo "Creating Supabase database users..."
 
 # Create supabase_auth_admin user
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    CREATE USER IF NOT EXISTS supabase_auth_admin WITH PASSWORD '$SUPABASE_PASSWORD';
-    CREATE USER IF NOT EXISTS authenticator WITH PASSWORD '$SUPABASE_PASSWORD';
-    CREATE USER IF NOT EXISTS supabase_admin WITH PASSWORD '$SUPABASE_PASSWORD';
+psql -v ON_ERROR_STOP=1 --username postgres --dbname postgres <<-EOSQL
+    CREATE USER IF NOT EXISTS supabase_auth_admin WITH PASSWORD '${SUPABASE_PASSWORD}';
+    CREATE USER IF NOT EXISTS authenticator WITH PASSWORD '${SUPABASE_PASSWORD}';
+    CREATE USER IF NOT EXISTS supabase_admin WITH PASSWORD '${SUPABASE_PASSWORD}';
     
     -- Grant necessary permissions
     GRANT ALL PRIVILEGES ON DATABASE postgres TO supabase_auth_admin;
