@@ -338,8 +338,8 @@ server {
 server {
     listen 443 ssl;
     server_name _;
-    ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/api.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.${DOMAIN}/privkey.pem;
     location / {
         root   /usr/share/nginx/html;
         index  index.html index.htm;
@@ -372,8 +372,8 @@ server {
 server {
     listen 443 ssl;
     server_name api.${DOMAIN};
-    ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/api.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.${DOMAIN}/privkey.pem;
 
     # Security headers
     add_header X-Frame-Options DENY;
@@ -429,8 +429,8 @@ server {
 server {
     listen 443 ssl;
     server_name studio.${DOMAIN};
-    ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/studio.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/studio.${DOMAIN}/privkey.pem;
 
     # Security headers
     add_header X-Frame-Options SAMEORIGIN;
@@ -486,8 +486,8 @@ server {
 server {
     listen 443 ssl;
     server_name n8n.${DOMAIN};
-    ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/n8n.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/n8n.${DOMAIN}/privkey.pem;
 
     # Security headers
     add_header X-Frame-Options SAMEORIGIN;
@@ -543,8 +543,8 @@ server {
 server {
     listen 443 ssl;
     server_name chrome.${DOMAIN};
-    ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/chrome.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/chrome.${DOMAIN}/privkey.pem;
 
     # Security headers
     add_header X-Frame-Options DENY;

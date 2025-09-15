@@ -168,6 +168,16 @@ if [ -f "$COMPOSE_FILE" ]; then
   
   log "Generating default SSL certificate for nginx..."
   bash "$(dirname "$0")/ssl_cert.sh" generate_self_signed "default" "admin@localhost"
+  
+  # Generate startup certificates for all subdomains
+  CONFIG_FILE="$(dirname "$0")/../../jstack.config"
+  if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+    for subdomain in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN"; do
+      log "Generating startup SSL certificate for $subdomain..."
+      bash "$(dirname "$0")/ssl_cert.sh" generate_self_signed "$subdomain" "$EMAIL"
+    done
+  fi
   log "Setting up SSL certificates for service subdomains..."
   bash "$(dirname "$0")/setup_service_subdomains_ssl.sh"
   
