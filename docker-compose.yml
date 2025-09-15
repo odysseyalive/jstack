@@ -55,8 +55,10 @@ services:
       - JWT_EXP=3600
       - SUPABASE_AUTH_ADMIN_PASSWORD=${SUPABASE_PASSWORD}
       - AUTHENTICATOR_PASSWORD=${SUPABASE_PASSWORD}
+      - SUPABASE_PASSWORD=${SUPABASE_PASSWORD}
     volumes:
       - ./data/supabase:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
       interval: 5s
