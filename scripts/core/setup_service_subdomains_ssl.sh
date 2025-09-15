@@ -312,7 +312,6 @@ install_site_ssl_certificate() {
 # Generate NGINX config files dynamically
 generate_nginx_configs() {
     log "Generating NGINX configuration files for domain: $DOMAIN"
-    echo "DEBUG: DOMAIN variable inside generate_nginx_configs: '$DOMAIN'"
     
     local nginx_conf_dir="nginx/conf.d"
     mkdir -p "$nginx_conf_dir"
@@ -350,7 +349,6 @@ EOF
 
     # Generate API config (Supabase Kong)
     log "Creating api.${DOMAIN}.conf..."
-    echo "DEBUG: About to generate API config with DOMAIN='$DOMAIN'"
     cat > "$nginx_conf_dir/api.${DOMAIN}.conf" << EOF
 # Supabase API Gateway (Kong) - JStack Configuration
 
