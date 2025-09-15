@@ -68,13 +68,7 @@ Ready to get started? Check out [docs/quickstart.md](docs/quickstart.md) for a s
  sudo -v
  ```
 
-7. **Confirm Docker credentials:**
-
- ```bash
-newgrp docker 
- ```
-
-8. **Install and configure the full stack:**
+7. **Install and configure the full stack:**
 
  ```bash
  ./jstack.sh --install
