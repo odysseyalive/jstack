@@ -74,6 +74,8 @@ cp jstack.config.default jstack.config
 nano jstack.config
 ```
 
+   > **New to server configuration?** See [docs/configuration.md](docs/configuration.md) for a complete guide on editing domains, email, and other settings.
+
 8. **Refresh sudo credentials:**
 
 ```bash
