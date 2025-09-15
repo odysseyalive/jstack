@@ -34,45 +34,57 @@ Ready to get started? Check out [docs/quickstart.md](docs/quickstart.md) for a s
 
 1. **Create a dedicated jarvis user and add it to the docker group (run as root):**
 
- ```bash
- adduser jarvis
- ```
+```bash
+adduser jarvis
+```
 
 2. **Add your user to the docker group:**
 
- ```bash
- usermod -aG docker jarvis
- ```
+```bash
+usermod -aG docker jarvis
+```
 
 3. **Switch to your jarvis user (login shell):**
 
- ```bash
- su - jarvis
- ```
+```bash
+su - jarvis
+```
 
 4. **Clone the repository:**
 
- ```bash
- git clone https://github.com/odysseyalive/jstack.git
- ```
+```bash
+git clone https://github.com/odysseyalive/jstack.git
+```
 
 5. **Navigate to the directory:**
 
- ```bash
- cd jstack
- ```
+```bash
+cd jstack
+```
 
-6. **Refresh sudo credentials:**
+6. **Copy the configuration file:**
 
- ```bash
- sudo -v
- ```
+```bash
+cp jstack.config.default jstack.config
+```
 
-7. **Install and configure the full stack:**
+7. **Edit the configuration file:**
 
- ```bash
- ./jstack.sh --install
- ```
+```bash
+nano jstack.config
+```
+
+8. **Refresh sudo credentials:**
+
+```bash
+sudo -v
+```
+
+9. **Install and configure the full stack:**
+
+```bash
+./jstack.sh --install
+```
 
 ### Service Management
 
