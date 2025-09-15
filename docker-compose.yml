@@ -43,7 +43,6 @@ services:
   supabase-db:
     image: supabase/postgres:15.8.1.060
     restart: unless-stopped
-    user: "${UID:-1000}:${GID:-1000}"
     ports:
       - "5432:5432"
     environment:
