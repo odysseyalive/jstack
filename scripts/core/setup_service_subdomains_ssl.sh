@@ -350,6 +350,7 @@ EOF
 
     # Generate API config (Supabase Kong)
     log "Creating api.${DOMAIN}.conf..."
+    echo "DEBUG: About to generate API config with DOMAIN='$DOMAIN'"
     cat > "$nginx_conf_dir/api.${DOMAIN}.conf" << EOF
 # Supabase API Gateway (Kong) - JStack Configuration
 
