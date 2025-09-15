@@ -440,6 +440,10 @@ server {
 
     # Proxy to Supabase Studio
     location / {
+        # HTTP Basic Authentication
+        auth_basic "Supabase Studio - Restricted Access";
+        auth_basic_user_file /etc/nginx/htpasswd;
+        
         proxy_pass http://supabase-studio:3000;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;

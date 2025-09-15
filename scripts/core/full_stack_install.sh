@@ -142,6 +142,14 @@ if [ -f "$COMPOSE_FILE" ]; then
     read -r -s -p "Enter n8n admin password: " N8N_BASIC_AUTH_PASSWORD; echo
   fi
   
+  # Generate htpasswd file for Studio authentication  
+  log "Creating Studio authentication credentials..."
+  read -r -p "Enter username for Studio access: " STUDIO_USERNAME
+  read -r -s -p "Enter password for Studio access: " STUDIO_PASSWORD; echo
+  echo "$STUDIO_USERNAME:$(openssl passwd -apr1 "$STUDIO_PASSWORD")" > "$(dirname "$0")/../../nginx/htpasswd"
+  chmod 644 "$(dirname "$0")/../../nginx/htpasswd"
+  log "✓ Studio authentication configured for user: $STUDIO_USERNAME"
+  
   # Update .env file with domain and email configuration
   ENV_FILE="$(dirname "$0")/../../.env"
   

@@ -11,6 +11,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certbot/conf:/etc/letsencrypt
       - ./nginx/certbot/www:/var/www/certbot
+      - ./nginx/htpasswd:/etc/nginx/htpasswd:ro
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
