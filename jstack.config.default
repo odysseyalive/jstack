@@ -16,7 +16,6 @@ SSL_ORG_UNIT="Development"
 N8N_URL="n8n.example.com"
 SUPABASE_API_URL="api.example.com"
 SUPABASE_STUDIO_URL="studio.example.com"
-CHROME_URL="chrome.example.com"
 
 # Ports
 NGINX_PORT=443
