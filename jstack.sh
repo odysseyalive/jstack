@@ -9,7 +9,7 @@ SCRIPTS_CORE="$(dirname "$0")/scripts/core"
 SCRIPTS_SERVICES="$(dirname "$0")/scripts/services"
 
 show_usage() {
-  echo "Usage: $0 [--dry-run|--install|--backup|--reset|--uninstall|--repair|--debug|--install-site <site_dir>] <action> [args]"
+  echo "Usage: $0 [--dry-run|--install|--backup|--reset|--uninstall|--repair|--debug|--cert-fix|--install-site <site_dir>] <action> [args]"
   echo "Actions: up, down, restart, status, backup, restore, validate, propagate, diagnostics, compliance, monitor, template, launch"
   exit 1
 }
@@ -24,6 +24,7 @@ parse_flags() {
   DEBUG=false
   INSTALL_SITE=""
   CERTBOT=false
+  CERT_FIX=false
   while [[ "$1" == --* ]]; do
     case "$1" in
     --dry-run) DRY_RUN=true ;;
@@ -34,6 +35,7 @@ parse_flags() {
     --repair) REPAIR=true ;;
     --debug) DEBUG=true ;;
     --certbot) CERTBOT=true ;;
+    --cert-fix) CERT_FIX=true ;;
     --install-site)
       shift
       INSTALL_SITE="$1"
@@ -87,6 +89,45 @@ main() {
     run_core_script orchestrate down nginx
     sudo certbot certonly --standalone -d "$DOMAIN" --agree-tos --non-interactive --email "$EMAIL"
     run_core_script orchestrate up nginx
+    exit $?
+  fi
+  if [ "$CERT_FIX" = true ]; then
+    echo "Running SSL certificate fix..."
+    CONFIG_FILE="$(dirname "$0")/jstack.config"
+    [ -f "$CONFIG_FILE" ] && source "$CONFIG_FILE"
+    
+    # Step 1: Ensure all services are up except nginx
+    echo "Starting all services except nginx..."
+    docker-compose up -d supabase-db supabase-kong supabase-auth supabase-rest supabase-meta supabase-studio n8n chrome certbot
+    
+    # Step 2: Wait for services to be ready
+    echo "Waiting for services to initialize..."
+    sleep 30
+    
+    # Step 3: Start nginx (should work now that upstreams exist)
+    echo "Starting nginx..."
+    docker-compose up -d nginx
+    
+    # Step 4: Wait for nginx to be stable
+    sleep 10
+    
+    # Step 5: Get SSL certificates using webroot method
+    echo "Attempting to get SSL certificates..."
+    for SUBDOMAIN in "api.$DOMAIN" "n8n.$DOMAIN" "studio.$DOMAIN" "chrome.$DOMAIN"; do
+      echo "Getting SSL certificate for $SUBDOMAIN..."
+      if sudo certbot certonly --webroot -w ./nginx/certbot/www -d "$SUBDOMAIN" --agree-tos --non-interactive --email "$EMAIL"; then
+        echo "✓ SSL certificate obtained for $SUBDOMAIN"
+      else
+        echo "⚠ Failed to get SSL certificate for $SUBDOMAIN"
+      fi
+    done
+    
+    # Step 6: Reload nginx to pick up new certificates
+    echo "Reloading nginx with new certificates..."
+    docker-compose exec nginx nginx -s reload || echo "Nginx reload failed, restarting container..."
+    docker-compose restart nginx
+    
+    echo "SSL certificate fix completed."
     exit $?
   fi
   if [ -n "$INSTALL_SITE" ]; then
