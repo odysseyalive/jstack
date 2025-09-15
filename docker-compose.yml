@@ -90,6 +90,7 @@ services:
       - ANON_KEY=${SUPABASE_ANON_KEY}
       - SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - AUTH_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - SUPABASE_REST_URL=http://supabase-rest:3000
 
   supabase-kong:
     image: kong:2.8.1
