@@ -30,6 +30,7 @@ services:
   n8n:
     image: n8nio/n8n
     restart: unless-stopped
+    user: "1000:1000"
     ports:
       - "5678:5678"
     environment:
@@ -42,6 +43,7 @@ services:
   supabase-db:
     image: supabase/postgres:15.8.1.060
     restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
     ports:
       - "5432:5432"
     environment:
@@ -239,6 +241,7 @@ services:
   chrome:
     image: browserless/chrome
     restart: unless-stopped
+    user: "1000:1000"
     ports:
       - "3000:3000"
     volumes:
