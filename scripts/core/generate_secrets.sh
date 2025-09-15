@@ -73,16 +73,33 @@ generate_all_secrets() {
     
     log "✓ All secrets generated successfully"
     
-    # Optionally save to a temporary file for docker-compose
+    # Optionally save to files for docker-compose
     if [ "$1" = "--save-env" ]; then
         SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         SECRETS_FILE="$SCRIPT_DIR/../../.env.secrets"
+        ENV_FILE="$SCRIPT_DIR/../../.env"
+        
+        # Generate a secure password for Supabase
+        SUPABASE_PASSWORD=$(generate_random_key 32)
+        
+        # Save to both .env.secrets and .env
         cat > "$SECRETS_FILE" << EOF
 SUPABASE_JWT_SECRET=$JWT_SECRET
 SUPABASE_ANON_KEY=$ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
+SUPABASE_SERVICE_KEY=$SERVICE_ROLE_KEY
+SUPABASE_PASSWORD=$SUPABASE_PASSWORD
 EOF
-        log "✓ Secrets saved to $SECRETS_FILE"
+        
+        cat > "$ENV_FILE" << EOF
+# Supabase Database Configuration
+SUPABASE_PASSWORD=$SUPABASE_PASSWORD
+SUPABASE_JWT_SECRET=$JWT_SECRET
+SUPABASE_ANON_KEY=$ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
+SUPABASE_SERVICE_KEY=$SERVICE_ROLE_KEY
+EOF
+        log "✓ Secrets saved to $SECRETS_FILE and $ENV_FILE"
     fi
 }
 

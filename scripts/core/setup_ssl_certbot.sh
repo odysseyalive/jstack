@@ -30,6 +30,10 @@ log "SSL certificate setup completed."
 
 log "Restarting Docker services to apply SSL certificates..."
 if command -v docker-compose >/dev/null 2>&1; then
+    # Source environment files if they exist
+    [ -f ".env" ] && set -a && source .env && set +a
+    [ -f ".env.secrets" ] && set -a && source .env.secrets && set +a
+    
     docker-compose down
     docker-compose up -d
     log "✓ Docker services restarted successfully"
