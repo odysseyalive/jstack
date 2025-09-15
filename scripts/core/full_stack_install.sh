@@ -107,8 +107,20 @@ if [ -f "$COMPOSE_FILE" ]; then
     source "$CONFIG_FILE"
     log "Stopping nginx so certbot can run in standalone mode..."
     run_docker_command docker-compose -f "$COMPOSE_FILE" stop nginx
-    log "Attempting SSL certificate issuance for domain $DOMAIN..."
-    sudo certbot certonly --standalone -d "$DOMAIN" --agree-tos --non-interactive --email "$EMAIL"
+    
+    # Only get SSL certificates for service subdomains, not the base domain
+    log "Attempting SSL certificate issuance for service subdomains..."
+    
+    # Get certificates for each service subdomain
+    for SUBDOMAIN in "api.$DOMAIN" "n8n.$DOMAIN" "studio.$DOMAIN" "chrome.$DOMAIN"; do
+      log "Getting SSL certificate for $SUBDOMAIN..."
+      if sudo certbot certonly --standalone -d "$SUBDOMAIN" --agree-tos --non-interactive --email "$EMAIL"; then
+        log "✓ SSL certificate obtained for $SUBDOMAIN"
+      else
+        log "⚠ Failed to get SSL certificate for $SUBDOMAIN - continuing with self-signed"
+      fi
+    done
+    
     log "Certificate process completed, starting nginx..."
     run_docker_command docker-compose -f "$COMPOSE_FILE" start nginx
   else

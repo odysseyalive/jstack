@@ -198,16 +198,36 @@ DEBUG=false
 
 ## DNS Requirements
 
-Before running the installation, make sure your DNS is configured:
+Before running the installation, make sure your DNS is configured for the service subdomains:
 
-1. **A Record**: Point your main domain to your server's IP
-   - `mycompany.com` → `192.168.1.100`
+**Service Subdomains** (required for JStack services):
+- `api.mycompany.com` → Your server's IP
+- `n8n.mycompany.com` → Your server's IP  
+- `studio.mycompany.com` → Your server's IP
+- `chrome.mycompany.com` → Your server's IP
 
-2. **CNAME Records**: Point subdomains to your main domain
-   - `api.mycompany.com` → `mycompany.com`
-   - `n8n.mycompany.com` → `mycompany.com`
-   - `studio.mycompany.com` → `mycompany.com`
-   - `chrome.mycompany.com` → `mycompany.com`
+**Base Domain** (optional - can be configured later):
+- `mycompany.com` → Can be configured later using site templates
+- The installation process only handles service subdomains
+- Your base domain can be deployed separately using one of the site templates
+
+### DNS Configuration Examples
+
+**Option 1: A Records (Recommended)**
+```
+api.mycompany.com     A     192.168.1.100
+n8n.mycompany.com     A     192.168.1.100
+studio.mycompany.com  A     192.168.1.100
+chrome.mycompany.com  A     192.168.1.100
+```
+
+**Option 2: CNAME Records**
+```
+api.mycompany.com     CNAME  yourserver.example.com
+n8n.mycompany.com     CNAME  yourserver.example.com
+studio.mycompany.com  CNAME  yourserver.example.com
+chrome.mycompany.com  CNAME  yourserver.example.com
+```
 
 ## Validation
 
