@@ -89,34 +89,21 @@ SUPABASE_DB="postgres"
 ```
 - Usually leave as "postgres" (default)
 
-**SUPABASE_POSTGRES_PASSWORD** - Database password:
-```bash
-SUPABASE_POSTGRES_PASSWORD="change_me_postgres"
-```
-- **CRITICAL**: Change this to a strong, unique password
-- Use a password manager to generate a secure password
-- Example: `MyStr0ng!P@ssw0rd123`
+> **Note**: Supabase security keys (JWT secret, ANON key, SERVICE_ROLE key) and database password are automatically generated during installation for better security.
 
-**SUPABASE_JWT_SECRET** - JWT signing secret:
-```bash
-SUPABASE_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long"
-```
-- **CRITICAL**: Change this to a unique secret at least 32 characters long
-- Use a password manager or generate with: `openssl rand -base64 32`
+## Automated Security Features
 
-**SUPABASE_ANON_KEY** - Anonymous access key:
-```bash
-SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-- This is a demo key - generate your own using Supabase tooling
-- Used for client-side access to your database
+JStack automatically generates secure secrets during installation:
 
-**SUPABASE_SERVICE_ROLE_KEY** - Service role key:
-```bash
-SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-- This is a demo key - generate your own using Supabase tooling  
-- Used for server-side admin access to your database
+- **JWT Secret**: A 64-character cryptographically secure secret for JWT token signing
+- **Database Password**: Set interactively during installation with secure prompting
+- **API Keys**: Supabase ANON and SERVICE_ROLE keys generated with proper JWT claims
+- **Environment Variables**: All secrets are injected into containers without storing in config files
+
+This approach ensures:
+- No hardcoded secrets in configuration files
+- Unique secrets for each installation
+- Proper cryptographic strength for all generated keys
 
 ## Optional Settings
 
@@ -197,10 +184,6 @@ CHROME_PORT=3000
 
 # Supabase Configuration
 SUPABASE_DB="postgres"
-SUPABASE_JWT_SECRET="MySecureJWTSecretKey1234567890ABCDEF"
-SUPABASE_POSTGRES_PASSWORD="MyStr0ng!Database!P@ssw0rd"
-SUPABASE_ANON_KEY="your-generated-anon-key"
-SUPABASE_SERVICE_ROLE_KEY="your-generated-service-role-key"
 
 # n8n
 N8N_ENV="production"

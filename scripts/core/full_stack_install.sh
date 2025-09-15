@@ -70,7 +70,11 @@ for DIR in "$(dirname "$0")/../../data/supabase" "$(dirname "$0")/../../data/n8n
   fi
 done
 if [ -f "$COMPOSE_FILE" ]; then
-  log "Prompting for required secrets..."
+  log "Generating secure secrets..."
+  # Generate secrets for Supabase
+  source "$(dirname "$0")/generate_secrets.sh" --save-env
+  
+  log "Prompting for required credentials..."
   # Prompt for N8N and Supabase credentials if not set
   if [ -z "$SUPABASE_USER" ]; then
     read -r -p "Enter Supabase DB username: " SUPABASE_USER
@@ -102,7 +106,14 @@ if [ -f "$COMPOSE_FILE" ]; then
     log "Config file $CONFIG_FILE not found; skipping certbot SSL setup."
   fi
   log "Deploying services via Docker Compose..."
-  SUPABASE_USER="$SUPABASE_USER" SUPABASE_PASSWORD="$SUPABASE_PASSWORD" N8N_BASIC_AUTH_USER="$N8N_BASIC_AUTH_USER" N8N_BASIC_AUTH_PASSWORD="$N8N_BASIC_AUTH_PASSWORD" run_docker_command docker-compose -f "$COMPOSE_FILE" up -d
+  SUPABASE_USER="$SUPABASE_USER" \
+  SUPABASE_PASSWORD="$SUPABASE_PASSWORD" \
+  SUPABASE_JWT_SECRET="$SUPABASE_JWT_SECRET" \
+  SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+  SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY" \
+  N8N_BASIC_AUTH_USER="$N8N_BASIC_AUTH_USER" \
+  N8N_BASIC_AUTH_PASSWORD="$N8N_BASIC_AUTH_PASSWORD" \
+  run_docker_command docker-compose -f "$COMPOSE_FILE" up -d
   log "Services deployed."
 else
   log "docker-compose.yml not found at $COMPOSE_FILE."

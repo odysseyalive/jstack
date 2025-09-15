@@ -50,4 +50,7 @@ install_if_missing "Docker Compose" "docker-compose" "apt-get update && apt-get 
 # Certbot (for SSL certificate management)
 install_if_missing "Certbot" "certbot" "apt-get update && apt-get install -y certbot"
 
+# OpenSSL (for generating secure keys and certificates)
+install_if_missing "OpenSSL" "openssl" "apt-get update && apt-get install -y openssl"
+
 log "Dependency installation completed."

@@ -34,9 +34,9 @@ services:
     environment:
       - POSTGRES_HOST=/var/run/postgresql
       - POSTGRES_PORT=5432
-      - POSTGRES_PASSWORD=change_me_postgres
+      - POSTGRES_PASSWORD=${SUPABASE_PASSWORD}
       - POSTGRES_DB=postgres
-      - JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+      - JWT_SECRET=${SUPABASE_JWT_SECRET}
       - JWT_EXP=3600
     volumes:
       - ./data/supabase:/var/lib/postgresql/data
@@ -64,14 +64,14 @@ services:
         condition: service_started
     environment:
       - STUDIO_PG_META_URL=http://supabase-meta:8080
-      - POSTGRES_PASSWORD=change_me_postgres
+      - POSTGRES_PASSWORD=${SUPABASE_PASSWORD}
       - DEFAULT_ORGANIZATION_NAME=JStack Organization
       - DEFAULT_PROJECT_NAME=JStack Project
       - SUPABASE_URL=http://supabase-kong:8000
       - SUPABASE_PUBLIC_URL=http://localhost:8000
-      - ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
-      - SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q
-      - AUTH_JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+      - ANON_KEY=${SUPABASE_ANON_KEY}
+      - SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - AUTH_JWT_SECRET=${SUPABASE_JWT_SECRET}
 
   supabase-kong:
     image: kong:2.8.1
@@ -89,8 +89,8 @@ services:
       - KONG_PLUGINS=request-transformer,cors,key-auth,acl,basic-auth
       - KONG_NGINX_PROXY_PROXY_BUFFER_SIZE=160k
       - KONG_NGINX_PROXY_PROXY_BUFFERS=64 160k
-      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
-      - SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     volumes:
       - ./data/supabase/kong.yml:/home/kong/kong.yml:ro
     entrypoint: |
@@ -102,10 +102,10 @@ services:
       consumers:
         - username: anon
           keyauth_credentials:
-            - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
+            - key: ${SUPABASE_ANON_KEY}
         - username: service_role
           keyauth_credentials:
-            - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q
+            - key: ${SUPABASE_SERVICE_ROLE_KEY}
       
       acls:
         - consumer: anon
@@ -164,7 +164,7 @@ services:
       - GOTRUE_API_PORT=9999
       - API_EXTERNAL_URL=http://localhost:8000
       - GOTRUE_DB_DRIVER=postgres
-      - GOTRUE_DB_DATABASE_URL=postgres://supabase_auth_admin:change_me_postgres@supabase-db:5432/postgres
+      - GOTRUE_DB_DATABASE_URL=postgres://supabase_auth_admin:${SUPABASE_PASSWORD}@supabase-db:5432/postgres
       - GOTRUE_SITE_URL=http://localhost:3000
       - GOTRUE_URI_ALLOW_LIST=
       - GOTRUE_DISABLE_SIGNUP=false
@@ -172,7 +172,7 @@ services:
       - GOTRUE_JWT_AUD=authenticated
       - GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated
       - GOTRUE_JWT_EXP=3600
-      - GOTRUE_JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+      - GOTRUE_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - GOTRUE_EXTERNAL_EMAIL_ENABLED=true
       - GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED=false
       - GOTRUE_MAILER_AUTOCONFIRM=true
@@ -201,12 +201,12 @@ services:
       supabase-db:
         condition: service_healthy
     environment:
-      - PGRST_DB_URI=postgres://authenticator:change_me_postgres@supabase-db:5432/postgres
+      - PGRST_DB_URI=postgres://authenticator:${SUPABASE_PASSWORD}@supabase-db:5432/postgres
       - PGRST_DB_SCHEMAS=public,storage,graphql_public
       - PGRST_DB_ANON_ROLE=anon
-      - PGRST_JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+      - PGRST_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - PGRST_DB_USE_LEGACY_GUCS=false
-      - PGRST_APP_SETTINGS_JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+      - PGRST_APP_SETTINGS_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - PGRST_APP_SETTINGS_JWT_EXP=3600
     command: ["postgrest"]
 
@@ -222,7 +222,7 @@ services:
       - PG_META_DB_PORT=5432
       - PG_META_DB_NAME=postgres
       - PG_META_DB_USER=supabase_admin
-      - PG_META_DB_PASSWORD=change_me_postgres
+      - PG_META_DB_PASSWORD=${SUPABASE_PASSWORD}
   chrome:
     image: browserless/chrome
     restart: unless-stopped
