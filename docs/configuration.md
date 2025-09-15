@@ -15,106 +15,202 @@ nano jstack.config
 
 ### 1. Domain Configuration
 
-**DOMAIN_BASE** - Your main domain name:
+**DOMAIN** - Your main domain name:
 ```bash
-DOMAIN_BASE="example.com"
+DOMAIN="example.com"
 ```
 - Replace `example.com` with your actual domain
 - Don't include `https://` or `www`
 - Example: `mydomain.com` or `mycompany.org`
 
-**SUBDOMAIN_API** - API subdomain:
+**EMAIL** - Your email for SSL certificates and admin contact:
 ```bash
-SUBDOMAIN_API="api"
-```
-- This creates `api.yourdomain.com`
-- Leave as "api" unless you have a specific preference
-
-**SUBDOMAIN_N8N** - n8n automation subdomain:
-```bash
-SUBDOMAIN_N8N="n8n"
-```
-- This creates `n8n.yourdomain.com`
-- Leave as "n8n" unless you have a specific preference
-
-**SUBDOMAIN_STUDIO** - Supabase Studio subdomain:
-```bash
-SUBDOMAIN_STUDIO="studio"
-```
-- This creates `studio.yourdomain.com`
-- Leave as "studio" unless you have a specific preference
-
-**SUBDOMAIN_CHROME** - Chrome/Puppeteer subdomain:
-```bash
-SUBDOMAIN_CHROME="chrome"
-```
-- This creates `chrome.yourdomain.com`
-- Leave as "chrome" unless you have a specific preference
-
-### 2. SSL Certificate Email
-
-**SSL_EMAIL** - Your email for Let's Encrypt certificates:
-```bash
-SSL_EMAIL="admin@example.com"
+EMAIL="admin@example.com"
 ```
 - Use a real email address you control
 - Let's Encrypt will send certificate expiration notices here
 - Example: `yourname@yourdomain.com`
 
-### 3. Environment Settings
+### 2. Service URLs
 
-**ENVIRONMENT** - Deployment environment:
+**N8N_URL** - Your n8n automation platform URL:
 ```bash
-ENVIRONMENT="production"
+N8N_URL="n8n.example.com"
 ```
-- Use "production" for live deployments
-- Use "development" for testing setups
+- Replace `example.com` with your domain
+- This creates the full URL for accessing n8n
+
+**SUPABASE_API_URL** - Your Supabase API URL:
+```bash
+SUPABASE_API_URL="api.example.com"
+```
+- Replace `example.com` with your domain
+- This is where your Supabase API will be accessible
+
+**SUPABASE_STUDIO_URL** - Your Supabase Studio URL:
+```bash
+SUPABASE_STUDIO_URL="studio.example.com"
+```
+- Replace `example.com` with your domain
+- This is where you'll access the Supabase dashboard
+
+**CHROME_URL** - Your Chrome/Puppeteer service URL:
+```bash
+CHROME_URL="chrome.example.com"
+```
+- Replace `example.com` with your domain
+- This is for browser automation tasks
+
+### 3. SSL Configuration
+
+**SSL_ENABLED** - Enable SSL certificates:
+```bash
+SSL_ENABLED=true
+```
+- Set to `true` for production (recommended)
+- Set to `false` only for testing/development
+
+**SSL Certificate Details:**
+```bash
+SSL_COUNTRY="US"
+SSL_STATE="Oregon"
+SSL_CITY="Portland" 
+SSL_ORGANIZATION="Organization"
+SSL_ORG_UNIT="Development"
+```
+- Update these with your actual location and organization details
+- Used for SSL certificate generation
+
+### 4. Supabase Database Configuration
+
+**SUPABASE_DB** - Database name:
+```bash
+SUPABASE_DB="postgres"
+```
+- Usually leave as "postgres" (default)
+
+**SUPABASE_POSTGRES_PASSWORD** - Database password:
+```bash
+SUPABASE_POSTGRES_PASSWORD="change_me_postgres"
+```
+- **CRITICAL**: Change this to a strong, unique password
+- Use a password manager to generate a secure password
+- Example: `MyStr0ng!P@ssw0rd123`
+
+**SUPABASE_JWT_SECRET** - JWT signing secret:
+```bash
+SUPABASE_JWT_SECRET="your-super-secret-jwt-token-with-at-least-32-characters-long"
+```
+- **CRITICAL**: Change this to a unique secret at least 32 characters long
+- Use a password manager or generate with: `openssl rand -base64 32`
+
+**SUPABASE_ANON_KEY** - Anonymous access key:
+```bash
+SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+- This is a demo key - generate your own using Supabase tooling
+- Used for client-side access to your database
+
+**SUPABASE_SERVICE_ROLE_KEY** - Service role key:
+```bash
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+- This is a demo key - generate your own using Supabase tooling  
+- Used for server-side admin access to your database
 
 ## Optional Settings
 
 ### Backup Configuration
 
-**BACKUP_RETENTION_DAYS** - How long to keep backups:
+**BACKUP_ENABLED** - Enable automatic backups:
 ```bash
-BACKUP_RETENTION_DAYS=30
+BACKUP_ENABLED=true
 ```
-- Default is 30 days
-- Adjust based on your storage needs
+- Set to `true` to enable automated backups (recommended)
+- Set to `false` to disable backups
 
 ### Service Ports (Advanced)
 
 These are pre-configured and usually don't need changes:
 ```bash
+NGINX_PORT=443
 SUPABASE_DB_PORT=5432
+SUPABASE_API_PORT=8000
+SUPABASE_STUDIO_PORT=3001
 N8N_PORT=5678
-CHROME_PORT=9222
+CHROME_PORT=3000
 ```
+
+### Environment Settings
+
+**N8N_ENV** - n8n environment:
+```bash
+N8N_ENV="production"
+```
+- Use "production" for live deployments
+- Use "development" for testing
+
+**DRY_RUN** - Enable dry-run mode:
+```bash
+DRY_RUN=false
+```
+- Set to `true` to preview actions without executing them
+- Set to `false` for normal operation
+
+**DEBUG** - Enable debug logging:
+```bash
+DEBUG=false
+```
+- Set to `true` for verbose logging (helpful for troubleshooting)
+- Set to `false` for normal operation
 
 ## Example Complete Configuration
 
 Here's what a typical `jstack.config` file looks like:
 
 ```bash
-# Domain Configuration
-DOMAIN_BASE="mycompany.com"
-SUBDOMAIN_API="api"
-SUBDOMAIN_N8N="n8n"
-SUBDOMAIN_STUDIO="studio"
-SUBDOMAIN_CHROME="chrome"
+# Domain and SSL
+DOMAIN="mycompany.com"
+EMAIL="admin@mycompany.com"
+SSL_ENABLED=true
 
-# SSL Configuration
-SSL_EMAIL="admin@mycompany.com"
+# SSL Certificate Details
+SSL_COUNTRY="US"
+SSL_STATE="California"
+SSL_CITY="San Francisco"
+SSL_ORGANIZATION="My Company Inc"
+SSL_ORG_UNIT="IT Department"
 
-# Environment
-ENVIRONMENT="production"
+# Service Subdomains
+N8N_URL="n8n.mycompany.com"
+SUPABASE_API_URL="api.mycompany.com"
+SUPABASE_STUDIO_URL="studio.mycompany.com"
+CHROME_URL="chrome.mycompany.com"
 
-# Backup Settings
-BACKUP_RETENTION_DAYS=30
-
-# Service Ports (usually no changes needed)
+# Ports (usually no changes needed)
+NGINX_PORT=443
 SUPABASE_DB_PORT=5432
+SUPABASE_API_PORT=8000
+SUPABASE_STUDIO_PORT=3001
 N8N_PORT=5678
-CHROME_PORT=9222
+CHROME_PORT=3000
+
+# Supabase Configuration
+SUPABASE_DB="postgres"
+SUPABASE_JWT_SECRET="MySecureJWTSecretKey1234567890ABCDEF"
+SUPABASE_POSTGRES_PASSWORD="MyStr0ng!Database!P@ssw0rd"
+SUPABASE_ANON_KEY="your-generated-anon-key"
+SUPABASE_SERVICE_ROLE_KEY="your-generated-service-role-key"
+
+# n8n
+N8N_ENV="production"
+
+# Dry-run and backup
+DRY_RUN=false
+BACKUP_ENABLED=true
+
+# Debug
+DEBUG=false
 ```
 
 ## DNS Requirements
