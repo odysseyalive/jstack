@@ -3,7 +3,6 @@
 # Domain and SSL
 DOMAIN="example.com"
 EMAIL="admin@example.com"
-SSL_ENABLED=true
 
 # SSL Certificate Details
 SSL_COUNTRY="US"
