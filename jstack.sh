@@ -23,7 +23,6 @@ parse_flags() {
   REPAIR=false
   DEBUG=false
   INSTALL_SITE=""
-  CERTBOT=false
   while [[ "$1" == --* ]]; do
     case "$1" in
     --dry-run) DRY_RUN=true ;;
@@ -33,7 +32,6 @@ parse_flags() {
     --uninstall) UNINSTALL=true ;;
     --repair) REPAIR=true ;;
     --debug) DEBUG=true ;;
-    --certbot) CERTBOT=true ;;
     --install-site)
       shift
       INSTALL_SITE="$1"
@@ -79,14 +77,6 @@ main() {
     run_core_script install_dependencies
     run_core_script full_stack_install
     ./jstack.sh up
-    exit $?
-  fi
-  if [ "$CERTBOT" = true ]; then
-    CONFIG_FILE="$(dirname "$0")/jstack.config"
-    [ -f "$CONFIG_FILE" ] && source "$CONFIG_FILE"
-    run_core_script orchestrate down nginx
-    sudo certbot certonly --standalone -d "$DOMAIN" --agree-tos --non-interactive --email "$EMAIL"
-    run_core_script orchestrate up nginx
     exit $?
   fi
   if [ -n "$INSTALL_SITE" ]; then
@@ -148,7 +138,7 @@ main() {
         # Add domain to SSL certificate
         if install_site_ssl_certificate "$SITE_DOMAIN"; then
           echo "✓ SSL certificate configured for $SITE_DOMAIN"
-          
+
           # Enable HTTPS redirects for this site
           echo "Enabling HTTPS redirects for $SITE_DOMAIN..."
           bash "$(dirname "$0")/scripts/core/enable_https_redirects.sh"
