@@ -4,17 +4,18 @@
 DOMAIN="example.com"
 EMAIL="admin@example.com"
 
+# Service Subdomains
+# api.example.com
+# chrome.example.com
+# n8n.example.com
+# studio.example.com
+
 # SSL Certificate Details
 SSL_COUNTRY="US"
 SSL_STATE="Oregon"
 SSL_CITY="Portland"
 SSL_ORGANIZATION="Organization"
 SSL_ORG_UNIT="Development"
-
-# Service Subdomains
-N8N_URL="n8n.example.com"
-SUPABASE_API_URL="api.example.com"
-SUPABASE_STUDIO_URL="studio.example.com"
 
 # Ports
 NGINX_PORT=443
