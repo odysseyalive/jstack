@@ -211,6 +211,7 @@ server {
 
 
 EOF
+}
 
 # Install SSL certificate for additional site domain
 install_site_ssl_certificate() {
