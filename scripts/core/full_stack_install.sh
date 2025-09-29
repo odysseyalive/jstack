@@ -201,7 +201,7 @@ if [ -f "$COMPOSE_FILE" ]; then
     local retries=30
     local wait_time=10
     for i in $(seq 1 $retries); do
-      if curl -s -f http://localhost:8000/ >/dev/null 2>&1; then
+      if curl -s http://localhost:8000/ >/dev/null 2>&1; then
         log "✓ Kong is ready"
         break
       fi
