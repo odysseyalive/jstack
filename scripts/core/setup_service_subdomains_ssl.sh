@@ -203,10 +203,10 @@ server {
     }
 
     # Serve landing page during setup
-    location / \{
-        root /usr/share/nginx/html;
-        index index.html index.htm;
-    \}
+    location / {
+        root /usr/share/nginx/html/default;
+        index index.html;
+    }
 }
 
 
@@ -263,7 +263,6 @@ install_site_ssl_certificate() {
     return 1
   fi
 }
-}
 
 generate_nginx_configs() {
   log "Generating NGINX configuration files for domain: $DOMAIN"
@@ -285,10 +284,10 @@ server {
     }
 
     # Serve landing page during setup
-    location / \{
-        root /usr/share/nginx/html;
-        index index.html index.htm;
-    \}
+    location / {
+        root /usr/share/nginx/html/default;
+        index index.html;
+    }
 }
 
 EOF
@@ -309,10 +308,10 @@ server {
     }
 
     # Serve landing page during setup
-    location / \{
-        root /usr/share/nginx/html;
-        index index.html index.htm;
-    \}
+    location / {
+        root /usr/share/nginx/html/default;
+        index index.html;
+    }
 }
 
 
@@ -337,10 +336,10 @@ server {
     }
  
     # Serve landing page during setup
-    location / \{
-        root /usr/share/nginx/html;
-        index index.html index.htm;
-    \}   
+    location / {
+        root /usr/share/nginx/html/default;
+        index index.html;
+    }   
 }
 EOF
 
@@ -360,10 +359,33 @@ server {
     }
    
     # Serve landing page during setup
-    location / \{
-        root /usr/share/nginx/html;
-        index index.html index.htm;
-    \}
+    location / {
+        root /usr/share/nginx/html/default;
+        index index.html;
+    }
+}
+EOF
+
+  # Generate Chrome config
+  log "Creating chrome.${DOMAIN}.conf..."
+  cat >"$nginx_conf_dir/chrome.${DOMAIN}.conf" <<EOF
+# Browserless Chrome - JStack Configuration
+
+# HTTP server for ACME challenges
+server {
+    listen 80;
+    server_name chrome.${DOMAIN};
+    
+    # ACME challenge location for Let's Encrypt
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Serve landing page during setup
+    location / {
+        root /usr/share/nginx/html/default;
+        index index.html;
+    }
 }
 EOF
 

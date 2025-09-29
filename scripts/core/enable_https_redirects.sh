@@ -166,9 +166,30 @@ server {
     server_name chrome.${DOMAIN};
     ssl_certificate /etc/letsencrypt/live/chrome.${DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/chrome.${DOMAIN}/privkey.pem;
+    # Security headers
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+    # Proxy to Browserless Chrome
     location / {
-        root   /usr/share/nginx/html;
-        index  index.html index.htm;
+        proxy_pass http://chrome:3000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Port \$server_port;
+        
+        # WebSocket support for Chrome DevTools
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
 }
 EOF
