@@ -324,8 +324,8 @@ if [ -f "$COMPOSE_FILE" ]; then
     # Run certbot for individual domain
     log "Running certbot for $SUBDOMAIN..."
 
-    # Capture both stdout and stderr for error analysis
-    CERTBOT_OUTPUT=$(docker-compose run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot $email_arg -d "$SUBDOMAIN" --rsa-key-size 2048 --agree-tos --non-interactive 2>&1)
+    # Capture both stdout and stderr for error analysis (with 180 second timeout)
+    CERTBOT_OUTPUT=$(timeout 180 docker-compose run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot $email_arg -d "$SUBDOMAIN" --rsa-key-size 2048 --agree-tos --non-interactive 2>&1)
     CERTBOT_EXIT_CODE=$?
 
     if [ $CERTBOT_EXIT_CODE -eq 0 ]; then

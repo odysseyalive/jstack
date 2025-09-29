@@ -54,32 +54,33 @@ install_if_missing "Certbot" "certbot" "apt-get update && apt-get install -y cer
 install_if_missing "OpenSSL" "openssl" "apt-get update && apt-get install -y openssl"
 
 # Setup iptables rules for Docker port routing
-setup_iptables_rules() {
-  log "Setting up iptables rules for Docker port routing..."
-  
-  # Allow Docker to bind to privileged ports by routing them to unprivileged ports
-  # Route host port 80 to Docker container port 8080
-  sudo iptables -t nat -C PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080 2>/dev/null || \
-    sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
-  
-  # Route host port 443 to Docker container port 8443  
-  sudo iptables -t nat -C PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443 2>/dev/null || \
-    sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
-  
-  # Save iptables rules so they persist after reboot
-  if command -v iptables-save >/dev/null 2>&1; then
-    sudo iptables-save | sudo tee /etc/iptables/rules.v4 >/dev/null 2>&1 || true
-  fi
-  
-  # Install iptables-persistent to restore rules on boot
-  if ! dpkg -l | grep -q iptables-persistent; then
-    log "Installing iptables-persistent for rule persistence..."
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent
-  fi
-  
-  log "✓ iptables rules configured for Docker port routing"
-}
-
-setup_iptables_rules
+# DISABLED: Docker now binds directly to ports 80/443 (no port forwarding needed)
+# setup_iptables_rules() {
+#   log "Setting up iptables rules for Docker port routing..."
+#
+#   # Allow Docker to bind to privileged ports by routing them to unprivileged ports
+#   # Route host port 80 to Docker container port 8080
+#   sudo iptables -t nat -C PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080 2>/dev/null || \
+#     sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
+#
+#   # Route host port 443 to Docker container port 8443
+#   sudo iptables -t nat -C PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443 2>/dev/null || \
+#     sudo iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 8443
+#
+#   # Save iptables rules so they persist after reboot
+#   if command -v iptables-save >/dev/null 2>&1; then
+#     sudo iptables-save | sudo tee /etc/iptables/rules.v4 >/dev/null 2>&1 || true
+#   fi
+#
+#   # Install iptables-persistent to restore rules on boot
+#   if ! dpkg -l | grep -q iptables-persistent; then
+#     log "Installing iptables-persistent for rule persistence..."
+#     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent
+#   fi
+#
+#   log "✓ iptables rules configured for Docker port routing"
+# }
+#
+# setup_iptables_rules
 
 log "Dependency installation completed."
