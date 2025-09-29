@@ -10,9 +10,6 @@ EMAIL="admin@example.com"
 # n8n.example.com
 # studio.example.com
 
-# Service URLs
-CHROME_URL="chrome.example.com"
-
 # SSL Certificate Details
 SSL_COUNTRY="US"
 SSL_STATE="Oregon"

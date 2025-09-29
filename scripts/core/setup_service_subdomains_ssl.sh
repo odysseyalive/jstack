@@ -204,7 +204,7 @@ server {
 
     # Serve landing page during setup
     location / {
-        root /usr/share/nginx/html/default;
+        root /usr/share/nginx/default/html;
         index index.html;
     }
 }
@@ -286,7 +286,7 @@ server {
 
     # Serve landing page during setup
     location / {
-        root /usr/share/nginx/html/default;
+        root /usr/share/nginx/default/html;
         index index.html;
     }
 }
@@ -310,7 +310,7 @@ server {
 
     # Serve landing page during setup
     location / {
-        root /usr/share/nginx/html/default;
+        root /usr/share/nginx/default/html;
         index index.html;
     }
 }
@@ -320,7 +320,7 @@ server {
 
 EOF
 
-# Update NGINX config files with actual domain
+  # Update NGINX config files with actual domain
   # Generate Studio config (Supabase Studio)
   log "Creating studio.${DOMAIN}.conf..."
   cat >"$nginx_conf_dir/studio.${DOMAIN}.conf" <<EOF
@@ -338,7 +338,7 @@ server {
  
     # Serve landing page during setup
     location / {
-        root /usr/share/nginx/html/default;
+        root /usr/share/nginx/default/html;
         index index.html;
     }   
 }
@@ -361,7 +361,7 @@ server {
    
     # Serve landing page during setup
     location / {
-        root /usr/share/nginx/html/default;
+        root /usr/share/nginx/default/html;
         index index.html;
     }
 }
@@ -384,7 +384,7 @@ server {
 
     # Serve landing page during setup
     location / {
-        root /usr/share/nginx/html/default;
+        root /usr/share/nginx/default/html;
         index index.html;
     }
 }
@@ -402,4 +402,3 @@ rm -f nginx/conf.d/*.example.com.conf 2>/dev/null || true
 generate_nginx_configs
 
 log "✓ Service subdomain SSL setup complete"
-
