@@ -318,6 +318,8 @@ server {
 
 
 
+EOF
+
 # Update NGINX config files with actual domain
   # Generate Studio config (Supabase Studio)
   log "Creating studio.${DOMAIN}.conf..."
