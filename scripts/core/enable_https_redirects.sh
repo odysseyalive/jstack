@@ -24,7 +24,8 @@ log() {
 # Certificate validation function
 add_cert_check() {
   local domain="$1"
-  if [ -f "/etc/letsencrypt/live/${domain}/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/${domain}/privkey.pem" ]; then
+  local cert_dir="$(dirname "$0")/../../nginx/certbot/conf/live/${domain}"
+  if [ -f "${cert_dir}/fullchain.pem" ] && [ -f "${cert_dir}/privkey.pem" ]; then
     return 0
   else
     return 1
