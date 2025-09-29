@@ -299,26 +299,6 @@ if [ -f "$COMPOSE_FILE" ]; then
     log "✓ Challenge directory is writable"
   fi
 
-  # Register certbot account first to avoid interactive ToS prompt
-  log "Registering Let's Encrypt account..."
-  email_arg="--email $EMAIL"
-  if [[ -z "$EMAIL" || "$EMAIL" == "admin@example.com" ]]; then
-    email_arg="--register-unsafely-without-email"
-    log "⚠ No email configured for Let's Encrypt account"
-  fi
-
-  # Register account (ignore if already registered)
-  if timeout 60 docker-compose run --rm --entrypoint="" certbot certbot register $email_arg --agree-tos --non-interactive 2>&1 | tee /tmp/certbot-register.log | grep -qE "Account registered|already registered"; then
-    log "✓ Let's Encrypt account registered"
-  else
-    if grep -q "already registered" /tmp/certbot-register.log; then
-      log "✓ Let's Encrypt account already exists"
-    else
-      log "⚠ Account registration returned unexpected output, continuing anyway..."
-    fi
-  fi
-  rm -f /tmp/certbot-register.log
-
   for SUBDOMAIN in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN"; do
     log "Acquiring certificate for $SUBDOMAIN..."
 
@@ -344,19 +324,17 @@ if [ -f "$COMPOSE_FILE" ]; then
     # Run certbot for individual domain
     log "Running certbot for $SUBDOMAIN..."
 
-    # Capture both stdout and stderr for error analysis (with 180 second timeout)
-    CERTBOT_OUTPUT=$(timeout 180 docker-compose run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot $email_arg -d "$SUBDOMAIN" --rsa-key-size 2048 --agree-tos --non-interactive 2>&1)
+    # Run certbot interactively so user can accept ToS prompt if needed
+    docker-compose run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot $email_arg -d "$SUBDOMAIN" --rsa-key-size 2048 --agree-tos
     CERTBOT_EXIT_CODE=$?
 
     if [ $CERTBOT_EXIT_CODE -eq 0 ]; then
       log "✓ SSL certificate acquired for $SUBDOMAIN"
     else
       log "⚠ Failed to acquire Let's Encrypt certificate for $SUBDOMAIN"
-      log "Certbot output:"
-      echo "$CERTBOT_OUTPUT" | tail -20
 
-      # Analyze failure reason
-      if echo "$CERTBOT_OUTPUT" | grep -q "urn:ietf:params:acme:error:dns"; then
+      # Analyze failure reason (certbot output already shown to user)
+      if false; then
         log "  Reason: DNS resolution issue - subdomain may not be properly configured"
       elif echo "$CERTBOT_OUTPUT" | grep -q "urn:ietf:params:acme:error:rateLimited"; then
         log "  Reason: Rate limiting - too many requests from this IP"
