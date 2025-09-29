@@ -159,33 +159,69 @@ server {
 EOF
 }
 
+add_chrome_https_block() {
+    cat >>"$1" <<EOF
+server {
+    listen 443 ssl;
+    server_name chrome.${DOMAIN};
+    ssl_certificate /etc/letsencrypt/live/chrome.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/chrome.${DOMAIN}/privkey.pem;
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+}
+EOF
+}
+
 log "Enabling HTTPS redirects for all configured domains..."
 
-# Replace landing page blocks with HTTPS redirects in all config files
-CONFIG_FILES=(
-    "default.conf"
-    "api.${DOMAIN}.conf"
-    "studio.${DOMAIN}.conf"
-    "n8n.${DOMAIN}.conf"
-)
+# Define subdomains to process
+SUBDOMAINS=("api" "studio" "n8n" "chrome")
+
+# Process each subdomain for HTTPS enablement
 
 for subdomain in "${SUBDOMAINS[@]}"; do
     domain="${subdomain}.${DOMAIN}"
     config_file="${subdomain}.${DOMAIN}.conf"
     config_path="$NGINX_CONF_DIR/$config_file"
-    config_path="$NGINX_CONF_DIR/$config_file"
-    
+
     if [ -f "$config_path" ]; then
-        log "Updating $config_file..."
-        
-        # Add HTTPS blocks for subdomains with valid certificates
-        sed -i '/# Serve landing page during setup/,/index index.html;/ {
-            s|# Serve landing page during setup|# Redirect all other traffic to HTTPS|
-            s|root /usr/share/nginx/html/default;||
-            s|index index.html;|return 301 https://\$host\$request_uri;|
-        }' "$config_path"
-        
-        log "✓ Updated $config_file"
+        log "Processing $config_file..."
+
+        # Check if certificate exists (Let's Encrypt or self-signed)
+        if add_cert_check "$domain"; then
+            log "✓ Certificate found for $domain - enabling HTTPS"
+
+            # Add HTTPS server block based on subdomain type
+            case "$subdomain" in
+                "api")
+                    add_api_https_block "$config_path"
+                    ;;
+                "studio")
+                    add_studio_https_block "$config_path"
+                    ;;
+                "n8n")
+                    add_n8n_https_block "$config_path"
+                    ;;
+                "chrome")
+                    # Chrome uses default-like config, add basic HTTPS block
+                    add_chrome_https_block "$config_path"
+                    ;;
+            esac
+
+            # Replace HTTP landing page with HTTPS redirect
+            sed -i '/# Serve landing page during setup/,/index index.html;/ {
+                s|# Serve landing page during setup|# Redirect HTTP to HTTPS|
+                s|root /usr/share/nginx/html/default;||
+                s|index index.html;|return 301 https://$host$request_uri;|
+            }' "$config_path"
+
+            log "✓ HTTPS enabled for $domain"
+        else
+            log "⚠ No certificate found for $domain - keeping HTTP-only access"
+            log "  Manual certificate setup required for HTTPS"
+        fi
     else
         log "⚠ Config file not found: $config_path"
     fi

@@ -199,6 +199,31 @@ if [ -f "$COMPOSE_FILE" ]; then
   bash "$(dirname "$0")/../fix-supabase-passwords.sh"
 
 
+# Function to generate self-signed certificate as fallback
+generate_self_signed_cert() {
+  local subdomain="$1"
+  local cert_dir="./nginx/certbot/live/${subdomain}"
+  local conf_dir="./nginx/certbot/conf"
+
+  log "Generating self-signed certificate for ${subdomain}..."
+
+  # Create certificate directory
+  mkdir -p "$cert_dir"
+
+  # Generate self-signed certificate using openssl
+  if openssl req -x509 -newkey rsa:2048 -keyout "${cert_dir}/privkey.pem" -out "${cert_dir}/fullchain.pem" -days 365 -nodes -subj "/C=US/ST=State/L=City/O=Organization/CN=${subdomain}" 2>/dev/null; then
+    # Set proper permissions
+    chmod 600 "${cert_dir}/privkey.pem" "${cert_dir}/fullchain.pem"
+    log "✓ Self-signed certificate generated for ${subdomain}"
+    log "⚠ WARNING: Using self-signed certificate for ${subdomain}. Browser will show security warning."
+    log "⚠ Manual certificate renewal required before expiration."
+    return 0
+  else
+    log "✗ Failed to generate self-signed certificate for ${subdomain}"
+    return 1
+  fi
+}
+
 log "Acquiring SSL certificates individually for subdomains..."
 
 for SUBDOMAIN in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN"; do
@@ -209,8 +234,8 @@ for SUBDOMAIN in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN"; 
     if dig +short "$SUBDOMAIN" A | grep -q .; then
       log "✓ $SUBDOMAIN resolves"
     else
-      log "⚠ $SUBDOMAIN does not resolve - skipping certificate acquisition"
-      continue
+      log "⚠ $SUBDOMAIN does not resolve - certificate acquisition will likely fail"
+      # Continue anyway, as DNS might be set up after
     fi
   else
     log "⚠ dig not available, assuming $SUBDOMAIN resolves"
@@ -225,10 +250,40 @@ for SUBDOMAIN in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN"; 
 
   # Run certbot for individual domain
   log "Running certbot for $SUBDOMAIN..."
-  if docker-compose run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot $email_arg -d "$SUBDOMAIN" --rsa-key-size 2048 --agree-tos --non-interactive >/dev/null 2>&1; then
+
+  # Capture both stdout and stderr for error analysis
+  CERTBOT_OUTPUT=$(docker-compose run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot $email_arg -d "$SUBDOMAIN" --rsa-key-size 2048 --agree-tos --non-interactive 2>&1)
+  CERTBOT_EXIT_CODE=$?
+
+  if [ $CERTBOT_EXIT_CODE -eq 0 ]; then
     log "✓ SSL certificate acquired for $SUBDOMAIN"
   else
-    log "⚠ Failed to acquire SSL certificate for $SUBDOMAIN"
+    log "⚠ Failed to acquire Let's Encrypt certificate for $SUBDOMAIN"
+
+    # Analyze failure reason
+    if echo "$CERTBOT_OUTPUT" | grep -q "urn:ietf:params:acme:error:dns"; then
+      log "  Reason: DNS resolution issue - subdomain may not be properly configured"
+    elif echo "$CERTBOT_OUTPUT" | grep -q "urn:ietf:params:acme:error:rateLimited"; then
+      log "  Reason: Rate limiting - too many requests from this IP"
+    elif echo "$CERTBOT_OUTPUT" | grep -q "urn:ietf:params:acme:error:connection"; then
+      log "  Reason: Network/firewall issue preventing ACME challenge"
+    elif echo "$CERTBOT_OUTPUT" | grep -q "urn:ietf:params:acme:error:unauthorized"; then
+      log "  Reason: ACME challenge failed - webroot not accessible"
+    else
+      log "  Reason: Unknown error - check certbot output above"
+    fi
+
+    # Attempt self-signed certificate fallback
+    log "Attempting self-signed certificate generation as fallback..."
+    if generate_self_signed_cert "$SUBDOMAIN"; then
+      log "✓ Self-signed certificate available for $SUBDOMAIN (HTTPS will show warnings)"
+    else
+      log "✗ Self-signed certificate generation failed - $SUBDOMAIN will remain HTTP-only"
+      log "Manual certificate setup instructions:"
+      log "  1. Ensure $SUBDOMAIN resolves to this server"
+      log "  2. Run: docker-compose run --rm --entrypoint='' certbot certbot certonly --webroot -w /var/www/certbot --email $EMAIL -d $SUBDOMAIN --rsa-key-size 2048 --agree-tos"
+      log "  3. Then run: docker-compose exec nginx nginx -s reload"
+    fi
   fi
 done
 
