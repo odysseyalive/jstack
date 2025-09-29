@@ -289,7 +289,7 @@ if [ -f "$COMPOSE_FILE" ]; then
     fi
 
     # Select email argument
-    local email_arg="--email $EMAIL"
+    email_arg="--email $EMAIL"
     if [[ -z "$EMAIL" || "$EMAIL" == "admin@example.com" ]]; then
       email_arg="--register-unsafely-without-email"
       log "⚠ No email configured, using unsafe registration for $SUBDOMAIN"
