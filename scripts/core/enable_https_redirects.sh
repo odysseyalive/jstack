@@ -169,13 +169,16 @@ CONFIG_FILES=(
     "n8n.${DOMAIN}.conf"
 )
 
-for config_file in "${CONFIG_FILES[@]}"; do
+for subdomain in "${SUBDOMAINS[@]}"; do
+    domain="${subdomain}.${DOMAIN}"
+    config_file="${subdomain}.${DOMAIN}.conf"
+    config_path="$NGINX_CONF_DIR/$config_file"
     config_path="$NGINX_CONF_DIR/$config_file"
     
     if [ -f "$config_path" ]; then
         log "Updating $config_file..."
         
-        # Use sed to replace landing page block with HTTPS redirect
+        # Add HTTPS blocks for subdomains with valid certificates
         sed -i '/# Serve landing page during setup/,/index index.html;/ {
             s|# Serve landing page during setup|# Redirect all other traffic to HTTPS|
             s|root /usr/share/nginx/html/default;||
@@ -189,7 +192,7 @@ for config_file in "${CONFIG_FILES[@]}"; do
 done
 
 # Restart nginx to apply changes
-log "Restarting nginx to apply HTTPS redirect configuration..."
+log "Restarting nginx to apply HTTPS configuration..."
 if docker-compose restart nginx >/dev/null 2>&1; then
     log "✓ Nginx restarted successfully"
 else
@@ -197,4 +200,4 @@ else
     exit 1
 fi
 
-log "✓ HTTPS redirects enabled for all domains"
+log "✓ HTTPS blocks added for domains with valid certificates"
