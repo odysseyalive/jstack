@@ -299,6 +299,26 @@ if [ -f "$COMPOSE_FILE" ]; then
     log "✓ Challenge directory is writable"
   fi
 
+  # Register certbot account first to avoid interactive ToS prompt
+  log "Registering Let's Encrypt account..."
+  email_arg="--email $EMAIL"
+  if [[ -z "$EMAIL" || "$EMAIL" == "admin@example.com" ]]; then
+    email_arg="--register-unsafely-without-email"
+    log "⚠ No email configured for Let's Encrypt account"
+  fi
+
+  # Register account (ignore if already registered)
+  if timeout 60 docker-compose run --rm --entrypoint="" certbot certbot register $email_arg --agree-tos --non-interactive 2>&1 | tee /tmp/certbot-register.log | grep -qE "Account registered|already registered"; then
+    log "✓ Let's Encrypt account registered"
+  else
+    if grep -q "already registered" /tmp/certbot-register.log; then
+      log "✓ Let's Encrypt account already exists"
+    else
+      log "⚠ Account registration returned unexpected output, continuing anyway..."
+    fi
+  fi
+  rm -f /tmp/certbot-register.log
+
   for SUBDOMAIN in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN"; do
     log "Acquiring certificate for $SUBDOMAIN..."
 
