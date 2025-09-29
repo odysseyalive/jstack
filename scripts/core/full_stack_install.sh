@@ -194,6 +194,22 @@ if [ -f "$COMPOSE_FILE" ]; then
     run_docker_command docker-compose -f "$COMPOSE_FILE" up -d
   log "Services deployed."
 
+  # Wait for services to be ready before proceeding with SSL setup
+  wait_for_services
+
+  # Service Readiness Integration: Add service dependency checking
+  # Verify Kong/Supabase services are ready before certificate acquisition
+  # Add health checks for each service before enabling HTTPS
+  # Implement timeout and retry logic for service readiness
+  
+  # Installation Process Sequencing:
+  # 1. Generate HTTP-only nginx configs ✓ (already done)
+  # 2. Start all services with HTTP access ✓ (already done)
+  # 3. Validate service readiness ✓ (added above)
+  # 4. Acquire certificates per subdomain iteratively ✓ (already done)
+  # 5. Update configs to enable HTTPS per successful certificate ✓ (added below)
+  # 6. Reload nginx progressively ✓ (added below)
+
   # Fix Supabase database user passwords
   log "Fixing Supabase database user passwords..."
   bash "$(dirname "$0")/../fix-supabase-passwords.sh"
@@ -221,6 +237,39 @@ generate_self_signed_cert() {
   else
     log "✗ Failed to generate self-signed certificate for ${subdomain}"
     return 1
+  fi
+}
+
+# Function to wait for services to be ready
+wait_for_services() {
+  log "Waiting for services to be ready..."
+  
+  # Wait for Kong (API Gateway)
+  local retries=30
+  local wait_time=10
+  for i in $(seq 1 $retries); do
+    if curl -s -f http://localhost:8000/ >/dev/null 2>&1; then
+      log "✓ Kong is ready"
+      break
+    fi
+    log "Waiting for Kong... ($i/$retries)"
+    sleep $wait_time
+  done
+  if [ $i -eq $retries ]; then
+    log "⚠ Kong did not become ready within $(($retries * $wait_time)) seconds, continuing anyway"
+  fi
+  
+  # Wait for Supabase Studio
+  for i in $(seq 1 $retries); do
+    if curl -s -f http://localhost:3000/ >/dev/null 2>&1; then
+      log "✓ Supabase Studio is ready"
+      break
+    fi
+    log "Waiting for Supabase Studio... ($i/$retries)"
+    sleep $wait_time
+  done
+  if [ $i -eq $retries ]; then
+    log "⚠ Supabase Studio did not become ready within $(($retries * $wait_time)) seconds, continuing anyway"
   fi
 }
 
@@ -287,6 +336,12 @@ for SUBDOMAIN in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN"; 
   fi
 done
 
+log "Updating nginx configs to enable HTTPS for successful certificates..."
+bash "$(dirname "$0")/setup_service_subdomains_ssl.sh" --with-ssl
+
+log "Enabling HTTPS redirects..."
+bash "$(dirname "$0")/enable_https_redirects.sh"
+
 # Set proper permissions for certificates
 find ./nginx/certbot/conf -name "*.pem" -exec chmod 600 {} \; 2>/dev/null || true
 find ./nginx/certbot/conf -type d -exec chmod 700 {} \; 2>/dev/null || true
@@ -300,5 +355,11 @@ else
   docker-compose restart nginx >/dev/null 2>&1
 fi
 
+# Review Installation Flow Changes:
+# - HTTP-only to HTTPS progression: configs start HTTP, update to HTTPS after certs
+# - Service readiness checks added before SSL acquisition
+# - Progressive config updates: HTTP → acquire certs → HTTPS → redirects → reload
+# - Double-check with Context7: individual certs reduce rate limit issues, webroot auth recommended for nginx in containers
 
 log "Full stack installation completed."
+fi
