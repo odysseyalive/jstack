@@ -210,6 +210,8 @@ server {
 }
 
 
+EOF
+
 # Install SSL certificate for additional site domain
 install_site_ssl_certificate() {
   local site_domain="$1"
@@ -261,8 +263,8 @@ install_site_ssl_certificate() {
     return 1
   fi
 }
+}
 
-# Generate NGINX config files dynamically
 generate_nginx_configs() {
   log "Generating NGINX configuration files for domain: $DOMAIN"
 
@@ -289,7 +291,6 @@ server {
     \}
 }
 
-}
 EOF
 
   # Generate API config (Supabase Kong)
@@ -365,6 +366,8 @@ server {
 EOF
 
   log "✓ All NGINX configuration files generated successfully"
+}
+
 log "Updating NGINX configs with domain: $DOMAIN"
 
 # Remove any existing example.com config files
