@@ -202,10 +202,11 @@ server {
         root /var/www/certbot;
     }
 
-    # Redirect all other traffic to HTTPS
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
+    # Serve landing page during setup
+    location / \{
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+    \}
 }
 
 # HTTPS server
@@ -319,10 +320,11 @@ server {
         root /var/www/certbot;
     }
 
-    # Redirect all other traffic to HTTPS
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
+    # Serve landing page during setup
+    location / \{
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+    \}
 }
 
 server {
@@ -352,10 +354,11 @@ server {
         root /var/www/certbot;
     }
 
-    # Redirect all other traffic to HTTPS
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
+    # Serve landing page during setup
+    location / \{
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+    \}
 }
 
 # HTTPS server
@@ -409,10 +412,11 @@ server {
         root /var/www/certbot;
     }
  
-    # Redirect all other traffic to HTTPS
-    location / {
-        return 301 https://\$host\$request_uri;
-    }   
+    # Serve landing page during setup
+    location / \{
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+    \}   
 }
 
 # HTTPS server
@@ -470,10 +474,11 @@ server {
         root /var/www/certbot;
     }
    
-    # Redirect all other traffic to HTTPS
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
+    # Serve landing page during setup
+    location / \{
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+    \}
 }
 
 # HTTPS server
