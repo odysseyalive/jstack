@@ -28,9 +28,10 @@ bootstrap_ssl_certificates() {
   local all_domains="${DOMAIN} api.${DOMAIN} studio.${DOMAIN} n8n.${DOMAIN} chrome.${DOMAIN}"
   local certbot_dir="./nginx/certbot"
 
-  # Step 1: Create directories
+  # Step 1: Create directories with proper permissions
   log "Creating SSL certificate directories..."
-  mkdir -p "$certbot_dir/conf" "$certbot_dir/www"
+  mkdir -p "$certbot_dir/conf" "$certbot_dir/www/.well-known/acme-challenge"
+  chmod -R 755 "$certbot_dir/www"
 
   # Step 2: Download recommended TLS parameters if needed
   log "Ensuring TLS parameters are available..."

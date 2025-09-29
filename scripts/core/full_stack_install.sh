@@ -69,6 +69,15 @@ for DIR in "$(dirname "$0")/../../data/supabase" "$(dirname "$0")/../../data/n8n
     mkdir -p "$DIR"
   fi
 done
+
+# Create certbot directories with proper permissions before Docker creates them
+log "Setting up certbot directories..."
+CERTBOT_WWW="$(dirname "$0")/../../nginx/certbot/www"
+CERTBOT_CHALLENGE="$CERTBOT_WWW/.well-known/acme-challenge"
+
+mkdir -p "$CERTBOT_CHALLENGE"
+chmod -R 755 "$CERTBOT_WWW"
+log "✓ Certbot challenge directory created with proper permissions"
 if [ -f "$COMPOSE_FILE" ]; then
   log "Generating secure secrets..."
   # Generate secrets for Supabase
@@ -273,6 +282,23 @@ if [ -f "$COMPOSE_FILE" ]; then
 
   log "Acquiring SSL certificates individually for subdomains..."
 
+  # Validate challenge directory is writable
+  CHALLENGE_DIR="$(dirname "$0")/../../nginx/certbot/www/.well-known/acme-challenge"
+  if [ ! -d "$CHALLENGE_DIR" ]; then
+    log "⚠ Challenge directory does not exist, creating: $CHALLENGE_DIR"
+    mkdir -p "$CHALLENGE_DIR"
+    chmod -R 755 "$(dirname "$0")/../../nginx/certbot/www"
+  fi
+
+  if [ ! -w "$CHALLENGE_DIR" ]; then
+    log "✗ ERROR: Challenge directory is not writable: $CHALLENGE_DIR"
+    log "  Run: chmod -R 755 nginx/certbot/www"
+    log "  Attempting automatic fix..."
+    chmod -R 755 "$(dirname "$0")/../../nginx/certbot/www" || log "⚠ Failed to fix permissions, certificate acquisition may fail"
+  else
+    log "✓ Challenge directory is writable"
+  fi
+
   for SUBDOMAIN in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN"; do
     log "Acquiring certificate for $SUBDOMAIN..."
 
@@ -306,6 +332,8 @@ if [ -f "$COMPOSE_FILE" ]; then
       log "✓ SSL certificate acquired for $SUBDOMAIN"
     else
       log "⚠ Failed to acquire Let's Encrypt certificate for $SUBDOMAIN"
+      log "Certbot output:"
+      echo "$CERTBOT_OUTPUT" | tail -20
 
       # Analyze failure reason
       if echo "$CERTBOT_OUTPUT" | grep -q "urn:ietf:params:acme:error:dns"; then

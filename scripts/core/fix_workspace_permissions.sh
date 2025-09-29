@@ -29,6 +29,21 @@ for DIR in "$WORKSPACE/data/n8n" "$WORKSPACE/data/chrome" "$WORKSPACE/nginx/conf
   fi
 done
 
+# Fix certbot directory permissions to allow challenge file creation
+if [ -d "$WORKSPACE/nginx/certbot/www" ]; then
+  sudo chown -R "$USER_NAME:$DOCKER_GROUP" "$WORKSPACE/nginx/certbot/www"
+  sudo chmod -R 755 "$WORKSPACE/nginx/certbot/www"
+  log "Certbot webroot permissions fixed for challenge file access."
+fi
+
+# Ensure challenge directory exists with proper permissions
+if [ ! -d "$WORKSPACE/nginx/certbot/www/.well-known/acme-challenge" ]; then
+  mkdir -p "$WORKSPACE/nginx/certbot/www/.well-known/acme-challenge"
+  sudo chown -R "$USER_NAME:$DOCKER_GROUP" "$WORKSPACE/nginx/certbot/www"
+  sudo chmod -R 755 "$WORKSPACE/nginx/certbot/www"
+  log "Created certbot challenge directory with proper permissions."
+fi
+
 if [ -f "$WORKSPACE/nginx/nginx.conf" ]; then
   sudo chown "$USER_NAME:$DOCKER_GROUP" "$WORKSPACE/nginx/nginx.conf"
   sudo chmod 664 "$WORKSPACE/nginx/nginx.conf"
