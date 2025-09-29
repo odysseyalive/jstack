@@ -200,7 +200,7 @@ server {
     
     # ACME challenge location for Let's Encrypt
     location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
+        alias /var/www/certbot/.well-known/acme-challenge/;
     }
 
     # Serve landing page during setup
@@ -282,7 +282,7 @@ server {
     
     # ACME challenge location for Let's Encrypt
     location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
+        alias /var/www/certbot/.well-known/acme-challenge/;
     }
 
     # Serve landing page during setup
@@ -306,7 +306,7 @@ server {
     
     # ACME challenge location for Let's Encrypt
     location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
+        alias /var/www/certbot/.well-known/acme-challenge/;
     }
 
     # Serve landing page during setup
@@ -334,7 +334,7 @@ server {
     
     # ACME challenge location for Let's Encrypt
     location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
+        alias /var/www/certbot/.well-known/acme-challenge/;
     }
  
     # Serve landing page during setup
@@ -357,7 +357,7 @@ server {
     
     # ACME challenge location for Let's Encrypt
     location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
+        alias /var/www/certbot/.well-known/acme-challenge/;
     }
    
     # Serve landing page during setup
@@ -380,7 +380,7 @@ server {
     
     # ACME challenge location for Let's Encrypt
     location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
+        alias /var/www/certbot/.well-known/acme-challenge/;
     }
 
     # Serve landing page during setup
