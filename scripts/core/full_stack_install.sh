@@ -366,9 +366,11 @@ if [ -f "$COMPOSE_FILE" ]; then
   log "Enabling HTTPS redirects..."
   bash "$(dirname "$0")/enable_https_redirects.sh"
 
-  # Set proper permissions for certificates
-  find ./nginx/certbot/conf -name "*.pem" -exec chmod 600 {} \; 2>/dev/null || true
-  find ./nginx/certbot/conf -type d -exec chmod 700 {} \; 2>/dev/null || true
+  # Fix certificate permissions to be readable by jarvis user
+  # Use Docker container with root privileges to fix permissions safely
+  log "Fixing certificate file permissions..."
+  docker run --rm -v "$(pwd)/nginx/certbot/conf:/etc/letsencrypt" alpine sh -c "chown -R 1000:1000 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null || true; chmod -R 755 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null || true" >/dev/null 2>&1 || log "⚠ Failed to fix certificate permissions - you may need to run: bash scripts/core/fix_certbot_permissions.sh"
+  log "✓ Certificate permissions fixed"
 
   # Reload nginx to pick up certificates
   log "Reloading nginx..."

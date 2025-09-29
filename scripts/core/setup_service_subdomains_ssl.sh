@@ -164,9 +164,10 @@ log "Setting up SSL certificates for service subdomains..."
 #fi
 log "Skipping SSL bootstrap - will be handled by main installation process"
 
-# Set proper permissions
-find nginx/certbot/conf -name "*.pem" -exec chmod 600 {} \; 2>/dev/null || true
-find nginx/certbot/conf -type d -exec chmod 700 {} \; 2>/dev/null || true
+# Fix certificate permissions to be readable by user
+# Use Docker container to fix permissions without requiring sudo
+log "Fixing certificate file permissions..."
+docker run --rm -v "$(pwd)/nginx/certbot/conf:/etc/letsencrypt" alpine sh -c "chown -R 1000:1000 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null || true; chmod -R 755 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null || true" >/dev/null 2>&1 || log "⚠ Failed to fix certificate permissions"
 
 # Generate site-specific nginx config for --install-site
 generate_site_nginx_config() {
