@@ -199,4 +199,51 @@ if [ -f "$COMPOSE_FILE" ]; then
   bash "$(dirname "$0")/../fix-supabase-passwords.sh"
 
 
+log "Acquiring SSL certificates individually for subdomains..."
+
+for SUBDOMAIN in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN"; do
+  log "Acquiring certificate for $SUBDOMAIN..."
+
+  # Check DNS resolution
+  if command -v dig >/dev/null 2>&1; then
+    if dig +short "$SUBDOMAIN" A | grep -q .; then
+      log "✓ $SUBDOMAIN resolves"
+    else
+      log "⚠ $SUBDOMAIN does not resolve - skipping certificate acquisition"
+      continue
+    fi
+  else
+    log "⚠ dig not available, assuming $SUBDOMAIN resolves"
+  fi
+
+  # Select email argument
+  local email_arg="--email $EMAIL"
+  if [[ -z "$EMAIL" || "$EMAIL" == "admin@example.com" ]]; then
+    email_arg="--register-unsafely-without-email"
+    log "⚠ No email configured, using unsafe registration for $SUBDOMAIN"
+  fi
+
+  # Run certbot for individual domain
+  log "Running certbot for $SUBDOMAIN..."
+  if docker-compose run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot $email_arg -d "$SUBDOMAIN" --rsa-key-size 2048 --agree-tos --non-interactive >/dev/null 2>&1; then
+    log "✓ SSL certificate acquired for $SUBDOMAIN"
+  else
+    log "⚠ Failed to acquire SSL certificate for $SUBDOMAIN"
+  fi
+done
+
+# Set proper permissions for certificates
+find ./nginx/certbot/conf -name "*.pem" -exec chmod 600 {} \; 2>/dev/null || true
+find ./nginx/certbot/conf -type d -exec chmod 700 {} \; 2>/dev/null || true
+
+# Reload nginx to pick up certificates
+log "Reloading nginx..."
+if docker-compose exec nginx nginx -s reload >/dev/null 2>&1; then
+  log "✓ Nginx reloaded"
+else
+  log "⚠ Failed to reload nginx, restarting..."
+  docker-compose restart nginx >/dev/null 2>&1
+fi
+
+
 log "Full stack installation completed."
