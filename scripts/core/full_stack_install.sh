@@ -173,7 +173,7 @@ if [ -f "$COMPOSE_FILE" ]; then
 
 
   log "Setting up SSL certificates for service subdomains..."
-  bash "$(dirname "$0")/setup_service_subdomains_ssl.sh"
+  bash "$(dirname "$0")/setup_service_subdomains_ssl.sh" --http-only
 
   # Deploy services first (without full nginx configs)
   log "Deploying services via Docker Compose..."
@@ -198,98 +198,5 @@ if [ -f "$COMPOSE_FILE" ]; then
   log "Fixing Supabase database user passwords..."
   bash "$(dirname "$0")/../fix-supabase-passwords.sh"
 
-  log "Preparing SSL certificate acquisition..."
-  CONFIG_FILE="$(dirname "$0")/../../jstack.config"
-  if [ -f "$CONFIG_FILE" ]; then
-    source "$CONFIG_FILE"
-
-    # Create simple nginx config for ACME challenges
-    NGINX_CONF_DIR="$(dirname "$0")/../../nginx/conf.d"
-    log "Creating simplified nginx config for SSL certificate acquisition..."
-
-    # Ensure webroot directory exists with proper permissions
-    WEBROOT_DIR="$(dirname "$0")/../../nginx/certbot/www"
-    sudo mkdir -p "$WEBROOT_DIR/.well-known/acme-challenge"
-    sudo chown -R $(whoami):$(whoami) "$(dirname "$0")/../../nginx/certbot/"
-
-    # Restart nginx with existing configs
-    log "Starting nginx with existing configuration..."
-    run_docker_command docker-compose -f "$COMPOSE_FILE" restart nginx
-    sleep 15
-
-    # Get SSL certificates using webroot method with timeout
-    log "Attempting SSL certificate issuance for service subdomains..."
-    for SUBDOMAIN in "api.$DOMAIN" "n8n.$DOMAIN" "studio.$DOMAIN"; do
-      log "Getting SSL certificate for $SUBDOMAIN..."
-
-      # Check if certificate already exists
-      if docker-compose -f "$COMPOSE_FILE" run --rm --entrypoint="" certbot certbot certificates | grep -q "$SUBDOMAIN"; then
-        log "⚠ Certificate for $SUBDOMAIN already exists, attempting renewal..."
-        if timeout 120 docker-compose -f "$COMPOSE_FILE" run --rm certbot renew --cert-name "$SUBDOMAIN" --force-renewal --non-interactive; then
-          log "✓ SSL certificate renewed for $SUBDOMAIN"
-        else
-          log "⚠ Failed to renew SSL certificate for $SUBDOMAIN - continuing with existing certificate"
-        fi
-      else
-        log "Requesting new certificate for $SUBDOMAIN..."
-        if timeout 120 docker-compose -f "$COMPOSE_FILE" run --rm certbot certonly --webroot -w /var/www/certbot -d "$SUBDOMAIN" --agree-tos --non-interactive --email "$EMAIL"; then
-          log "✓ SSL certificate obtained for $SUBDOMAIN"
-        else
-          log "⚠ Failed to get SSL certificate for $SUBDOMAIN - continuing with self-signed"
-        fi
-      fi
-    done
-
-    # Copy certificates to nginx certbot volume and fix permissions
-    log "Copying certificates to nginx volume and setting permissions..."
-    if [ -d "/etc/letsencrypt/archive" ]; then
-      sudo cp -r /etc/letsencrypt/archive "$(dirname "$0")/../../nginx/certbot/conf/" 2>/dev/null || true
-    fi
-    if [ -d "/etc/letsencrypt/live" ]; then
-      # Copy live directory, excluding any existing ones
-      for cert_dir in /etc/letsencrypt/live/*/; do
-        cert_name=$(basename "$cert_dir")
-        if [ "$cert_name" != "*" ] && [ ! -d "$(dirname "$0")/../../nginx/certbot/conf/live/$cert_name" ]; then
-          sudo cp -r "$cert_dir" "$(dirname "$0")/../../nginx/certbot/conf/live/"
-        fi
-      done
-    fi
-
-    # Fix ownership and permissions for nginx container (user 101)
-    sudo chown -R 101:101 "$(dirname "$0")/../../nginx/certbot/conf/live/" "$(dirname "$0")/../../nginx/certbot/conf/archive/" 2>/dev/null || true
-    sudo chmod -R 755 "$(dirname "$0")/../../nginx/certbot/conf/live/" "$(dirname "$0")/../../nginx/certbot/conf/archive/" 2>/dev/null || true
-    sudo chmod 644 "$(dirname "$0")/../../nginx/certbot/conf/archive/"*/fullchain*.pem "$(dirname "$0")/../../nginx/certbot/conf/archive/"*/cert*.pem "$(dirname "$0")/../../nginx/certbot/conf/archive/"*/chain*.pem 2>/dev/null || true
-    sudo chmod 600 "$(dirname "$0")/../../nginx/certbot/conf/archive/"*/privkey*.pem 2>/dev/null || true
-    log "✓ Certificates copied and permissions set"
-
-    # Wait for Kong and other upstream services to be ready
-    log "Waiting for upstream services to be ready..."
-    sleep 30
-    for i in {1..6}; do
-      if docker-compose exec supabase-kong curl -s http://localhost:8000 >/dev/null 2>&1; then
-        log "✓ Kong service is ready"
-        break
-      fi
-      if [ $i -eq 6 ]; then
-        log "⚠ Kong service not ready, proceeding anyway"
-      else
-        log "Waiting for Kong service... (attempt $i/6)"
-        sleep 10
-      fi
-    done
-
-    # Enable HTTPS redirects after SSL certificates are acquired
-    log "Enabling HTTPS redirects for production configuration..."
-    bash "$(dirname "$0")/enable_https_redirects.sh"
-
-    # Restart nginx with full configs
-    log "Restarting nginx with full configuration..."
-    run_docker_command docker-compose -f "$COMPOSE_FILE" restart nginx
-  else
-    log "Config file $CONFIG_FILE not found; skipping certbot SSL setup."
-  fi
-else
-  log "docker-compose.yml not found at $COMPOSE_FILE."
-fi
 
 log "Full stack installation completed."

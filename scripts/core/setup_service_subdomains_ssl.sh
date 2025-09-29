@@ -209,44 +209,6 @@ server {
     \}
 }
 
-# HTTPS server
-server {
-    listen 443 ssl;
-    server_name ${site_domain};
-    ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
-
-    # Security headers
-    add_header X-Frame-Options SAMEORIGIN;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
-
-    # Proxy to site
-    location / {
-        proxy_pass ${proxy_target};
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$host;
-        proxy_set_header X-Forwarded-Port \$server_port;
-        
-        # WebSocket support
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        
-        # Timeouts
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-}
-EOF
-
-  log "✓ Generated nginx config for $site_domain"
-}
 
 # Install SSL certificate for additional site domain
 install_site_ssl_certificate() {
@@ -327,15 +289,6 @@ server {
     \}
 }
 
-server {
-    listen 443 ssl;
-    server_name _;
-    ssl_certificate /etc/letsencrypt/live/api.${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.${DOMAIN}/privkey.pem;
-    location / {
-        root   /usr/share/nginx/html;
-        index  index.html index.htm;
-    }
 }
 EOF
 
@@ -361,42 +314,10 @@ server {
     \}
 }
 
-# HTTPS server
-server {
-    listen 443 ssl;
-    server_name api.${DOMAIN};
-    ssl_certificate /etc/letsencrypt/live/api.${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.${DOMAIN}/privkey.pem;
 
-    # Security headers
-    add_header X-Frame-Options DENY;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
 
-    # Proxy to Supabase Kong API Gateway
-    location / {
-        proxy_pass http://supabase-kong:8000;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$host;
-        proxy_set_header X-Forwarded-Port \$server_port;
-        
-        # WebSocket support for realtime
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        
-        # Timeouts
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-}
-EOF
 
+# Update NGINX config files with actual domain
   # Generate Studio config (Supabase Studio)
   log "Creating studio.${DOMAIN}.conf..."
   cat >"$nginx_conf_dir/studio.${DOMAIN}.conf" <<EOF
@@ -417,45 +338,6 @@ server {
         root /usr/share/nginx/html;
         index index.html index.htm;
     \}   
-}
-
-# HTTPS server
-server {
-    listen 443 ssl;
-    server_name studio.${DOMAIN};
-    ssl_certificate /etc/letsencrypt/live/studio.${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/studio.${DOMAIN}/privkey.pem;
-
-    # Security headers
-    add_header X-Frame-Options SAMEORIGIN;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
-
-    # Proxy to Supabase Studio
-    location / {
-        # HTTP Basic Authentication
-        auth_basic "Supabase Studio - Restricted Access";
-        auth_basic_user_file /etc/nginx/htpasswd;
-        
-        proxy_pass http://supabase-studio:3000;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$host;
-        proxy_set_header X-Forwarded-Port \$server_port;
-        
-        # WebSocket support
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        
-        # Timeouts
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
 }
 EOF
 
@@ -480,50 +362,9 @@ server {
         index index.html index.htm;
     \}
 }
-
-# HTTPS server
-server {
-    listen 443 ssl;
-    server_name n8n.${DOMAIN};
-    ssl_certificate /etc/letsencrypt/live/n8n.${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/n8n.${DOMAIN}/privkey.pem;
-
-    # Security headers
-    add_header X-Frame-Options SAMEORIGIN;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
-
-    # Proxy to n8n
-    location / {
-        proxy_pass http://n8n:5678;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$host;
-        proxy_set_header X-Forwarded-Port \$server_port;
-        
-        # WebSocket support for n8n
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        
-        # Timeouts
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-}
 EOF
 
   log "✓ All NGINX configuration files generated successfully"
-
-  # Note: Chrome service is not exposed publicly for security
-  # Access Chrome internally via http://chrome:3000 from your applications
-}
-
-# Update NGINX config files with actual domain
 log "Updating NGINX configs with domain: $DOMAIN"
 
 # Remove any existing example.com config files
