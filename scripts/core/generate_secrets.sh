@@ -83,23 +83,31 @@ generate_all_secrets() {
         SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         SECRETS_FILE="$SCRIPT_DIR/../../.env.secrets"
         ENV_FILE="$SCRIPT_DIR/../../.env"
-        
+        CONFIG_FILE="$SCRIPT_DIR/../../jstack.config"
+
+        # Read DOMAIN and EMAIL from config if available
+        if [ -f "$CONFIG_FILE" ]; then
+            source "$CONFIG_FILE"
+        fi
+
         # Save to both .env.secrets and .env (without auto-generated password)
         cat > "$SECRETS_FILE" << EOF
-SUPABASE_PASSWORD=$SUPABASE_PASSWORD
 SUPABASE_JWT_SECRET=$JWT_SECRET
 SUPABASE_ANON_KEY=$ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
 SUPABASE_SERVICE_KEY=$SERVICE_ROLE_KEY
+SUPABASE_PASSWORD=$SUPABASE_PASSWORD
 EOF
-        
+
         cat > "$ENV_FILE" << EOF
 # Supabase Database Configuration
-SUPABASE_PASSWORD=$SUPABASE_PASSWORD
 SUPABASE_JWT_SECRET=$JWT_SECRET
 SUPABASE_ANON_KEY=$ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
 SUPABASE_SERVICE_KEY=$SERVICE_ROLE_KEY
+EMAIL=${EMAIL:-admin@example.com}
+DOMAIN=${DOMAIN:-localhost}
+SUPABASE_PASSWORD=$SUPABASE_PASSWORD
 EOF
         log "✓ Secrets saved to $SECRETS_FILE and $ENV_FILE"
     fi

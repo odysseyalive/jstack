@@ -86,9 +86,9 @@ services:
       - DEFAULT_ORGANIZATION_NAME=JStack Organization
       - DEFAULT_PROJECT_NAME=JStack Project
       - SUPABASE_URL=http://supabase-kong:8000
-      - SUPABASE_PUBLIC_URL=http://localhost:8000
-      - ANON_KEY=${SUPABASE_ANON_KEY}
-      - SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_PUBLIC_URL=https://api.${DOMAIN}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - AUTH_JWT_SECRET=${SUPABASE_JWT_SECRET}
       - SUPABASE_REST_URL=http://supabase-rest:3000
 
@@ -179,7 +179,7 @@ services:
     environment:
       - GOTRUE_API_HOST=0.0.0.0
       - GOTRUE_API_PORT=9999
-      - API_EXTERNAL_URL=http://localhost:8000
+      - API_EXTERNAL_URL=https://api.${DOMAIN}
       - GOTRUE_DB_DRIVER=postgres
       - GOTRUE_DB_DATABASE_URL=postgres://supabase_auth_admin:${SUPABASE_PASSWORD}@supabase-db:5432/postgres
       - GOTRUE_DB_AUTOMIGRATE=true
