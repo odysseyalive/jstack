@@ -63,7 +63,7 @@ check_docker_permissions
 
 COMPOSE_FILE="$(dirname "$0")/../../docker-compose.yml"
 log "Checking workspace volume directories..."
-for DIR in "$(dirname "$0")/../../data/supabase" "$(dirname "$0")/../../data/n8n" "$(dirname "$0")/../../data/chrome" "$(dirname "$0")/../../nginx/conf.d" "$(dirname "$0")/../../nginx/ssl"; do
+for DIR in "$(dirname "$0")/../../data/supabase" "$(dirname "$0")/../../data/n8n" "$(dirname "$0")/../../data/chrome" "$(dirname "$0")/../../nginx/conf.d" "$(dirname "$0")/../../nginx/ssl" "$(dirname "$0")/../../nginx/logs"; do
   if [ ! -d "$DIR" ]; then
     log "Creating missing directory: $DIR"
     mkdir -p "$DIR"
@@ -78,6 +78,13 @@ CERTBOT_CHALLENGE="$CERTBOT_WWW/.well-known/acme-challenge"
 mkdir -p "$CERTBOT_CHALLENGE"
 chmod -R 755 "$CERTBOT_WWW"
 log "✓ Certbot challenge directory created with proper permissions"
+
+# Create nginx logs directory with proper permissions
+log "Setting up nginx logs directory..."
+NGINX_LOGS="$(dirname "$0")/../../nginx/logs"
+mkdir -p "$NGINX_LOGS"
+chmod 755 "$NGINX_LOGS"
+log "✓ Nginx logs directory created with proper permissions"
 if [ -f "$COMPOSE_FILE" ]; then
   log "Generating secure secrets..."
   # Generate secrets for Supabase
@@ -386,6 +393,15 @@ if [ -f "$COMPOSE_FILE" ]; then
   # - Service readiness checks added before SSL acquisition
   # - Progressive config updates: HTTP → acquire certs → HTTPS → redirects → reload
   # - Double-check with Context7: individual certs reduce rate limit issues, webroot auth recommended for nginx in containers
+
+  # Setup fail2ban for SSH and NGINX protection
+  log "Setting up fail2ban for SSH and NGINX protection..."
+  if bash "$(dirname "$0")/setup_fail2ban.sh"; then
+    log "✓ Fail2ban setup completed"
+  else
+    log "⚠ Fail2ban setup encountered issues - check logs above"
+    log "  You can run it manually later: bash scripts/core/setup_fail2ban.sh"
+  fi
 
   log "Full stack installation completed."
 fi

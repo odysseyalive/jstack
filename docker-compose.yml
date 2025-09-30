@@ -12,6 +12,8 @@ services:
       - ./nginx/certbot/conf:/etc/letsencrypt
       - ./nginx/certbot/www:/var/www/certbot
       - ./nginx/htpasswd:/etc/nginx/htpasswd:ro
+      - ./nginx/logs:/var/log/nginx
+    command: /bin/sh -c "rm -f /var/log/nginx/*.log && exec nginx -g 'daemon off;'"
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
@@ -93,6 +95,7 @@ services:
       - SUPABASE_REST_URL=http://supabase-rest:3000
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
 
   supabase-kong:
     image: kong:2.8.1
