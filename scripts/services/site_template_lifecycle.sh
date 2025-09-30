@@ -14,6 +14,7 @@ usage() {
 }
 
 log() {
+  mkdir -p "$LOG_DIR"
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_DIR/site_template_lifecycle.log"
 }
 

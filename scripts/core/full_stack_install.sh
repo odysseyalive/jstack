@@ -403,5 +403,14 @@ if [ -f "$COMPOSE_FILE" ]; then
     log "  You can run it manually later: bash scripts/core/setup_fail2ban.sh"
   fi
 
+  # Setup log rotation
+  log "Setting up log rotation..."
+  if bash "$(dirname "$0")/setup_log_rotation.sh"; then
+    log "✓ Log rotation setup completed"
+  else
+    log "⚠ Log rotation setup encountered issues - check logs above"
+    log "  You can run it manually later: bash scripts/core/setup_log_rotation.sh"
+  fi
+
   log "Full stack installation completed."
 fi
