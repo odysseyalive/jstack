@@ -40,7 +40,7 @@ services:
       - N8N_BASIC_AUTH_USER=admin
       - N8N_BASIC_AUTH_PASSWORD=change_me
       - N8N_ENV=production
-      - WEBHOOK_URL={$N8N_WEBHOOK_URL}
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL}
     volumes:
       - ./data/n8n:/home/node/.n8n
   # Supabase Services
@@ -173,6 +173,19 @@ services:
                 allow:
                   - admin
                   - anon
+        - name: functions-v1
+          _comment: "Edge Functions: /functions/v1/* -> http://supabase-functions:9000/*"
+          url: http://supabase-functions:9000/
+          routes:
+            - name: functions-v1-all
+              strip_path: true
+              paths:
+                - "/functions/v1/"
+          plugins:
+            - name: cors
+            - name: key-auth
+              config:
+                hide_credentials: false
       EOF
       /docker-entrypoint.sh kong docker-start'
 
@@ -255,6 +268,29 @@ services:
       - PG_META_DB_NAME=postgres
       - PG_META_DB_USER=supabase_admin
       - PG_META_DB_PASSWORD=${SUPABASE_PASSWORD}
+
+  supabase-functions:
+    image: supabase/edge-runtime:v1.62.3
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    environment:
+      - JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - SUPABASE_URL=http://supabase-kong:8000
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_DB_URL=postgresql://postgres:${SUPABASE_PASSWORD}@supabase-db:5432/postgres
+      - VERIFY_JWT=false
+    volumes:
+      - ./supabase/functions:/usr/services:ro
+    command:
+      - start
+      - --main-service
+      - /usr/services/_main
+
   chrome:
     image: browserless/chrome
     restart: unless-stopped
