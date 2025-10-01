@@ -34,22 +34,25 @@ generate_jwt_secret() {
 # Generate Supabase ANON key (JWT token)
 generate_anon_key() {
     local jwt_secret="$1"
-    local payload='{"role":"anon","iss":"supabase","iat":1641769200,"exp":1799535600}'
-    local header='{"alg":"HS256","typ":"JWT"}'
-    
-    # Simple JWT generation (for demo purposes - in production you'd use a proper JWT library)
-    # This is a placeholder - the actual implementation would need proper JWT signing
-    echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNjQxNzY5MjAwLCJleHAiOjE3OTk1MzU2MDB9.$(echo -n "${header}.${payload}" | openssl dgst -sha256 -hmac "$jwt_secret" -binary | base64 | tr -d '\n' | tr '+/' '-_' | tr -d '=')"
+    # Pre-encoded base64 header and payload (standard JWT format)
+    local header_payload="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNjQxNzY5MjAwLCJleHAiOjE3OTk1MzU2MDB9"
+
+    # Generate HMAC-SHA256 signature of the header.payload
+    local signature=$(echo -n "$header_payload" | openssl dgst -sha256 -hmac "$jwt_secret" -binary | base64 | tr -d '\n' | tr '+/' '-_' | tr -d '=')
+
+    echo "${header_payload}.${signature}"
 }
 
 # Generate Supabase SERVICE_ROLE key (JWT token)
 generate_service_role_key() {
     local jwt_secret="$1"
-    local payload='{"role":"service_role","iss":"supabase","iat":1641769200,"exp":1799535600}'
-    local header='{"alg":"HS256","typ":"JWT"}'
-    
-    # Simple JWT generation (for demo purposes)
-    echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTc5OTUzNTYwMH0.$(echo -n "${header}.${payload}" | openssl dgst -sha256 -hmac "$jwt_secret" -binary | base64 | tr -d '\n' | tr '+/' '-_' | tr -d '=')"
+    # Pre-encoded base64 header and payload (standard JWT format)
+    local header_payload="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTc5OTUzNTYwMH0"
+
+    # Generate HMAC-SHA256 signature of the header.payload
+    local signature=$(echo -n "$header_payload" | openssl dgst -sha256 -hmac "$jwt_secret" -binary | base64 | tr -d '\n' | tr '+/' '-_' | tr -d '=')
+
+    echo "${header_payload}.${signature}"
 }
 
 # Main function to generate all secrets
@@ -133,6 +136,10 @@ OPENAI_BASE_URL=https://api.anthropic.com/v1/
 # Option 4: Local LLM with OpenAI-compatible API (Ollama, LM Studio, etc)
 #OPENAI_BASE_URL=http://host.docker.internal:11434/v1
 #OPENAI_API_KEY=sk-no-key-required
+
+# n8n Webhook Configuration
+N8N_WEBHOOK_URL=https://n8n.${DOMAIN}
+JARVIS_WEBHOOK_URL=your-webhook-goes-here
 EOF
         log "✓ Secrets saved to $SECRETS_FILE and $ENV_FILE"
     fi
