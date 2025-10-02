@@ -710,7 +710,7 @@ class SupabaseCloudToSelfHostedMigrator {
     // Check if auth.users exists in source
     const authCheck = await this.sourcePool.query(`
       SELECT EXISTS (
-        SELECT 1 FROM information_schema.tables 
+        SELECT 1 FROM information_schema.tables
         WHERE table_schema = 'auth' AND table_name = 'users'
       );
     `);
@@ -723,7 +723,7 @@ class SupabaseCloudToSelfHostedMigrator {
     // Check if target has auth.users
     const targetAuthCheck = await this.targetPool.query(`
       SELECT EXISTS (
-        SELECT 1 FROM information_schema.tables 
+        SELECT 1 FROM information_schema.tables
         WHERE table_schema = 'auth' AND table_name = 'users'
       );
     `);
@@ -737,80 +737,380 @@ class SupabaseCloudToSelfHostedMigrator {
     }
   }
 
+  async downloadEdgeFunctionsFromCloud() {
+    console.log('\n📥 Downloading Edge Functions from Supabase Cloud...');
+
+    const managementToken = this.sourceConfig.managementApiToken;
+    const projectRef = this.sourceConfig.projectRef;
+
+    if (!managementToken) {
+      console.log('  ⚠ No SOURCE_MANAGEMENT_API_TOKEN provided');
+      console.log('    Create one at: https://supabase.com/dashboard/account/tokens');
+      console.log('    Add to .env: SOURCE_MANAGEMENT_API_TOKEN=sbp_...');
+      return null;
+    }
+
+    if (!projectRef) {
+      console.log('  ⚠ No SOURCE_PROJECT_REF provided');
+      console.log('    Add to .env: SOURCE_PROJECT_REF=your-project-ref');
+      return null;
+    }
+
+    try {
+      // List all functions
+      console.log(`  Fetching functions list for project: ${projectRef}`);
+      const listResponse = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/functions`, {
+        headers: {
+          'Authorization': `Bearer ${managementToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!listResponse.ok) {
+        const errorText = await listResponse.text();
+        throw new Error(`Failed to list functions: ${listResponse.status} - ${errorText}`);
+      }
+
+      const functions = await listResponse.json();
+
+      if (!functions || functions.length === 0) {
+        console.log('  No Edge Functions found in Supabase Cloud project');
+        return null;
+      }
+
+      console.log(`  Found ${functions.length} Edge Functions:`);
+      functions.forEach(func => {
+        console.log(`    - ${func.slug} (v${func.version}, ${func.status})`);
+      });
+
+      // Create temporary directory for downloaded functions
+      const downloadPath = './migration-temp-functions';
+      await fs.mkdir(downloadPath, { recursive: true });
+
+      const downloadedFunctions = [];
+
+      // Download each function's body
+      for (const func of functions) {
+        console.log(`\n  Downloading: ${func.slug}`);
+
+        try {
+          const bodyResponse = await fetch(
+            `https://api.supabase.com/v1/projects/${projectRef}/functions/${func.slug}/body`,
+            {
+              headers: {
+                'Authorization': `Bearer ${managementToken}`,
+              }
+            }
+          );
+
+          if (!bodyResponse.ok) {
+            throw new Error(`Failed to download: ${bodyResponse.status}`);
+          }
+
+          // The response is an eszip (Deno's binary module format)
+          const buffer = await bodyResponse.arrayBuffer();
+          const eszipPath = path.join(downloadPath, `${func.slug}.eszip`);
+          await fs.writeFile(eszipPath, Buffer.from(buffer));
+
+          console.log(`    ✓ Downloaded ${func.slug}.eszip`);
+
+          // Extract TypeScript source from eszip
+          const extractPath = path.join(downloadPath, func.slug);
+          await fs.mkdir(extractPath, { recursive: true });
+
+          try {
+            // Read eszip file and extract TypeScript source
+            const eszipBuffer = await fs.readFile(eszipPath);
+            const content = eszipBuffer.toString('utf-8', 0, Math.min(eszipBuffer.length, 1024 * 1024));
+
+            // Find source/index.ts marker
+            const sourceMarker = 'source/index.ts';
+            const sourceIndex = content.indexOf(sourceMarker);
+
+            if (sourceIndex === -1) {
+              throw new Error('Could not find index.ts source marker');
+            }
+
+            // Extract code after marker
+            const afterMarker = content.substring(sourceIndex + sourceMarker.length);
+
+            // Find start of TypeScript code
+            const codePatterns = [/import\s+.*from/, /Deno\.serve\(/, /export\s+/, /const\s+\w+\s*=/, /function\s+\w+/];
+            let codeStart = -1;
+            for (const pattern of codePatterns) {
+              const match = afterMarker.search(pattern);
+              if (match !== -1 && (codeStart === -1 || match < codeStart)) {
+                codeStart = match;
+              }
+            }
+
+            if (codeStart === -1) {
+              throw new Error('Could not find TypeScript code start');
+            }
+
+            let code = afterMarker.substring(codeStart);
+
+            // Find end of code
+            const endPatterns = [/\x00{4,}/, /_file:\/\//, /ESZIP/];
+            let codeEnd = code.length;
+            for (const pattern of endPatterns) {
+              const match = code.search(pattern);
+              if (match !== -1 && match < codeEnd) {
+                codeEnd = match;
+              }
+            }
+
+            code = code.substring(0, codeEnd);
+
+            // Clean up binary artifacts
+            code = code
+              .split('\n')
+              .filter(line => {
+                const printable = line.replace(/[^\x20-\x7E\n\r\t]/g, '').length;
+                const total = line.length;
+                return total === 0 || (printable / total) > 0.5;
+              })
+              .join('\n')
+              .trim();
+
+            // Write index.ts
+            const indexPath = path.join(extractPath, 'index.ts');
+            await fs.writeFile(indexPath, code, 'utf-8');
+
+            console.log(`    ✓ Extracted ${code.length} bytes to ${extractPath}`);
+
+            // Clean up eszip file
+            await fs.unlink(eszipPath);
+
+            downloadedFunctions.push({
+              name: func.slug,
+              path: extractPath,
+              metadata: func
+            });
+
+          } catch (extractError) {
+            console.log(`    ✗ Failed to extract: ${extractError.message}`);
+            console.log(`    ℹ Keeping eszip file at: ${eszipPath}`);
+          }
+
+        } catch (error) {
+          console.log(`    ✗ Failed to download ${func.slug}: ${error.message}`);
+        }
+      }
+
+      console.log(`\n  ✓ Downloaded ${downloadedFunctions.length} of ${functions.length} functions`);
+
+      return {
+        functions: downloadedFunctions,
+        downloadPath: downloadPath
+      };
+
+    } catch (error) {
+      console.error('  ✗ Failed to download Edge Functions:', error.message);
+      return null;
+    }
+  }
+
   async migrateEdgeFunctions() {
     console.log('\n🚀 Migrating Edge Functions...');
 
-    const functionsPath = this.sourceConfig.edgeFunctionsPath || './supabase/functions';
-    const targetPath = this.targetConfig.edgeFunctionsPath || './migrated-edge-functions';
+    const jstackPath = this.targetConfig.jstackPath || process.env.JSTACK_PATH || '/home/jarvis/jstack';
+    let functionsPath = this.sourceConfig.edgeFunctionsPath || './supabase/functions';
+    let downloadResult = null;
+    let cleanupDownloads = false;
+
+    // First, try to download from Supabase Cloud
+    if (this.sourceConfig.managementApiToken && this.sourceConfig.projectRef) {
+      downloadResult = await this.downloadEdgeFunctionsFromCloud();
+
+      if (downloadResult && downloadResult.functions.length > 0) {
+        // Use the downloaded functions
+        functionsPath = downloadResult.downloadPath;
+        cleanupDownloads = true;
+        console.log(`\n  Using downloaded functions from: ${functionsPath}`);
+      }
+    } else {
+      console.log('\n  ⚠ Skipping cloud download (no Management API token or project ref)');
+      console.log('    Will use local files from:', functionsPath);
+    }
 
     try {
-      const entries = await fs.readdir(functionsPath, { withFileTypes: true });
-      const functionDirs = entries.filter(entry => entry.isDirectory());
+      // Get list of function directories
+      let functionDirs;
+
+      if (downloadResult) {
+        // Use downloaded functions list
+        functionDirs = downloadResult.functions.map(f => ({
+          name: f.name,
+          isDirectory: () => true
+        }));
+      } else {
+        // Use local files
+        const entries = await fs.readdir(functionsPath, { withFileTypes: true });
+        // Filter out system directories (_main, _shared, etc)
+        functionDirs = entries.filter(entry =>
+          entry.isDirectory() && !entry.name.startsWith('_')
+        );
+      }
 
       if (functionDirs.length === 0) {
         console.log('  No Edge Functions found to migrate');
         return;
       }
 
-      console.log(`  Found ${functionDirs.length} Edge Functions`);
+      console.log(`\n  Found ${functionDirs.length} Edge Functions to migrate`);
+      console.log(`  JStack path: ${jstackPath}`);
 
-      // Create target directory
-      await fs.mkdir(targetPath, { recursive: true });
+      // Check if JStack exists
+      const jstackScript = path.join(jstackPath, 'jstack.sh');
+      try {
+        await fs.access(jstackScript);
+      } catch (error) {
+        console.log('  ⚠ JStack script not found, falling back to simple file copy');
+        return this.migrateEdgeFunctionsFallback(functionsPath, functionDirs);
+      }
+
+      console.log('\n  Using JStack to import edge functions...\n');
+
+      // Import each function using JStack
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
 
       for (const dir of functionDirs) {
         const functionName = dir.name;
-        const sourceFunctionPath = path.join(functionsPath, functionName);
-        const targetFunctionPath = path.join(targetPath, functionName);
+        const sourceFunctionPath = path.resolve(functionsPath, functionName);
 
-        console.log(`  Copying Edge Function: ${functionName}`);
+        console.log(`  Importing function: ${functionName}`);
 
-        // Copy entire function directory
-        await this.copyDirectory(sourceFunctionPath, targetFunctionPath);
+        try {
+          // Use JStack import command with absolute paths
+          const scriptPath = path.join(jstackPath, 'scripts/core/manage_edge_functions.sh');
 
-        console.log(`    ✓ Copied to ${targetFunctionPath}`);
+          // Use yes command to auto-answer prompts (overwrite existing functions)
+          const importCmd = `cd ${jstackPath} && yes y 2>/dev/null | bash "${scriptPath}" import "${sourceFunctionPath}" 2>&1 || true`;
+
+          const { stdout, stderr } = await execAsync(importCmd, {
+            shell: '/bin/bash',
+            timeout: 30000
+          });
+
+          if (stdout) {
+            console.log(`    ✓ Imported successfully`);
+            // Show any important output
+            if (stdout.includes('Test at:')) {
+              const testUrl = stdout.match(/Test at: (.*)/)?.[1];
+              if (testUrl) {
+                console.log(`    ${testUrl}`);
+              }
+            }
+          }
+          if (stderr && !stderr.includes('warning')) {
+            console.log(`    ⚠ ${stderr.trim()}`);
+          }
+        } catch (error) {
+          console.log(`    ✗ Import failed: ${error.message}`);
+          console.log(`    ℹ You can manually import later with:`);
+          console.log(`      cd ${jstackPath} && ./jstack.sh --functions import "${sourceFunctionPath}"`);
+        }
       }
 
-      // Create deployment instructions
-      const deployScript = `#!/bin/bash
-# Edge Functions Deployment Script for Self-Hosted Supabase
-# Generated on ${new Date().toISOString()}
+      console.log('\n  ✓ Edge Functions migration completed');
+      console.log('\n  📌 Next steps:');
+      console.log('     1. Register functions in _main router for Docker deployment');
+      console.log(`     2. Edit: ${path.join(jstackPath, 'supabase/functions/_main/index.ts')}`);
+      console.log('     3. Add each function to REGISTERED_FUNCTIONS array');
+      console.log('     4. Add handler case in switch statement');
+      console.log('     5. Implement handler function');
+      console.log(`     6. Restart: cd ${jstackPath} && ./jstack.sh --functions restart`);
+      console.log('\n     Or for local development:');
+      console.log(`     cd ${jstackPath} && supabase functions serve`);
 
-FUNCTIONS_DIR="${targetPath}"
-SELF_HOSTED_URL="${this.targetConfig.url || 'http://localhost:8000'}"
-ANON_KEY="${this.targetConfig.anonKey || 'YOUR_ANON_KEY'}"
-
-echo "Deploying Edge Functions to self-hosted Supabase..."
-
-# For self-hosted Supabase, Edge Functions need to be deployed differently
-# Option 1: Using Deno Deploy (if your self-hosted setup supports it)
-# Option 2: Running as separate Deno services
-# Option 3: Using the self-hosted Edge Runtime
-
-# Instructions for each function:
-${functionDirs.map(dir => `
-# Function: ${dir.name}
-# Location: $FUNCTIONS_DIR/${dir.name}
-# To deploy using Deno:
-# deno run --allow-net --allow-env $FUNCTIONS_DIR/${dir.name}/index.ts
-`).join('\n')}
-
-echo "Please refer to your self-hosted Supabase documentation for Edge Function deployment"
-`;
-
-      await fs.writeFile(path.join(targetPath, 'deploy.sh'), deployScript);
-      console.log(`\n  ✓ Edge Functions copied to: ${targetPath}`);
-      console.log('  ✓ Created deploy.sh with deployment instructions');
-
-      // Additional instructions for self-hosted
-      console.log('\n  📌 For self-hosted Supabase, Edge Functions deployment depends on your setup:');
-      console.log('     1. If using Supabase CLI with self-hosted, link to your project and deploy');
-      console.log('     2. If using Docker, mount the functions directory to your Edge Runtime container');
-      console.log('     3. Run functions as separate Deno services with appropriate environment variables');
+      // Clean up downloaded files
+      if (cleanupDownloads) {
+        console.log('\n  🧹 Cleaning up downloaded files...');
+        await fs.rm(functionsPath, { recursive: true, force: true });
+        console.log('    ✓ Cleanup complete');
+      }
 
     } catch (error) {
       console.error('  ✗ Failed to migrate Edge Functions:', error.message);
       console.log('    Make sure the source Edge Functions path exists');
+      console.log(`    Source path: ${functionsPath}`);
     }
+  }
+
+  async migrateEdgeFunctionsFallback(functionsPath, functionDirs) {
+    const targetPath = './migrated-edge-functions';
+
+    console.log('\n  Using fallback: copying to temporary directory');
+    console.log(`  Target: ${targetPath}`);
+
+    // Create target directory
+    await fs.mkdir(targetPath, { recursive: true });
+
+    for (const dir of functionDirs) {
+      const functionName = dir.name;
+      const sourceFunctionPath = path.join(functionsPath, functionName);
+      const targetFunctionPath = path.join(targetPath, functionName);
+
+      console.log(`  Copying: ${functionName}`);
+      await this.copyDirectory(sourceFunctionPath, targetFunctionPath);
+      console.log(`    ✓ Copied to ${targetFunctionPath}`);
+    }
+
+    // Create instructions file
+    const instructions = `# Edge Functions Migration Instructions
+
+## Migrated Functions
+
+${functionDirs.map(dir => `- ${dir.name}`).join('\n')}
+
+## Import to JStack
+
+To import these functions into your JStack instance:
+
+\`\`\`bash
+# Import each function
+${functionDirs.map(dir => `
+# Import ${dir.name}
+cd /home/jarvis/jstack
+./jstack.sh --functions import "$(pwd)/migrated-edge-functions/${dir.name}"
+`).join('\n')}
+\`\`\`
+
+## Register in Docker
+
+After importing, register each function in the _main router:
+
+1. Edit: \`/home/jarvis/jstack/supabase/functions/_main/index.ts\`
+2. Add to REGISTERED_FUNCTIONS array:
+   \`\`\`typescript
+   const REGISTERED_FUNCTIONS = [
+${functionDirs.map(dir => `     '${dir.name}',`).join('\n')}
+   ]
+   \`\`\`
+3. Add handler case in switch statement
+4. Implement handler function
+5. Restart: \`./jstack.sh --functions restart\`
+
+## Local Development
+
+For development with auto-discovery:
+
+\`\`\`bash
+cd /home/jarvis/jstack
+supabase functions serve
+\`\`\`
+
+Functions will be available at:
+${functionDirs.map(dir => `- http://localhost:54321/functions/v1/${dir.name}`).join('\n')}
+`;
+
+    await fs.writeFile(path.join(targetPath, 'IMPORT_INSTRUCTIONS.md'), instructions);
+
+    console.log(`\n  ✓ Functions copied to: ${targetPath}`);
+    console.log('  ✓ See IMPORT_INSTRUCTIONS.md for next steps');
   }
 
   async copyDirectory(source, target) {
@@ -908,7 +1208,7 @@ echo "Please refer to your self-hosted Supabase documentation for Edge Function 
     }
   }
 
-  async migrateData(includeData = false, telegramIdMapping = null) {
+  async migrateData(includeData = false, newTelegramId = null) {
     if (!includeData) {
       console.log('\n📊 Skipping data migration (use --include-data to migrate data)');
       return;
@@ -916,8 +1216,8 @@ echo "Please refer to your self-hosted Supabase documentation for Edge Function 
 
     console.log('\n📊 Migrating data...');
 
-    if (telegramIdMapping) {
-      console.log(`  🔄 Will swap Telegram IDs: ${telegramIdMapping.old} → ${telegramIdMapping.new}`);
+    if (newTelegramId) {
+      console.log(`  🔄 Will replace ALL values in user_telegram_id and chat_telegram_id columns with: ${newTelegramId}`);
     }
 
     // Get all tables with their foreign key dependencies
@@ -1018,8 +1318,8 @@ echo "Please refer to your self-hosted Supabase documentation for Edge Function 
           const columns = Object.keys(sourceData.rows[0]);
 
           // Check which telegram columns exist in this table
-          const telegramColumns = columns.filter(col =>
-            col.includes('telegram_id') || col === 'telegram_username'
+          const telegramIdColumns = columns.filter(col =>
+            col === 'user_telegram_id' || col === 'chat_telegram_id'
           );
 
           // Insert in batches to avoid query size limits
@@ -1030,29 +1330,18 @@ echo "Please refer to your self-hosted Supabase documentation for Edge Function 
             const batch = sourceData.rows.slice(i, i + batchSize);
 
             const values = batch.map(row => {
-              // Apply telegram ID mapping if specified
-              if (telegramIdMapping && telegramColumns.length > 0) {
-                for (const col of telegramColumns) {
+              // Replace ALL telegram IDs if specified (including null values)
+              if (newTelegramId && telegramIdColumns.length > 0) {
+                for (const col of telegramIdColumns) {
                   const colType = columnTypeMap[col];
-                  const currentValue = row[col];
 
-                  if (currentValue === null || currentValue === undefined) {
-                    continue;
-                  }
-
+                  // Replace with new ID regardless of current value (including nulls)
                   // Handle different column types
                   if (colType && colType.type === 'bigint') {
-                    // For bigint columns, compare numerically
-                    const oldIdNum = BigInt(telegramIdMapping.old);
-                    const newIdNum = BigInt(telegramIdMapping.new);
-                    if (BigInt(currentValue) === oldIdNum) {
-                      row[col] = newIdNum;
-                    }
+                    row[col] = BigInt(newTelegramId);
                   } else {
-                    // For text/varchar columns, compare as strings
-                    if (String(currentValue) === String(telegramIdMapping.old)) {
-                      row[col] = telegramIdMapping.new;
-                    }
+                    // For text/varchar columns
+                    row[col] = newTelegramId;
                   }
                 }
               }
@@ -1307,8 +1596,13 @@ echo "Please refer to your self-hosted Supabase documentation for Edge Function 
   }
 
   async close() {
-    await this.sourcePool.end();
-    await this.targetPool.end();
+    // Only close pools if they exist and haven't been closed
+    if (this.sourcePool && !this.sourcePool.ended) {
+      await this.sourcePool.end();
+    }
+    if (this.targetPool && !this.targetPool.ended) {
+      await this.targetPool.end();
+    }
   }
 }
 
@@ -1325,6 +1619,7 @@ async function main() {
     serviceKey: process.env.SOURCE_SUPABASE_SERVICE_KEY,
     dbUrl: process.env.SOURCE_DATABASE_URL,
     projectRef: process.env.SOURCE_PROJECT_REF,
+    managementApiToken: process.env.SOURCE_MANAGEMENT_API_TOKEN,
     edgeFunctionsPath: process.env.SOURCE_EDGE_FUNCTIONS_PATH || './supabase/functions'
   };
 
@@ -1334,56 +1629,82 @@ async function main() {
     url: process.env.TARGET_SUPABASE_URL, // Optional: if you have the API running
     anonKey: process.env.TARGET_SUPABASE_ANON_KEY, // Optional: if you have the API running
     serviceKey: process.env.TARGET_SUPABASE_SERVICE_KEY, // Optional
-    edgeFunctionsPath: process.env.TARGET_EDGE_FUNCTIONS_PATH || './migrated-edge-functions'
+    edgeFunctionsPath: process.env.TARGET_EDGE_FUNCTIONS_PATH || './migrated-edge-functions',
+    jstackPath: process.env.JSTACK_PATH || '/home/jarvis/jstack'
   };
 
-  // Validate minimum required configuration
-  if (!sourceConfig.url || !sourceConfig.anonKey || !sourceConfig.dbUrl) {
-    console.error('❌ Missing required source configuration');
-    console.error('   Required: SOURCE_SUPABASE_URL, SOURCE_SUPABASE_ANON_KEY, SOURCE_DATABASE_URL');
-    process.exit(1);
-  }
+  // Check if only migrating functions
+  const onlyFunctions = process.argv.includes('--only-functions');
 
-  if (!targetConfig.dbUrl) {
-    console.error('❌ Missing required target configuration');
-    console.error('   Required: TARGET_DATABASE_URL');
-    process.exit(1);
+  // Validate minimum required configuration
+  if (!onlyFunctions) {
+    // For full migration, require database credentials
+    if (!sourceConfig.url || !sourceConfig.anonKey || !sourceConfig.dbUrl) {
+      console.error('❌ Missing required source configuration');
+      console.error('   Required: SOURCE_SUPABASE_URL, SOURCE_SUPABASE_ANON_KEY, SOURCE_DATABASE_URL');
+      process.exit(1);
+    }
+
+    if (!targetConfig.dbUrl) {
+      console.error('❌ Missing required target configuration');
+      console.error('   Required: TARGET_DATABASE_URL');
+      process.exit(1);
+    }
+  } else {
+    // For functions only, just need source edge functions path
+    console.log('📦 Edge Functions Only Mode - Database credentials not required\n');
   }
 
   const migrator = new SupabaseCloudToSelfHostedMigrator(sourceConfig, targetConfig);
 
   try {
-    // Test connections first
-    const connectionsOk = await migrator.testConnections();
-    if (!connectionsOk) {
-      console.error('\n❌ Could not establish connections. Please check your configuration.');
-      process.exit(1);
-    }
-
     // Parse command line arguments
     const includeData = process.argv.includes('--include-data');
     const includeAuth = process.argv.includes('--include-auth');
     const skipSchema = process.argv.includes('--skip-schema');
     const cleanFirst = process.argv.includes('--clean');
+    const onlyFunctions = process.argv.includes('--only-functions');
 
-    // Parse telegram ID mapping
-    let telegramIdMapping = null;
-    const swapTelegramArg = process.argv.find(arg => arg.startsWith('--swap-telegram-id='));
-    if (swapTelegramArg) {
-      const [old_id, new_id] = swapTelegramArg.split('=')[1].split(':');
-      if (old_id && new_id) {
-        telegramIdMapping = { old: old_id, new: new_id };
-        console.log(`\n🔄 Telegram ID mapping configured: ${old_id} → ${new_id}`);
-      } else {
-        console.error('❌ Invalid --swap-telegram-id format. Use: --swap-telegram-id=OLD_ID:NEW_ID');
+    // Test connections first (skip if only migrating functions)
+    if (!onlyFunctions) {
+      const connectionsOk = await migrator.testConnections();
+      if (!connectionsOk) {
+        console.error('\n❌ Could not establish connections. Please check your configuration.');
         process.exit(1);
       }
-    } else if (process.env.OLD_TELEGRAM_ID && process.env.NEW_TELEGRAM_ID) {
-      telegramIdMapping = {
-        old: process.env.OLD_TELEGRAM_ID,
-        new: process.env.NEW_TELEGRAM_ID
-      };
-      console.log(`\n🔄 Telegram ID mapping from env: ${telegramIdMapping.old} → ${telegramIdMapping.new}`);
+    }
+
+    // Parse telegram ID replacement
+    let newTelegramId = null;
+    const replaceTelegramArg = process.argv.find(arg => arg.startsWith('--replace-telegram-id='));
+    if (replaceTelegramArg) {
+      newTelegramId = replaceTelegramArg.split('=')[1];
+      if (newTelegramId) {
+        console.log(`\n🔄 Telegram ID replacement configured: ALL user_telegram_id and chat_telegram_id values will be replaced with ${newTelegramId}`);
+      } else {
+        console.error('❌ Invalid --replace-telegram-id format. Use: --replace-telegram-id=NEW_ID');
+        process.exit(1);
+      }
+    } else if (process.env.NEW_TELEGRAM_ID) {
+      newTelegramId = process.env.NEW_TELEGRAM_ID;
+      console.log(`\n🔄 Telegram ID replacement from env: ALL user_telegram_id and chat_telegram_id values will be replaced with ${newTelegramId}`);
+    }
+
+    // If only migrating functions, skip everything else
+    if (onlyFunctions) {
+      console.log('\n📦 Edge Functions Only Mode');
+      console.log('   Skipping schema, data, storage, and auth migration\n');
+
+      await migrator.migrateEdgeFunctions();
+
+      console.log('\n✅ Edge Functions migration completed!');
+      console.log('\n📌 Next steps:');
+      console.log('   1. Test functions locally: cd /home/jarvis/jstack && supabase functions serve');
+      console.log('   2. Register in _main router for Docker deployment');
+      console.log('   3. Restart container: ./jstack.sh --functions restart');
+
+      await migrator.close();
+      return;
     }
 
     // Show warning if using --clean
@@ -1405,7 +1726,7 @@ async function main() {
     await migrator.migrateEdgeFunctions();
 
     // Step 4: Optionally migrate data
-    await migrator.migrateData(includeData, telegramIdMapping);
+    await migrator.migrateData(includeData, newTelegramId);
 
     // Step 5: Optionally migrate auth users
     await migrator.migrateAuthUsers(includeAuth);
@@ -1444,12 +1765,13 @@ This tool migrates your Supabase Cloud project to a self-hosted Supabase install
 Usage: node supabase-cloud-to-selfhosted-migration.js [options]
 
 Options:
-  --include-data              Migrate table data (default: schema only)
-  --include-auth              Export auth users (passwords cannot be migrated)
-  --skip-schema               Skip schema migration (only migrate data/functions)
-  --clean                     Drop all existing tables before migration
-  --swap-telegram-id=OLD:NEW  Replace OLD telegram ID with NEW during migration
-  --help                      Show this help message
+  --include-data                  Migrate table data (default: schema only)
+  --include-auth                  Export auth users (passwords cannot be migrated)
+  --skip-schema                   Skip schema migration (only migrate data/functions)
+  --clean                         Drop all existing tables before migration
+  --only-functions                Migrate ONLY edge functions (skip schema/data/storage/auth)
+  --replace-telegram-id=NEW_ID    Replace ALL user_telegram_id and chat_telegram_id values with NEW_ID
+  --help                          Show this help message
 
 Required Environment Variables:
   SOURCE_SUPABASE_URL         Supabase Cloud project URL
@@ -1465,10 +1787,10 @@ Optional Environment Variables:
 
   TARGET_SUPABASE_URL         Self-hosted Supabase API URL (if available)
   TARGET_SUPABASE_ANON_KEY   Self-hosted anonymous key (if available)
-  TARGET_EDGE_FUNCTIONS_PATH  Where to save Edge Functions (default: ./migrated-edge-functions)
+  TARGET_EDGE_FUNCTIONS_PATH  Where to save Edge Functions fallback (default: ./migrated-edge-functions)
+  JSTACK_PATH                 JStack installation path (default: /home/jarvis/jstack)
 
-  OLD_TELEGRAM_ID             Old Telegram ID to replace (alternative to --swap-telegram-id)
-  NEW_TELEGRAM_ID             New Telegram ID to use (alternative to --swap-telegram-id)
+  NEW_TELEGRAM_ID             New Telegram ID to replace ALL user_telegram_id and chat_telegram_id values
 
 Example .env file:
   # Source (Supabase Cloud)
@@ -1488,14 +1810,16 @@ Example usage:
   # Migrate schema and data
   node supabase-cloud-to-selfhosted-migration.js --include-data
 
+  # Migrate ONLY edge functions (skip database)
+  node supabase-cloud-to-selfhosted-migration.js --only-functions
+
   # Migrate everything including auth users export
   node supabase-cloud-to-selfhosted-migration.js --include-data --include-auth
 
-  # Migrate with telegram ID replacement
-  node supabase-cloud-to-selfhosted-migration.js --include-data --swap-telegram-id=123456789:987654321
+  # Migrate and replace ALL telegram IDs with new ID
+  node supabase-cloud-to-selfhosted-migration.js --include-data --replace-telegram-id=987654321
 
-  # Clean and migrate with telegram ID from environment variables
-  export OLD_TELEGRAM_ID=123456789
+  # Clean and migrate, replacing ALL telegram IDs from environment variable
   export NEW_TELEGRAM_ID=987654321
   node supabase-cloud-to-selfhosted-migration.js --clean --include-data
 

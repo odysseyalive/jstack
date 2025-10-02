@@ -112,26 +112,26 @@ EMAIL=${EMAIL:-admin@example.com}
 DOMAIN=${DOMAIN:-localhost}
 SUPABASE_PASSWORD=$SUPABASE_PASSWORD
 
-# AI Configuration (Optional - Studio AI Assistant)
-# Studio uses OpenAI-compatible API endpoints
-# Default: Anthropic Claude API (uncomment and add your API key)
+# AI Configuration (Required for Edge Functions)
+# Edge functions use OpenRouter for AI processing (Gemini 2.5 Flash)
+# Get your API key from: https://openrouter.ai/keys
 
-OPENAI_BASE_URL=https://api.anthropic.com/v1/
-#OPENAI_API_KEY=sk-ant-your-anthropic-key
+OPENAI_BASE_URL=https://openrouter.ai/api/v1
+#OPENAI_API_KEY=sk-or-v1-your-openrouter-key
 
-# Alternative Options (comment out Claude above and uncomment one below):
+# Alternative Options (uncomment one below if not using OpenRouter):
 
-# Option 1: OpenAI API
+# Option 1: OpenAI API (Note: More expensive than OpenRouter)
 #OPENAI_BASE_URL=https://api.openai.com/v1
 #OPENAI_API_KEY=sk-your-openai-key
 
-# Option 2: X.AI Grok
+# Option 2: Anthropic Claude API (Direct)
+#OPENAI_BASE_URL=https://api.anthropic.com/v1/
+#OPENAI_API_KEY=sk-ant-your-anthropic-key
+
+# Option 3: X.AI Grok
 #OPENAI_BASE_URL=https://api.x.ai/v1
 #OPENAI_API_KEY=xai-your-xai-key
-
-# Option 3: OpenRouter (supports multiple models including Claude, GPT-4, Llama)
-#OPENAI_BASE_URL=https://openrouter.ai/api/v1
-#OPENAI_API_KEY=sk-or-v1-your-openrouter-key
 
 # Option 4: Local LLM with OpenAI-compatible API (Ollama, LM Studio, etc)
 #OPENAI_BASE_URL=http://host.docker.internal:11434/v1
