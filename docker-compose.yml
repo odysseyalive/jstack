@@ -284,12 +284,15 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - SUPABASE_DB_URL=postgresql://postgres:${SUPABASE_PASSWORD}@supabase-db:5432/postgres
       - VERIFY_JWT=false
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_EMBEDDINGS_KEY=${OPENAI_EMBEDDINGS_KEY}
     volumes:
-      - ./supabase/functions:/usr/services:ro
+      - ./supabase/functions:/home/deno/functions:ro
     command:
       - start
       - --main-service
-      - /usr/services/_main
+      - /home/deno/functions/_main
 
   chrome:
     image: browserless/chrome

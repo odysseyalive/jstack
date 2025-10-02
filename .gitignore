@@ -4,6 +4,8 @@
 jstack.config
 site-templates/*/.env
 nginx/ssl/*.key
+nginx/certbot/conf/*
+nginx/htpasswd
 
 # Ignore generated nginx configs (created dynamically by install script)
 nginx/conf.d/*.conf
@@ -32,15 +34,9 @@ coverage/
 *.out
 
 # Ignore generated sites and runtime/output
+data/
 sites/
 logs/
 backups/
 tests/unit/
-
-# Add more patterns as needed during development
-.crush.json
-.github
-.specify
-specs/
-tests/
-CRUSH.md
+supabase/
