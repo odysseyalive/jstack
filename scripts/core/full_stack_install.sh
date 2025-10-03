@@ -306,7 +306,7 @@ if [ -f "$COMPOSE_FILE" ]; then
     log "✓ Challenge directory is writable"
   fi
 
-  for SUBDOMAIN in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN"; do
+  for SUBDOMAIN in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN" "mcp.$DOMAIN"; do
     log "Acquiring certificate for $SUBDOMAIN..."
 
     # Check DNS resolution
@@ -410,6 +410,16 @@ if [ -f "$COMPOSE_FILE" ]; then
   else
     log "⚠ Log rotation setup encountered issues - check logs above"
     log "  You can run it manually later: bash scripts/core/setup_log_rotation.sh"
+  fi
+
+  # Setup n8n MCP Proxy for Claude.ai integration
+  log "Setting up n8n MCP Proxy for Claude.ai integration..."
+  if bash "$(dirname "$0")/setup_mcp_proxy.sh"; then
+    log "✓ MCP proxy setup completed"
+    log "  You can connect Claude.ai to: https://mcp.$DOMAIN/sse"
+  else
+    log "⚠ MCP proxy setup encountered issues - check logs above"
+    log "  You can run it manually later: bash scripts/core/setup_mcp_proxy.sh"
   fi
 
   log "Full stack installation completed."

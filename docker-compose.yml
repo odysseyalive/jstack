@@ -302,3 +302,20 @@ services:
       - "3000:3000"
     volumes:
       - ./data/chrome:/data
+
+  n8n-mcp-proxy:
+    build:
+      context: ./n8n-mcp-proxy
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8000"
+    environment:
+      - N8N_API_URL=http://n8n:5678/api/v1
+      - N8N_API_KEY=${N8N_API_KEY}
+      - N8N_WEBHOOK_USERNAME=mcp_client
+      - N8N_WEBHOOK_PASSWORD=${MCP_AUTH_TOKEN}
+      - DEBUG=false
+      - PORT=8000
+    depends_on:
+      - n8n
