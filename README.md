@@ -15,7 +15,7 @@ JStack is built for real-world business owners, developers, and automation enthu
 
 ## 🚀 Quick Start
 
-Ready to get started? Check out [docs/quickstart.md](docs/quickstart.md) for a step-by-step guide. You’ll be up and running in 15 minutes or less. All you need is a Debian 12 server, a domain name, and sudo access.
+Ready to get started? Join the [AI Productivity Hub](https://github.com/jacob-dietle/n8n-mcp-sse) and check out [docs/quickstart.md](docs/quickstart.md) for a step-by-step guide. You’ll be up and running in 15 minutes or less. All you need is a Debian 12 server, a domain name, and sudo access.
 
 ## Features
 
