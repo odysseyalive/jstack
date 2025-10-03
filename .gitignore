@@ -16,6 +16,9 @@ node_modules/
 dist/
 *.log
 
+# External repositories (cloned during installation)
+n8n-mcp-proxy/
+
 # Docker artifacts
 **/docker-volumes/
 **/backup/

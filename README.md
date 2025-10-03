@@ -22,6 +22,7 @@ Ready to get started? Check out [docs/quickstart.md](docs/quickstart.md) for a s
 - One-command install: Docker, Docker Compose, NGINX, Certbot (SSL), and Fail2ban
 - Modular service management: n8n, Supabase, NGINX, Chrome/Puppeteer, site templates
 - **Edge Functions**: TypeScript serverless functions with simple management commands
+- **Claude.ai Integration**: Automatic MCP proxy setup for AI workflow orchestration
 - Secure by default: environment-based secrets, production configs, firewall, SSL, fail2ban, rootless containers
 - Dry-run mode: preview every action before you commit
 - Diagnostics, compliance, backup/restore, multi-site support
@@ -154,6 +155,7 @@ New to JStack? These guides will help you understand each component:
 - **[Quickstart Guide](docs/quickstart.md)** - Step-by-step installation walkthrough
 - **[Service Architecture](docs/services.md)** - Understanding n8n, Supabase, NGINX, and Chrome
 - **[Edge Functions](docs/EDGE_FUNCTIONS.md)** - Managing TypeScript serverless functions
+- **[Claude.ai Integration](docs/claude-ai-integration.md)** - Connect Claude.ai to your n8n workflows via MCP
 - **[Docker & Containers](docs/docker.md)** - How JStack uses Docker for isolation and management
 - **[SSL & Security](docs/security.md)** - Certificates, fail2ban, and security best practices
 - **[Site Templates](docs/site-templates.md)** - Creating and deploying custom sites

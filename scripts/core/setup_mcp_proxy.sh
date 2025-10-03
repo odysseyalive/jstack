@@ -136,7 +136,40 @@ server {
 
     # MCP SSE endpoint (with secure hash path)
     location /${MCP_HASH}/sse {
-        proxy_pass http://n8n-mcp-proxy:8000/sse;
+        rewrite ^/${MCP_HASH}(/sse.*)\$ \$1 break;
+        proxy_pass http://n8n-mcp-proxy:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+
+        # SSE-specific headers
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_buffering off;
+        proxy_cache off;
+        chunked_transfer_encoding off;
+
+        # Extended timeouts for SSE
+        proxy_connect_timeout 86400s;
+        proxy_send_timeout 86400s;
+        proxy_read_timeout 86400s;
+
+        # CORS headers for Claude.ai
+        add_header Access-Control-Allow-Origin "https://claude.ai" always;
+        add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Content-Type, Authorization, Accept" always;
+        add_header Access-Control-Max-Age 3600 always;
+
+        # Handle preflight requests
+        if (\$request_method = 'OPTIONS') {
+            return 204;
+        }
+    }
+
+    # MCP SSE endpoint (standard path - needed for callbacks)
+    location /sse {
+        proxy_pass http://n8n-mcp-proxy:8000;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -168,7 +201,28 @@ server {
 
     # MCP message endpoint (with secure hash path)
     location /${MCP_HASH}/message {
-        proxy_pass http://n8n-mcp-proxy:8000/message;
+        rewrite ^/${MCP_HASH}(/message.*)\$ \$1 break;
+        proxy_pass http://n8n-mcp-proxy:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+
+        # CORS headers for Claude.ai
+        add_header Access-Control-Allow-Origin "https://claude.ai" always;
+        add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Content-Type, Authorization, Accept" always;
+        add_header Access-Control-Max-Age 3600 always;
+
+        # Handle preflight requests
+        if (\$request_method = 'OPTIONS') {
+            return 204;
+        }
+    }
+
+    # MCP message endpoint (standard path - needed for callbacks)
+    location /message {
+        proxy_pass http://n8n-mcp-proxy:8000;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -197,17 +251,39 @@ NGINX_EOF
   log "✓ Nginx configuration created for mcp.${DOMAIN}"
 fi
 
+# Start the MCP proxy if docker-compose is available
+if command -v docker-compose >/dev/null 2>&1; then
+  if [ -f "$JSTACK_ROOT/docker-compose.yml" ]; then
+    log "Building and starting MCP proxy..."
+    cd "$JSTACK_ROOT"
+    if docker-compose build n8n-mcp-proxy >/dev/null 2>&1 && docker-compose up -d n8n-mcp-proxy >/dev/null 2>&1; then
+      log "✓ MCP proxy started"
+    else
+      log "⚠ Failed to start MCP proxy - you may need to start it manually"
+    fi
+
+    # Reload nginx if it's running
+    if docker ps | grep -q nginx; then
+      log "Reloading nginx..."
+      if docker exec $(docker ps -q -f name=nginx) nginx -s reload >/dev/null 2>&1; then
+        log "✓ Nginx reloaded with MCP configuration"
+      else
+        log "⚠ Failed to reload nginx - reload manually after SSL cert is acquired"
+      fi
+    fi
+  fi
+fi
+
 log "✓ n8n MCP Proxy setup completed"
-log ""
-log "Next steps:"
-log "  1. Ensure DNS record for mcp.${DOMAIN} points to this server"
-log "  2. Build and start the proxy: docker-compose build n8n-mcp-proxy && docker-compose up -d n8n-mcp-proxy"
-log "  3. Get SSL certificate: docker-compose run --rm certbot certonly --webroot -w /var/www/certbot --email ${EMAIL:-admin@${DOMAIN}} -d mcp.${DOMAIN} --agree-tos"
-log "  4. Reload nginx: docker exec \$(docker ps -q -f name=nginx) nginx -s reload"
-log "  5. Test: curl https://mcp.${DOMAIN}/healthz"
 log ""
 log "🔒 SECURE MCP URL (save this):"
 log "  https://mcp.${DOMAIN}/${MCP_HASH}/sse"
 log ""
 log "  This URL includes a random hash for security."
 log "  Use this URL when connecting Claude.ai."
+log ""
+log "If running standalone (not during full install), complete these steps:"
+log "  1. Ensure DNS record for mcp.${DOMAIN} points to this server"
+log "  2. Get SSL certificate: docker-compose run --rm certbot certonly --webroot -w /var/www/certbot --email ${EMAIL:-admin@${DOMAIN}} -d mcp.${DOMAIN} --agree-tos"
+log "  3. Reload nginx: docker exec \$(docker ps -q -f name=nginx) nginx -s reload"
+log "  4. Test: curl https://mcp.${DOMAIN}/healthz"
