@@ -604,15 +604,173 @@ register_function() {
         return 1
     fi
 
+    # Check if function directory exists
+    local func_path="$FUNCTIONS_DIR/$func_name"
+    if [ ! -d "$func_path" ]; then
+        error "Function '$func_name' does not exist"
+        info "Create it first with: ./jstack.sh --functions new $func_name"
+        return 1
+    fi
+
     echo ""
-    info "To register '$func_name' in the Docker router:"
+    info "Registering function '$func_name' in Docker router..."
     echo ""
-    echo "1. Edit $main_router"
-    echo "2. Add routing logic for '/$func_name'"
-    echo "3. Restart container: ./jstack.sh --functions restart"
+
+    # Check if already registered
+    if grep -q "'$func_name'" "$main_router"; then
+        warn "Function '$func_name' appears to already be registered"
+        read -p "Continue anyway? [y/N]: " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            info "Registration cancelled"
+            return 0
+        fi
+    fi
+
+    # Create backup
+    cp "$main_router" "$main_router.bak"
+    log "Created backup: $main_router.bak"
+
+    # Convert function-name to FunctionName for handler
+    local handler_name=$(echo "$func_name" | sed -r 's/(^|-)([a-z])/\U\2/g')
+    handler_name="handle${handler_name}"
+
+    # 1. Add to REGISTERED_FUNCTIONS array
+    info "Adding '$func_name' to REGISTERED_FUNCTIONS array..."
+    sed -i "/\/\/ Add new functions here/i\\  '$func_name'," "$main_router"
+
+    # 2. Add case handler in switch statement
+    info "Adding case handler in switch statement..."
+    sed -i "/\/\/ Add new function cases here/i\\      case '$func_name':\n        return await $handler_name(req, supabaseClient)\n" "$main_router"
+
+    # 3. Add basic handler function at the end
+    info "Adding handler function template..."
+
+    # Find the last function and add the new handler before the last closing brace
+    cat >> "$main_router" << EOF
+
+async function $handler_name(req: Request, supabaseClient: any) {
+  const body = await req.json()
+
+  // TODO: Implement your function logic here
+  // This is a placeholder - replace with actual implementation
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      message: "Function '$func_name' executed successfully",
+      data: body
+    }),
+    {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    }
+  )
+}
+EOF
+
+    log "Function '$func_name' registered successfully!"
     echo ""
-    info "Or use 'supabase functions serve' for local development (auto-discovery)"
+    info "Added to registration:"
+    echo "  - REGISTERED_FUNCTIONS array"
+    echo "  - Switch case handler"
+    echo "  - Handler function: $handler_name()"
     echo ""
+    warn "TODO: Edit $main_router and implement $handler_name()"
+    echo ""
+
+    # Ask to restart container
+    read -p "Restart container to apply changes? [Y/n]: " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+        if restart_container; then
+            log "Container restarted - function is live!"
+            info "Test at: http://localhost:9000/$func_name"
+        fi
+    else
+        info "Remember to restart: ./jstack.sh --functions restart"
+    fi
+
+    echo ""
+    return 0
+}
+
+# Unregister a function from the _main router
+unregister_function() {
+    local func_name="$1"
+
+    if [ -z "$func_name" ]; then
+        error "No function name provided"
+        echo "Usage: ./jstack.sh --functions unregister <name>"
+        return 1
+    fi
+
+    local main_router="$FUNCTIONS_DIR/_main/index.ts"
+
+    if [ ! -f "$main_router" ]; then
+        error "_main router not found at $main_router"
+        return 1
+    fi
+
+    echo ""
+    info "Unregistering function '$func_name' from Docker router..."
+    echo ""
+
+    # Check if function is registered
+    if ! grep -q "'$func_name'" "$main_router"; then
+        warn "Function '$func_name' does not appear to be registered"
+        read -p "Continue anyway? [y/N]: " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            info "Unregister cancelled"
+            return 0
+        fi
+    fi
+
+    # Create backup
+    cp "$main_router" "$main_router.bak"
+    log "Created backup: $main_router.bak"
+
+    # Convert function-name to FunctionName for handler
+    local handler_name=$(echo "$func_name" | sed -r 's/(^|-)([a-z])/\U\2/g')
+    handler_name="handle${handler_name}"
+
+    # 1. Remove from REGISTERED_FUNCTIONS array
+    info "Removing '$func_name' from REGISTERED_FUNCTIONS array..."
+    sed -i "/^[[:space:]]*'$func_name',\$/d" "$main_router"
+
+    # 2. Remove case handler from switch statement
+    info "Removing case handler from switch statement..."
+    sed -i "/case '$func_name':/,/^[[:space:]]*$/d" "$main_router"
+
+    # 3. Remove handler function
+    info "Removing handler function..."
+    # Find and remove the entire handler function block
+    sed -i "/^async function $handler_name(/,/^}$/d" "$main_router"
+    # Also remove any blank line before the function if it exists
+    sed -i "/^$/N;/^\n$/d" "$main_router"
+
+    log "Function '$func_name' unregistered successfully!"
+    echo ""
+    info "Removed from registration:"
+    echo "  - REGISTERED_FUNCTIONS array"
+    echo "  - Switch case handler"
+    echo "  - Handler function: $handler_name()"
+    echo ""
+
+    # Ask to restart container
+    read -p "Restart container to apply changes? [Y/n]: " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+        if restart_container; then
+            log "Container restarted - function is removed!"
+        fi
+    else
+        info "Remember to restart: ./jstack.sh --functions restart"
+    fi
+
+    echo ""
+    return 0
 }
 
 # Show help
@@ -629,7 +787,8 @@ Commands:
   serve                   Serve all functions locally (uses Supabase CLI)
   edit <name>             Edit existing function
   delete <name>           Delete function
-  register <name>         Show how to register function in Docker router
+  register <name>         Register function in Docker router
+  unregister <name>       Unregister function from Docker router
   restart                 Restart Docker functions container
   logs [name]             Show container logs
   import <path>           Import function from directory
@@ -682,6 +841,9 @@ main() {
             ;;
         register)
             register_function "$@"
+            ;;
+        unregister)
+            unregister_function "$@"
             ;;
         import)
             import_function "$@"

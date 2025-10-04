@@ -110,14 +110,26 @@ sudo -v
 # Create new function
 ./jstack.sh --functions new my-function
 
+# Register function in Docker router
+./jstack.sh --functions register my-function
+
+# Unregister function from Docker router
+./jstack.sh --functions unregister my-function
+
 # Import function from directory
 ./jstack.sh --functions import /path/to/function
 
 # Edit function
 ./jstack.sh --functions edit my-function
 
+# Delete function
+./jstack.sh --functions delete my-function
+
 # Restart functions container
 ./jstack.sh --functions restart
+
+# View function logs
+./jstack.sh --functions logs [function-name]
 ```
 
 See [Edge Functions Guide](docs/EDGE_FUNCTIONS.md) for complete documentation.
