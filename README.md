@@ -49,10 +49,7 @@ apt install git docker
 ```
 
 ```bash
-```
-
 groupadd docker
-
 ```
 
 ```bash
