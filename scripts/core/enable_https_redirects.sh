@@ -174,6 +174,10 @@ server {
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
     # Proxy to Browserless Chrome
     location / {
+        # HTTP Basic Authentication
+        auth_basic "Browserless Chrome - Restricted Access";
+        auth_basic_user_file /etc/nginx/htpasswd;
+
         proxy_pass http://chrome:3000;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;

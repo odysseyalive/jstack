@@ -43,6 +43,18 @@ adduser jarvis
 2. **Add your user to sudoer and the docker group:**
 
 ```bash
+apt update
+```
+
+```bash
+apt install git docker
+```
+
+```bash
+groupadd docker
+```
+
+```bash
 usermod -aG sudo,users,docker jarvis
 ```
 
