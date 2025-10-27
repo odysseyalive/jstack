@@ -41,6 +41,8 @@ services:
       - N8N_BASIC_AUTH_PASSWORD=change_me
       - N8N_ENV=production
       - WEBHOOK_URL=${N8N_WEBHOOK_URL}
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
     volumes:
       - ./data/n8n:/home/node/.n8n
   # Supabase Services
@@ -294,8 +296,10 @@ services:
   chrome:
     image: browserless/chrome
     restart: unless-stopped
-    user: "1000:1000"
     ports:
       - "3000:3000"
+    environment:
+      - DEFAULT_LAUNCH_ARGS=["--no-sandbox","--disable-setuid-sandbox"]
     volumes:
       - ./data/chrome:/data
+      - /dev/shm:/dev/shm
