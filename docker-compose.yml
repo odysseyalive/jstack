@@ -303,9 +303,22 @@ services:
       - "3000:3000"
     environment:
       - DEFAULT_LAUNCH_ARGS=["--no-sandbox","--disable-setuid-sandbox"]
+      - MAX_CONCURRENT_SESSIONS=2
+      - CONNECTION_TIMEOUT=60000
+      - MAX_QUEUE_LENGTH=5
+      - PREBOOT_CHROME=true
+      - KEEP_ALIVE=true
     volumes:
       - ./data/chrome:/data
       - /dev/shm:/dev/shm
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   n8n-mcp-proxy:
     build:
