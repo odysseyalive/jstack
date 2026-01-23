@@ -9,8 +9,10 @@ SCRIPTS_CORE="$(dirname "$0")/scripts/core"
 SCRIPTS_SERVICES="$(dirname "$0")/scripts/services"
 
 show_usage() {
-  echo "Usage: $0 [--dry-run|--install|--backup|--reset|--uninstall|--repair|--debug|--install-site <site_dir>] <action> [args]"
+  echo "Usage: $0 [--dry-run|--install|--backup|--reset|--uninstall|--repair|--debug|--install-site <site_dir>|--functions <cmd>|--workflows <cmd>] <action> [args]"
   echo "Actions: up, down, restart, status, backup, restore, validate, propagate, diagnostics, compliance, monitor, template, launch"
+  echo "Edge Functions: --functions list|new|import|edit|delete|restart|logs [args]"
+  echo "n8n Workflows: --workflows list|view|export|search|stats|tree [args]"
   exit 1
 }
 
@@ -23,6 +25,8 @@ parse_flags() {
   REPAIR=false
   DEBUG=false
   INSTALL_SITE=""
+  FUNCTIONS_CMD=""
+  WORKFLOWS_CMD=""
   while [[ "$1" == --* ]]; do
     case "$1" in
     --dry-run) DRY_RUN=true ;;
@@ -35,6 +39,20 @@ parse_flags() {
     --install-site)
       shift
       INSTALL_SITE="$1"
+      ;;
+    --functions)
+      shift
+      FUNCTIONS_CMD="$1"
+      shift
+      ARGS=("$@")
+      return
+      ;;
+    --workflows)
+      shift
+      WORKFLOWS_CMD="$1"
+      shift
+      ARGS=("$@")
+      return
       ;;
     *) show_usage ;;
     esac
@@ -72,6 +90,16 @@ run_service_script() {
 
 main() {
   parse_flags "$@"
+  if [ -n "$FUNCTIONS_CMD" ]; then
+    # Handle edge functions management
+    bash "$SCRIPTS_CORE/manage_edge_functions.sh" "$FUNCTIONS_CMD" "${ARGS[@]}"
+    exit $?
+  fi
+  if [ -n "$WORKFLOWS_CMD" ]; then
+    # Handle n8n workflow management
+    bash "$SCRIPTS_CORE/manage_n8n_workflows.sh" "$WORKFLOWS_CMD" "${ARGS[@]}"
+    exit $?
+  fi
   if [ "$INSTALL" = true ]; then
     # Full stack installation
     run_core_script install_dependencies

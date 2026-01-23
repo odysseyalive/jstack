@@ -1,0 +1,87 @@
+{
+  "name": "[JJ] MCP Server",
+  "nodes": [
+    {
+      "parameters": {
+        "toolWorkflows": {
+          "values": [
+            {
+              "workflowId": "={{ $workflow('[JJ] Search Memory Tool').id }}",
+              "name": "search_memory",
+              "description": "Search through stored messages, notes, contacts, and images using semantic or keyword search"
+            },
+            {
+              "workflowId": "={{ $workflow('[JJ] CRUD Notes').id }}",
+              "name": "manage_notes",
+              "description": "Create, read, update, or delete notes with support for tags and metadata"
+            },
+            {
+              "workflowId": "={{ $workflow('[JJ] Store a Contact').id }}",
+              "name": "manage_contacts",
+              "description": "Store or search contacts with detailed information including name, phone, email, company"
+            },
+            {
+              "workflowId": "={{ $workflow('[JJ] Query Image Tool').id }}",
+              "name": "query_image",
+              "description": "Ask questions about previously stored images by providing image ID and your question"
+            },
+            {
+              "workflowId": "={{ $workflow('[JJ] Image Tool').id }}",
+              "name": "process_image",
+              "description": "Process and store new images with AI-generated descriptions"
+            },
+            {
+              "workflowId": "={{ $workflow('[JJ] Manage Tags').id }}",
+              "name": "manage_tags",
+              "description": "Add, remove, or list tags for notes and contacts to organize content"
+            },
+            {
+              "workflowId": "={{ $workflow('[JJ] Manage Scheduled Tasks').id }}",
+              "name": "manage_tasks",
+              "description": "Create, list, update, or complete scheduled tasks and reminders"
+            }
+          ]
+        },
+        "authentication": "bearer",
+        "bearerToken": "={{ $secrets.MCP_AUTH_TOKEN }}"
+      },
+      "id": "mcp-trigger-1",
+      "name": "MCP Server Trigger",
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "no-op-1",
+      "name": "No Operation",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [450, 300]
+    }
+  ],
+  "connections": {
+    "MCP Server Trigger": {
+      "main": [
+        [
+          {
+            "node": "No Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-10-01T21:30:00.000Z",
+  "versionId": "initial"
+}

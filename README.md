@@ -15,12 +15,14 @@ JStack is built for real-world business owners, developers, and automation enthu
 
 ## 🚀 Quick Start
 
-Ready to get started? Check out [docs/quickstart.md](docs/quickstart.md) for a step-by-step guide. You’ll be up and running in 15 minutes or less. All you need is a Debian 12 server, a domain name, and sudo access.
+Ready to get started? Join the [AI Productivity Hub](https://www.skool.com/ai-productivity-hub) and check out [docs/quickstart.md](docs/quickstart.md) for a step-by-step guide. You’ll have everything you need to install Jarvis up and running in 15 minutes or less. All you need is a Debian 12 server, a domain name, and sudo access.
 
 ## Features
 
 - One-command install: Docker, Docker Compose, NGINX, Certbot (SSL), and Fail2ban
 - Modular service management: n8n, Supabase, NGINX, Chrome/Puppeteer, site templates
+- **Edge Functions**: TypeScript serverless functions with simple management commands
+- **Claude.ai Integration**: Automatic MCP proxy setup for AI workflow orchestration
 - Secure by default: environment-based secrets, production configs, firewall, SSL, fail2ban, rootless containers
 - Dry-run mode: preview every action before you commit
 - Diagnostics, compliance, backup/restore, multi-site support
@@ -111,6 +113,39 @@ sudo -v
 ./jstack.sh status
 ```
 
+**Manage Edge Functions:**
+
+```bash
+# List all edge functions
+./jstack.sh --functions list
+
+# Create new function
+./jstack.sh --functions new my-function
+
+# Register function in Docker router
+./jstack.sh --functions register my-function
+
+# Unregister function from Docker router
+./jstack.sh --functions unregister my-function
+
+# Import function from directory
+./jstack.sh --functions import /path/to/function
+
+# Edit function
+./jstack.sh --functions edit my-function
+
+# Delete function
+./jstack.sh --functions delete my-function
+
+# Restart functions container
+./jstack.sh --functions restart
+
+# View function logs
+./jstack.sh --functions logs [function-name]
+```
+
+See [Edge Functions Guide](docs/EDGE_FUNCTIONS.md) for complete documentation.
+
 ### Diagnostics & Validation
 
 **Run diagnostics and compliance checks:**
@@ -143,6 +178,8 @@ New to JStack? These guides will help you understand each component:
 
 - **[Quickstart Guide](docs/quickstart.md)** - Step-by-step installation walkthrough
 - **[Service Architecture](docs/services.md)** - Understanding n8n, Supabase, NGINX, and Chrome
+- **[Edge Functions](docs/EDGE_FUNCTIONS.md)** - Managing TypeScript serverless functions
+- **[Claude.ai Integration](docs/claude-ai-integration.md)** - Connect Claude.ai to your n8n workflows via MCP
 - **[Docker & Containers](docs/docker.md)** - How JStack uses Docker for isolation and management
 - **[SSL & Security](docs/security.md)** - Certificates, fail2ban, and security best practices
 - **[Site Templates](docs/site-templates.md)** - Creating and deploying custom sites
@@ -196,6 +233,8 @@ All service data, configs, logs, and SSL certs are mapped to your working direct
 │   ├── supabase/        # Supabase Postgres data
 │   ├── n8n/             # n8n workflow data
 │   └── chrome/          # Chrome/Puppeteer data
+├── supabase/
+│   └── functions/       # Edge Functions (TypeScript)
 ├── nginx/
 │   ├── conf.d/          # NGINX site configs
 │   ├── nginx.conf       # Main NGINX config
@@ -214,6 +253,7 @@ All service data, configs, logs, and SSL certs are mapped to your working direct
 ### Docker Volume Mapping
 
 - Supabase: `./data/supabase:/var/lib/postgresql/data`
+- Edge Functions: `./supabase/functions:/usr/services:ro`
 - n8n: `./data/n8n:/home/node/.n8n`
 - Chrome: `./data/chrome:/data`
 - NGINX: `./nginx/conf.d:/etc/nginx/conf.d`, `./nginx/nginx.conf:/etc/nginx/nginx.conf:ro`, `./nginx/ssl:/etc/letsencrypt`

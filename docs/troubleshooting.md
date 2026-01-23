@@ -117,6 +117,9 @@ bash scripts/core/setup_ssl_certbot.sh yourdomain.com
 docker-compose restart nginx
 ```
 
+**Advanced certificate diagnostics:**
+For detailed troubleshooting of certificate symlink issues, permission problems, and volume mount verification, see the [SSL Certificate Diagnostics Guide](ssl-certificate-diagnostics.md).
+
 ### Can't Access n8n or Supabase
 - Check service URLs:
   - n8n: `https://n8n.yourdomain.com`

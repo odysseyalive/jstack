@@ -50,9 +50,8 @@ cat /home/jarvis/jstack/.env.secrets | grep POSTGRES_PASSWORD
 # TARGET_DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/postgres
 ```
 
-**Optional: Set Telegram ID Swap:**
+**Optional: Set Telegram ID Replacement:**
 ```env
-OLD_TELEGRAM_ID=123456789
 NEW_TELEGRAM_ID=987654321
 ```
 
@@ -70,7 +69,12 @@ node supabase-migration-script.js
 node supabase-migration-script.js --clean --include-data
 ```
 
-**With Telegram ID Swap:**
+**Edge Functions Only (if database already migrated):**
+```bash
+node supabase-migration-script.js --only-functions
+```
+
+**With Telegram ID Replacement:**
 ```bash
 # Already configured in .env, just run:
 node supabase-migration-script.js --clean --include-data
@@ -165,8 +169,7 @@ SOURCE_DATABASE_URL=postgresql://postgres:password@db.xxxxx.supabase.co:5432/pos
 # Target (Self-hosted)
 TARGET_DATABASE_URL=postgresql://postgres:password@localhost:5432/postgres
 
-# Optional: Telegram ID Swap
-OLD_TELEGRAM_ID=123456789
+# Optional: Telegram ID Replacement
 NEW_TELEGRAM_ID=987654321
 ```
 
@@ -190,28 +193,205 @@ NEW_TELEGRAM_ID=987654321
 
 ---
 
-## Telegram ID Swap Feature
+## Edge Functions Migration
 
-The migration script supports swapping Telegram IDs during data migration. This is useful when migrating data to a new bot or different Telegram account.
+The migration script automatically imports Edge Functions from your Supabase Cloud project into your JStack instance.
 
 ### How It Works
 
-The script automatically detects and replaces telegram IDs in **any column** that contains "telegram_id" or "telegram_username" in its name.
+1. **Discovery**: Finds all edge functions in `SOURCE_EDGE_FUNCTIONS_PATH` (default: `./supabase/functions`)
+2. **Filter**: Skips system directories (starting with `_` like `_main`, `_shared`)
+3. **Import**: Uses JStack's `import` command to copy each function
+4. **Validate**: Validates function structure and restarts container
+
+### Configuration
+
+Add to your `.env` file:
+
+```env
+# Source edge functions path (where your cloud functions are)
+SOURCE_EDGE_FUNCTIONS_PATH=./supabase/functions
+
+# JStack installation path
+JSTACK_PATH=/home/jarvis/jstack
+```
+
+### What Gets Migrated
+
+✅ **Automatically Imported:**
+- Function directory structure
+- `index.ts` file
+- `deno.json` (if exists)
+- All dependencies and imports
+
+⚠️ **Requires Manual Registration (for Docker):**
+After migration, register each function in `_main` router:
+
+1. Edit `supabase/functions/_main/index.ts`
+2. Add to `REGISTERED_FUNCTIONS` array
+3. Add handler case in switch statement
+4. Implement handler function
+5. Restart: `./jstack.sh --functions restart`
+
+### Local Development
+
+For development, you don't need registration:
+
+```bash
+cd /home/jarvis/jstack
+supabase functions serve
+```
+
+Functions auto-discovered and served at:
+- `http://localhost:54321/functions/v1/<function-name>`
+
+### Migrate Only Edge Functions
+
+If you've already migrated your database and just want to add edge functions:
+
+#### Option 1: Download from Supabase Cloud (Recommended)
+
+Automatically downloads all edge functions from your Supabase Cloud project:
+
+```bash
+# Required .env configuration:
+# SOURCE_MANAGEMENT_API_TOKEN=sbp_xxxxx  (Create at: https://supabase.com/dashboard/account/tokens)
+# SOURCE_PROJECT_REF=your-project-ref    (From your Supabase project URL)
+# JSTACK_PATH=/home/jarvis/jstack
+
+node supabase-migration-script.js --only-functions
+```
+
+The script will:
+1. Fetch list of all functions from Supabase Cloud via Management API
+2. Download each function's source code (as tar.gz)
+3. Extract and import into JStack
+4. Overwrite any existing functions with same name
+5. Clean up temporary files
+
+**Benefits:**
+- ✅ No need to manually download function code
+- ✅ Gets ALL functions automatically
+- ✅ Always downloads latest version
+- ✅ Overwrites existing functions (keeps local copy updated)
+
+#### Option 2: Import from Local Files
+
+If you already have function code locally:
+
+```bash
+# Minimal .env required:
+# SOURCE_EDGE_FUNCTIONS_PATH=./supabase/functions
+# JSTACK_PATH=/home/jarvis/jstack
+
+node supabase-migration-script.js --only-functions
+```
+
+**Note:** This skips cloud download and imports from local directory.
+
+**Common Benefits:**
+- ✅ No database credentials needed
+- ✅ Skips schema, data, storage, and auth migration
+- ✅ Only imports edge functions
+- ✅ Fast - completes in seconds
+
+### Example Migration Output
+
+```
+📦 Edge Functions Only Mode
+   Skipping schema, data, storage, and auth migration
+
+🚀 Migrating Edge Functions...
+  Found 3 Edge Functions to migrate
+  JStack path: /home/jarvis/jstack
+
+  Using JStack to import edge functions...
+
+  Importing function: store-note
+    ✓ Imported successfully
+    http://localhost:9000/store-note
+
+  Importing function: search-memory
+    ✓ Imported successfully
+    http://localhost:9000/search-memory
+
+  Importing function: send-notification
+    ✓ Imported successfully
+    http://localhost:9000/send-notification
+
+  ✓ Edge Functions migration completed
+
+  📌 Next steps:
+     1. Test functions locally: cd /home/jarvis/jstack && supabase functions serve
+     2. Register in _main router for Docker deployment
+     3. Restart container: ./jstack.sh --functions restart
+```
+
+### Troubleshooting
+
+**Functions not imported:**
+- Check `SOURCE_EDGE_FUNCTIONS_PATH` points to correct directory
+- Verify functions have `index.ts` file
+- Ensure JStack is installed at `JSTACK_PATH`
+
+**Import fails:**
+- Check JStack is running: `cd /home/jarvis/jstack && ./jstack.sh status`
+- Manually import: `./jstack.sh --functions import /path/to/function`
+
+**Functions work locally but not in Docker:**
+- Remember to register in `_main` router
+- See `EDGE_FUNCTIONS_IMPLEMENTATION.md` for details
+
+---
+
+## Telegram ID Replacement Feature
+
+The migration script supports replacing ALL Telegram IDs during data migration. This is useful when migrating data to a new bot or different Telegram account.
+
+### ⚠️ Important: Create a New Telegram Bot First
+
+Before migrating, you should **create a new Telegram bot** to get a fresh Telegram ID. This ensures a clean separation between your old cloud instance and new self-hosted instance.
+
+**Steps to create a new Telegram bot:**
+
+1. **Open Telegram** and search for `@BotFather`
+2. **Start a chat** with BotFather
+3. **Send the command:** `/newbot`
+4. **Follow the prompts:**
+   - Choose a display name for your bot
+   - Choose a username (must end in 'bot', e.g., `my_awesome_bot`)
+5. **Save the API token** - BotFather will give you a token like `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`
+6. **Get your User ID:**
+   - Search for `@userinfobot` in Telegram
+   - Start a chat and it will show your User ID
+   - This is your `NEW_TELEGRAM_ID`
+
+**Why create a new bot?**
+- Fresh start with no conflicts
+- Separate testing from production
+- Better security isolation
+- Clean audit trail
+
+### How It Works
+
+The script automatically replaces **ALL values** in these specific columns:
+- `user_telegram_id`
+- `chat_telegram_id`
 
 **Column types supported:**
-- Text/varchar columns: `user_telegram_id`, `chat_telegram_id`, `telegram_username`
-- Bigint columns: `telegram_id`
+- Text/varchar columns: Replaced with new ID as string
+- Bigint columns: Replaced with new ID as number (supports large integers)
 
-**How it works:**
-- For **text columns**: String comparison and replacement
-- For **bigint columns**: Numeric comparison and replacement (supports large integers)
-- Null values are preserved
-- Non-matching values are preserved
+**Important behavior:**
+- **ALL values are replaced** - not just matching ones
+- **NULL values are also replaced** with the new ID
+- Only affects columns named exactly `user_telegram_id` or `chat_telegram_id`
+- Other telegram-related columns (like `telegram_username`) are preserved
 
 ### Tables Affected
 
-Based on your schema, these tables will have their telegram IDs updated:
-- `contacts` - user_telegram_id, telegram_username, telegram_id
+Based on typical schema, these tables will have their telegram IDs updated:
+- `contacts` - user_telegram_id
 - `images` - user_telegram_id, chat_telegram_id
 - `messages` - user_telegram_id, chat_telegram_id
 - `notes` - user_telegram_id
@@ -223,7 +403,6 @@ Based on your schema, these tables will have their telegram IDs updated:
 
 Add to your `.env` file:
 ```env
-OLD_TELEGRAM_ID=123456789
 NEW_TELEGRAM_ID=987654321
 ```
 
@@ -235,19 +414,19 @@ node supabase-migration-script.js --clean --include-data
 **Method 2: Command Line Argument**
 
 ```bash
-node supabase-migration-script.js --clean --include-data --swap-telegram-id=123456789:987654321
+node supabase-migration-script.js --clean --include-data --replace-telegram-id=987654321
 ```
 
-### Verify Swap is Active
+### Verify Replacement is Active
 
-The script will show this when it starts if telegram ID swap is configured:
+The script will show this when it starts if telegram ID replacement is configured:
 ```
-🔄 Telegram ID mapping configured: 123456789 → 987654321
+🔄 Telegram ID replacement configured: ALL user_telegram_id and chat_telegram_id values will be replaced with 987654321
 ```
 
 During data migration:
 ```
-🔄 Will swap Telegram IDs: 123456789 → 987654321
+🔄 Will replace ALL values in user_telegram_id and chat_telegram_id columns with: 987654321
 ```
 
 ---
@@ -260,7 +439,8 @@ During data migration:
 | `--include-auth` | Export auth users to JSON (passwords cannot be migrated) |
 | `--skip-schema` | Skip schema migration (only migrate data/functions) |
 | `--clean` | Drop all existing tables before migration (WARNING: destructive) |
-| `--swap-telegram-id=OLD:NEW` | Replace telegram IDs during migration |
+| `--only-functions` | **Migrate ONLY edge functions** (skip schema/data/storage/auth) |
+| `--replace-telegram-id=NEW_ID` | Replace ALL telegram IDs with NEW_ID during migration |
 | `--help` | Show help message |
 
 ## What Gets Migrated
@@ -278,11 +458,12 @@ During data migration:
 - Views
 - Sequences
 - Table data (with `--include-data`)
+- **Edge Functions** (imported via JStack)
 
 ⚠️ **Needs Manual Setup:**
 - Auth users (exported to `auth-users-export.json`, passwords cannot be migrated)
 - Storage buckets (configuration saved to `storage-buckets-config.json`)
-- Edge Functions (copied to `migrated-edge-functions/` with deploy instructions)
+- Edge Functions registration in `_main` router (for Docker deployment)
 - Storage files (must be manually copied)
 
 ❌ **Not Migrated:**
@@ -335,10 +516,11 @@ CREATE EXTENSION IF NOT EXISTS "vector";
 - Check that you used `--include-data` flag
 - Verify foreign key dependencies (script now handles this automatically)
 
-**Telegram IDs not swapping:**
-- Verify `OLD_TELEGRAM_ID` and `NEW_TELEGRAM_ID` are set in `.env`
-- Check script output for "🔄 Telegram ID mapping configured" message
-- Ensure `--include-data` flag is used (swap only happens during data migration)
+**Telegram IDs not being replaced:**
+- Verify `NEW_TELEGRAM_ID` is set in `.env`
+- Check script output for "🔄 Telegram ID replacement configured" message
+- Ensure `--include-data` flag is used (replacement only happens during data migration)
+- Verify your tables have columns named exactly `user_telegram_id` or `chat_telegram_id`
 
 ## Troubleshooting
 
@@ -348,18 +530,23 @@ Quick fixes:
 - **Connection timeout:** Check firewall, verify database isn't paused
 - **Slow migration:** Tables migrate in dependency order, be patient
 - **Missing data:** Ensure `--include-data` flag is used
-- **Wrong telegram IDs:** Re-run with correct `OLD_TELEGRAM_ID` and `NEW_TELEGRAM_ID`
+- **Wrong telegram IDs:** Re-run with correct `NEW_TELEGRAM_ID`
 
 ## Migration Checklist
 
 - [ ] Backup your source database
 - [ ] Set up `.env` file with correct credentials
+- [ ] Configure edge functions path (if you have edge functions)
 - [ ] Test connection with schema-only migration
 - [ ] Review migration report
 - [ ] Run full migration with `--clean --include-data`
 - [ ] Verify table structure in target database
 - [ ] Verify data integrity (row counts, sample data)
-- [ ] Verify telegram IDs were swapped (if using that feature)
+- [ ] Verify edge functions were imported
+- [ ] Register edge functions in `_main` router (for Docker)
+- [ ] Test edge functions locally with `supabase functions serve`
+- [ ] Create new Telegram bot and get new telegram ID (if needed)
+- [ ] Verify telegram IDs were replaced (if using that feature)
 - [ ] Update application connection strings
 - [ ] Test application functionality
 - [ ] Set up backups for self-hosted instance
