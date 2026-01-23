@@ -5,6 +5,20 @@ jstack.config
 site-templates/*/.env
 nginx/ssl/*.key
 
+# Claude Code configuration (machine-specific)
+.claude/
+CLAUDE.md
+
+# Service data and credentials
+data/
+nginx/htpasswd
+
+# Supabase edge functions (separate repo)
+supabase/
+
+# Custom apps (separate repos)
+apps/
+
 # Ignore generated nginx configs (created dynamically by install script)
 nginx/conf.d/*.conf
 nginx/certbot/
