@@ -102,10 +102,7 @@ cd test-restore
 tar -xzf ../backups/backup-YYYY-MM-DD-HH-MM-SS.tar.gz
 ```
 ```bash
-ls -la data/supabase/
-```
-```bash
-ls -la data/n8n/
+ls -la sites/
 ```
 ```bash
 ls -la nginx/conf.d/

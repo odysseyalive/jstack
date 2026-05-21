@@ -1,5 +1,6 @@
 #!/bin/bash
-# JStack Full Stack Install Script
+# JStack Core Install Script
+# Installs nginx + certbot and acquires a Let's Encrypt cert for the base domain.
 # Usage: full_stack_install.sh
 
 set -e
@@ -47,23 +48,23 @@ run_docker_command() {
   fi
 }
 
-log "Starting full stack installation..."
+log "Starting core stack installation (nginx + certbot)..."
 
 # Check if user can use sudo for service management
 if ! sudo -n true 2>/dev/null; then
   log "Warning: No sudo access detected. Some services may need manual starting."
   log "Please ensure Docker service is running."
 else
-  # Start Docker service if not running
   check_service_and_start "docker"
 fi
 
-# Check Docker permissions
 check_docker_permissions
 
-COMPOSE_FILE="$(dirname "$0")/../../docker-compose.yml"
-log "Checking workspace volume directories..."
-for DIR in "$(dirname "$0")/../../data/supabase" "$(dirname "$0")/../../data/n8n" "$(dirname "$0")/../../data/chrome" "$(dirname "$0")/../../nginx/conf.d" "$(dirname "$0")/../../nginx/ssl" "$(dirname "$0")/../../nginx/logs"; do
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+COMPOSE_FILE="$REPO_ROOT/docker-compose.yml"
+
+log "Checking core volume directories..."
+for DIR in "$REPO_ROOT/nginx/conf.d" "$REPO_ROOT/nginx/ssl" "$REPO_ROOT/nginx/logs"; do
   if [ ! -d "$DIR" ]; then
     log "Creating missing directory: $DIR"
     mkdir -p "$DIR"
@@ -72,355 +73,142 @@ done
 
 # Create certbot directories with proper permissions before Docker creates them
 log "Setting up certbot directories..."
-CERTBOT_WWW="$(dirname "$0")/../../nginx/certbot/www"
+CERTBOT_WWW="$REPO_ROOT/nginx/certbot/www"
 CERTBOT_CHALLENGE="$CERTBOT_WWW/.well-known/acme-challenge"
-
 mkdir -p "$CERTBOT_CHALLENGE"
 chmod -R 755 "$CERTBOT_WWW"
 log "✓ Certbot challenge directory created with proper permissions"
 
 # Create nginx logs directory with proper permissions
 log "Setting up nginx logs directory..."
-NGINX_LOGS="$(dirname "$0")/../../nginx/logs"
+NGINX_LOGS="$REPO_ROOT/nginx/logs"
 mkdir -p "$NGINX_LOGS"
 chmod 755 "$NGINX_LOGS"
 log "✓ Nginx logs directory created with proper permissions"
-if [ -f "$COMPOSE_FILE" ]; then
-  log "Generating secure secrets..."
-  # Generate secrets for Supabase
-  bash "$(dirname "$0")/generate_secrets.sh" --save-env
 
-  # Source the generated environment file to get the variables
-  SECRETS_FILE="$(dirname "$0")/../../.env.secrets"
-  if [ -f "$SECRETS_FILE" ]; then
-    source "$SECRETS_FILE"
-  else
-    log "Error: Failed to generate secrets file"
-    exit 1
-  fi
-
-  log "Setting up configuration..."
-
-  # Create user config file if it doesn't exist
-  CONFIG_FILE="$(dirname "$0")/../../jstack.config"
-  CONFIG_DEFAULT="$(dirname "$0")/../../jstack.config.default"
-
-  if [ ! -f "$CONFIG_FILE" ]; then
-    log "Creating user configuration file..."
-    cp "$CONFIG_DEFAULT" "$CONFIG_FILE"
-
-    # Prompt for domain configuration
-    echo ""
-    echo "Domain Configuration:"
-    echo "Please enter your domain name (e.g., mydomain.com)"
-    echo "This will be used for SSL certificates and subdomain configuration."
-    echo "Subdomains will be: api.DOMAIN, studio.DOMAIN, n8n.DOMAIN, chrome.DOMAIN"
-    echo ""
-
-    read -r -p "Enter your domain name [example.com]: " USER_DOMAIN
-    USER_DOMAIN=${USER_DOMAIN:-example.com}
-
-    read -r -p "Enter your email for SSL certificates [admin@${USER_DOMAIN}]: " USER_EMAIL
-    USER_EMAIL=${USER_EMAIL:-admin@${USER_DOMAIN}}
-
-    # Update the config file with user values
-    sed -i "s/DOMAIN=\"example.com\"/DOMAIN=\"${USER_DOMAIN}\"/" "$CONFIG_FILE"
-    sed -i "s/EMAIL=\"admin@example.com\"/EMAIL=\"${USER_EMAIL}\"/" "$CONFIG_FILE"
-
-    # Update service URLs in config
-    sed -i "s/n8n.example.com/n8n.${USER_DOMAIN}/" "$CONFIG_FILE"
-    sed -i "s/api.example.com/api.${USER_DOMAIN}/" "$CONFIG_FILE"
-    sed -i "s/studio.example.com/studio.${USER_DOMAIN}/" "$CONFIG_FILE"
-    sed -i "s/chrome.example.com/chrome.${USER_DOMAIN}/" "$CONFIG_FILE"
-
-    log "✓ Configuration saved to jstack.config"
-    log "✓ Domain: $USER_DOMAIN"
-    log "✓ Email: $USER_EMAIL"
-  else
-    log "Using existing configuration file: $CONFIG_FILE"
-  fi
-
-  # Load the configuration
-  source "$CONFIG_FILE"
-
-  log "Prompting for required credentials..."
-  # Always prompt for N8N and Supabase credentials, overwriting existing values
-  read -r -p "Enter Supabase DB username [${SUPABASE_USER:-supabase_admin}]: " SUPABASE_USER_INPUT
-  SUPABASE_USER=${SUPABASE_USER_INPUT:-${SUPABASE_USER:-supabase_admin}}
-
-  read -r -s -p "Enter Supabase DB password: " SUPABASE_PASSWORD
-  echo
-
-  read -r -p "Enter n8n admin username [${N8N_BASIC_AUTH_USER:-admin}]: " N8N_USER_INPUT
-  N8N_BASIC_AUTH_USER=${N8N_USER_INPUT:-${N8N_BASIC_AUTH_USER:-admin}}
-
-  read -r -s -p "Enter n8n admin password: " N8N_BASIC_AUTH_PASSWORD
-  echo
-
-  # Generate htpasswd file for Studio authentication using Supabase credentials
-  log "Creating Studio authentication credentials using Supabase credentials..."
-  echo "$SUPABASE_USER:$(openssl passwd -apr1 "$SUPABASE_PASSWORD")" >"$(dirname "$0")/../../nginx/htpasswd"
-  chmod 644 "$(dirname "$0")/../../nginx/htpasswd"
-  log "✓ Studio authentication configured for user: $SUPABASE_USER"
-
-  # Update .env file with domain and email configuration
-  ENV_FILE="$(dirname "$0")/../../.env"
-
-  # Add or update EMAIL variable
-  if [ -n "$EMAIL" ]; then
-    sed -i "/^EMAIL=/d" "$ENV_FILE" 2>/dev/null || true
-    echo "EMAIL=$EMAIL" >>"$ENV_FILE"
-  fi
-
-  # Add or update DOMAIN variable
-  if [ -n "$DOMAIN" ]; then
-    sed -i "/^DOMAIN=/d" "$ENV_FILE" 2>/dev/null || true
-    echo "DOMAIN=$DOMAIN" >>"$ENV_FILE"
-  fi
-
-  # Update .env file with user-provided password
-  if [ -n "$SUPABASE_PASSWORD" ]; then
-    sed -i "/^SUPABASE_PASSWORD=/d" "$(dirname "$0")/../../.env" 2>/dev/null || true
-    echo "SUPABASE_PASSWORD=$SUPABASE_PASSWORD" >>"$(dirname "$0")/../../.env"
-
-    sed -i "/^SUPABASE_PASSWORD=/d" "$(dirname "$0")/../../.env.secrets" 2>/dev/null || true
-    echo "SUPABASE_PASSWORD=$SUPABASE_PASSWORD" >>"$(dirname "$0")/../../.env.secrets"
-  fi
-
-  log "Setting up SSL certificates for service subdomains..."
-  bash "$(dirname "$0")/setup_service_subdomains_ssl.sh" --http-only
-
-  # Deploy services first (without full nginx configs)
-  log "Deploying services via Docker Compose..."
-  SUPABASE_USER="$SUPABASE_USER" \
-    SUPABASE_PASSWORD="$SUPABASE_PASSWORD" \
-    SUPABASE_JWT_SECRET="$SUPABASE_JWT_SECRET" \
-    SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
-    SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
-  # Fix potential Kong configuration directory issue
-  KONG_YML_PATH="$(dirname "$0")/../../data/supabase/kong.yml"
-  if [ -d "$KONG_YML_PATH" ]; then
-    log "Removing problematic kong.yml directory: $KONG_YML_PATH"
-    rm -rf "$KONG_YML_PATH"
-  fi
-
-  N8N_BASIC_AUTH_USER="$N8N_BASIC_AUTH_USER" \
-    N8N_BASIC_AUTH_PASSWORD="$N8N_BASIC_AUTH_PASSWORD" \
-    run_docker_command docker-compose -f "$COMPOSE_FILE" up -d
-  log "Services deployed."
-
-  # Function to wait for services to be ready
-  wait_for_services() {
-    log "Waiting for services to be ready..."
-
-    # Wait for Kong (API Gateway)
-    local retries=30
-    local wait_time=10
-    for i in $(seq 1 $retries); do
-      if curl -s http://localhost:8000/ >/dev/null 2>&1; then
-        log "✓ Kong is ready"
-        break
-      fi
-      log "Waiting for Kong... ($i/$retries)"
-      sleep $wait_time
-    done
-    if [ $i -eq $retries ]; then
-      log "⚠ Kong did not become ready within $(($retries * $wait_time)) seconds, continuing anyway"
-    fi
-
-    # Wait for Supabase Studio
-    for i in $(seq 1 $retries); do
-      if curl -s -f http://localhost:3000/ >/dev/null 2>&1; then
-        log "✓ Supabase Studio is ready"
-        break
-      fi
-      log "Waiting for Supabase Studio... ($i/$retries)"
-      sleep $wait_time
-    done
-    if [ $i -eq $retries ]; then
-      log "⚠ Supabase Studio did not become ready within $(($retries * $wait_time)) seconds, continuing anyway"
-    fi
-  }
-
-  # Wait for services to be ready before proceeding with SSL setup
-  wait_for_services
-
-  # Service Readiness Integration: Add service dependency checking
-  # Verify Kong/Supabase services are ready before certificate acquisition
-  # Add health checks for each service before enabling HTTPS
-  # Implement timeout and retry logic for service readiness
-
-  # Installation Process Sequencing:
-  # 1. Generate HTTP-only nginx configs ✓ (already done)
-  # 2. Start all services with HTTP access ✓ (already done)
-  # 3. Validate service readiness ✓ (added above)
-  # 4. Acquire certificates per subdomain iteratively ✓ (already done)
-  # 5. Update configs to enable HTTPS per successful certificate ✓ (added below)
-  # 6. Reload nginx progressively ✓ (added below)
-
-  # Fix Supabase database user passwords
-  log "Fixing Supabase database user passwords..."
-  bash "$(dirname "$0")/../fix-supabase-passwords.sh"
-
-  # Function to generate self-signed certificate as fallback
-  generate_self_signed_cert() {
-    local subdomain="$1"
-    local cert_dir="./nginx/certbot/live/${subdomain}"
-    local conf_dir="./nginx/certbot/conf"
-
-    log "Generating self-signed certificate for ${subdomain}..."
-
-    # Create certificate directory
-    mkdir -p "$cert_dir"
-
-    # Generate self-signed certificate using openssl
-    if openssl req -x509 -newkey rsa:2048 -keyout "${cert_dir}/privkey.pem" -out "${cert_dir}/fullchain.pem" -days 365 -nodes -subj "/C=US/ST=State/L=City/O=Organization/CN=${subdomain}" 2>/dev/null; then
-      # Set proper permissions
-      chmod 600 "${cert_dir}/privkey.pem" "${cert_dir}/fullchain.pem"
-      log "✓ Self-signed certificate generated for ${subdomain}"
-      log "⚠ WARNING: Using self-signed certificate for ${subdomain}. Browser will show security warning."
-      log "⚠ Manual certificate renewal required before expiration."
-      return 0
-    else
-      log "✗ Failed to generate self-signed certificate for ${subdomain}"
-      return 1
-    fi
-  }
-
-  log "Acquiring SSL certificates individually for subdomains..."
-
-  # Validate challenge directory is writable
-  CHALLENGE_DIR="$(dirname "$0")/../../nginx/certbot/www/.well-known/acme-challenge"
-  if [ ! -d "$CHALLENGE_DIR" ]; then
-    log "⚠ Challenge directory does not exist, creating: $CHALLENGE_DIR"
-    mkdir -p "$CHALLENGE_DIR"
-    chmod -R 755 "$(dirname "$0")/../../nginx/certbot/www"
-  fi
-
-  if [ ! -w "$CHALLENGE_DIR" ]; then
-    log "✗ ERROR: Challenge directory is not writable: $CHALLENGE_DIR"
-    log "  Run: chmod -R 755 nginx/certbot/www"
-    log "  Attempting automatic fix..."
-    chmod -R 755 "$(dirname "$0")/../../nginx/certbot/www" || log "⚠ Failed to fix permissions, certificate acquisition may fail"
-  else
-    log "✓ Challenge directory is writable"
-  fi
-
-  for SUBDOMAIN in "api.$DOMAIN" "studio.$DOMAIN" "n8n.$DOMAIN" "chrome.$DOMAIN" "mcp.$DOMAIN"; do
-    log "Acquiring certificate for $SUBDOMAIN..."
-
-    # Check DNS resolution
-    if command -v dig >/dev/null 2>&1; then
-      if dig +short "$SUBDOMAIN" A | grep -q .; then
-        log "✓ $SUBDOMAIN resolves"
-      else
-        log "⚠ $SUBDOMAIN does not resolve - certificate acquisition will likely fail"
-        # Continue anyway, as DNS might be set up after
-      fi
-    else
-      log "⚠ dig not available, assuming $SUBDOMAIN resolves"
-    fi
-
-    # Select email argument
-    email_arg="--email $EMAIL"
-    if [[ -z "$EMAIL" || "$EMAIL" == "admin@example.com" ]]; then
-      email_arg="--register-unsafely-without-email"
-      log "⚠ No email configured, using unsafe registration for $SUBDOMAIN"
-    fi
-
-    # Run certbot for individual domain
-    log "Running certbot for $SUBDOMAIN..."
-
-    # Run certbot interactively so user can accept ToS prompt if needed
-    docker-compose run --rm --entrypoint="" certbot certbot certonly --webroot -w /var/www/certbot $email_arg -d "$SUBDOMAIN" --rsa-key-size 2048 --agree-tos
-    CERTBOT_EXIT_CODE=$?
-
-    if [ $CERTBOT_EXIT_CODE -eq 0 ]; then
-      log "✓ SSL certificate acquired for $SUBDOMAIN"
-    else
-      log "⚠ Failed to acquire Let's Encrypt certificate for $SUBDOMAIN"
-
-      # Analyze failure reason (certbot output already shown to user)
-      if false; then
-        log "  Reason: DNS resolution issue - subdomain may not be properly configured"
-      elif echo "$CERTBOT_OUTPUT" | grep -q "urn:ietf:params:acme:error:rateLimited"; then
-        log "  Reason: Rate limiting - too many requests from this IP"
-      elif echo "$CERTBOT_OUTPUT" | grep -q "urn:ietf:params:acme:error:connection"; then
-        log "  Reason: Network/firewall issue preventing ACME challenge"
-      elif echo "$CERTBOT_OUTPUT" | grep -q "urn:ietf:params:acme:error:unauthorized"; then
-        log "  Reason: ACME challenge failed - webroot not accessible"
-      else
-        log "  Reason: Unknown error - check certbot output above"
-      fi
-
-      # Attempt self-signed certificate fallback
-      log "Attempting self-signed certificate generation as fallback..."
-      if generate_self_signed_cert "$SUBDOMAIN"; then
-        log "✓ Self-signed certificate available for $SUBDOMAIN (HTTPS will show warnings)"
-      else
-        log "✗ Self-signed certificate generation failed - $SUBDOMAIN will remain HTTP-only"
-        log "Manual certificate setup instructions:"
-        log "  1. Ensure $SUBDOMAIN resolves to this server"
-        log "  2. Run: docker-compose run --rm --entrypoint='' certbot certbot certonly --webroot -w /var/www/certbot --email $EMAIL -d $SUBDOMAIN --rsa-key-size 2048 --agree-tos"
-        log "  3. Then run: docker-compose exec nginx nginx -s reload"
-      fi
-    fi
-  done
-
-  log "Updating nginx configs to enable HTTPS for successful certificates..."
-  bash "$(dirname "$0")/setup_service_subdomains_ssl.sh" --with-ssl
-
-  log "Enabling HTTPS redirects..."
-  bash "$(dirname "$0")/enable_https_redirects.sh"
-
-  # Fix certificate permissions to be readable by jarvis user
-  # Use Docker container with root privileges to fix permissions safely
-  log "Fixing certificate file permissions..."
-  docker run --rm -v "$(pwd)/nginx/certbot/conf:/etc/letsencrypt" alpine sh -c "chown -R 1000:1000 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null || true; chmod -R 755 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null || true" >/dev/null 2>&1 || log "⚠ Failed to fix certificate permissions - you may need to run: bash scripts/core/fix_certbot_permissions.sh"
-  log "✓ Certificate permissions fixed"
-
-  # Reload nginx to pick up certificates
-  log "Reloading nginx..."
-  if docker-compose exec nginx nginx -s reload >/dev/null 2>&1; then
-    log "✓ Nginx reloaded"
-  else
-    log "⚠ Failed to reload nginx, restarting..."
-    docker-compose restart nginx >/dev/null 2>&1
-  fi
-
-  # Review Installation Flow Changes:
-  # - HTTP-only to HTTPS progression: configs start HTTP, update to HTTPS after certs
-  # - Service readiness checks added before SSL acquisition
-  # - Progressive config updates: HTTP → acquire certs → HTTPS → redirects → reload
-  # - Double-check with Context7: individual certs reduce rate limit issues, webroot auth recommended for nginx in containers
-
-  # Setup fail2ban for SSH and NGINX protection
-  log "Setting up fail2ban for SSH and NGINX protection..."
-  if bash "$(dirname "$0")/setup_fail2ban.sh"; then
-    log "✓ Fail2ban setup completed"
-  else
-    log "⚠ Fail2ban setup encountered issues - check logs above"
-    log "  You can run it manually later: bash scripts/core/setup_fail2ban.sh"
-  fi
-
-  # Setup log rotation
-  log "Setting up log rotation..."
-  if bash "$(dirname "$0")/setup_log_rotation.sh"; then
-    log "✓ Log rotation setup completed"
-  else
-    log "⚠ Log rotation setup encountered issues - check logs above"
-    log "  You can run it manually later: bash scripts/core/setup_log_rotation.sh"
-  fi
-
-  # Setup n8n MCP Proxy for Claude.ai integration
-  log "Setting up n8n MCP Proxy for Claude.ai integration..."
-  if bash "$(dirname "$0")/setup_mcp_proxy.sh"; then
-    log "✓ MCP proxy setup completed"
-    log "  You can connect Claude.ai to: https://mcp.$DOMAIN/sse"
-  else
-    log "⚠ MCP proxy setup encountered issues - check logs above"
-    log "  You can run it manually later: bash scripts/core/setup_mcp_proxy.sh"
-  fi
-
-  log "Full stack installation completed."
+if [ ! -f "$COMPOSE_FILE" ]; then
+  log "ERROR: $COMPOSE_FILE not found"
+  exit 1
 fi
+
+log "Setting up configuration..."
+CONFIG_FILE="$REPO_ROOT/jstack.config"
+CONFIG_DEFAULT="$REPO_ROOT/jstack.config.default"
+
+if [ ! -f "$CONFIG_FILE" ]; then
+  log "Creating user configuration file..."
+  cp "$CONFIG_DEFAULT" "$CONFIG_FILE"
+
+  echo ""
+  echo "Domain Configuration:"
+  echo "Please enter your domain name (e.g., mydomain.com)"
+  echo "This will be used for the Let's Encrypt cert for the base site."
+  echo ""
+
+  read -r -p "Enter your domain name [example.com]: " USER_DOMAIN
+  USER_DOMAIN=${USER_DOMAIN:-example.com}
+
+  read -r -p "Enter your email for SSL certificates [admin@${USER_DOMAIN}]: " USER_EMAIL
+  USER_EMAIL=${USER_EMAIL:-admin@${USER_DOMAIN}}
+
+  sed -i "s/DOMAIN=\"example.com\"/DOMAIN=\"${USER_DOMAIN}\"/" "$CONFIG_FILE"
+  sed -i "s/EMAIL=\"admin@example.com\"/EMAIL=\"${USER_EMAIL}\"/" "$CONFIG_FILE"
+
+  log "✓ Configuration saved to jstack.config"
+  log "✓ Domain: $USER_DOMAIN"
+  log "✓ Email: $USER_EMAIL"
+else
+  log "Using existing configuration file: $CONFIG_FILE"
+fi
+
+# Load the configuration
+# shellcheck disable=SC1090
+source "$CONFIG_FILE"
+
+# Update .env with core variables
+ENV_FILE="$REPO_ROOT/.env"
+touch "$ENV_FILE"
+
+if [ -n "$EMAIL" ]; then
+  sed -i "/^EMAIL=/d" "$ENV_FILE" 2>/dev/null || true
+  echo "EMAIL=$EMAIL" >>"$ENV_FILE"
+fi
+if [ -n "$DOMAIN" ]; then
+  sed -i "/^DOMAIN=/d" "$ENV_FILE" 2>/dev/null || true
+  echo "DOMAIN=$DOMAIN" >>"$ENV_FILE"
+fi
+
+log "Bringing up core services (nginx + certbot)..."
+run_docker_command docker-compose -f "$COMPOSE_FILE" up -d
+log "✓ Core services up"
+
+# Acquire base-domain certificate (apex). Service subdomains acquire their own
+# certs when their installers run.
+acquire_base_cert() {
+  local subdomain="$1"
+  log "Acquiring certificate for $subdomain..."
+
+  if command -v dig >/dev/null 2>&1; then
+    if dig +short "$subdomain" A | grep -q .; then
+      log "✓ $subdomain resolves"
+    else
+      log "⚠ $subdomain does not resolve - certificate acquisition will likely fail"
+    fi
+  fi
+
+  local email_arg="--email $EMAIL"
+  if [[ -z "$EMAIL" || "$EMAIL" == "admin@example.com" ]]; then
+    email_arg="--register-unsafely-without-email"
+    log "⚠ No email configured, using unsafe registration for $subdomain"
+  fi
+
+  docker-compose -f "$COMPOSE_FILE" run --rm --entrypoint="" certbot \
+    certbot certonly --webroot -w /var/www/certbot $email_arg \
+    -d "$subdomain" --rsa-key-size 2048 --agree-tos || \
+    log "⚠ Failed to acquire certificate for $subdomain (you can retry later)"
+}
+
+if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "example.com" ]; then
+  CHALLENGE_DIR="$REPO_ROOT/nginx/certbot/www/.well-known/acme-challenge"
+  mkdir -p "$CHALLENGE_DIR"
+  chmod -R 755 "$REPO_ROOT/nginx/certbot/www"
+  acquire_base_cert "$DOMAIN"
+fi
+
+# Fix certificate file permissions
+log "Fixing certificate file permissions..."
+docker run --rm -v "$REPO_ROOT/nginx/certbot/conf:/etc/letsencrypt" alpine sh -c \
+  "chown -R 1000:1000 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null || true; \
+   chmod -R 755 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null || true" \
+  >/dev/null 2>&1 || log "⚠ Failed to fix cert permissions (run scripts/core/fix_certbot_permissions.sh manually if needed)"
+
+# Reload nginx
+log "Reloading nginx..."
+if docker-compose -f "$COMPOSE_FILE" exec -T nginx nginx -s reload >/dev/null 2>&1; then
+  log "✓ Nginx reloaded"
+else
+  log "⚠ Failed to reload nginx, restarting..."
+  docker-compose -f "$COMPOSE_FILE" restart nginx >/dev/null 2>&1 || true
+fi
+
+# Setup fail2ban for SSH and NGINX protection
+log "Setting up fail2ban for SSH and NGINX protection..."
+if bash "$(dirname "$0")/setup_fail2ban.sh"; then
+  log "✓ Fail2ban setup completed"
+else
+  log "⚠ Fail2ban setup encountered issues - check logs above"
+fi
+
+# Setup log rotation
+log "Setting up log rotation..."
+if bash "$(dirname "$0")/setup_log_rotation.sh"; then
+  log "✓ Log rotation setup completed"
+else
+  log "⚠ Log rotation setup encountered issues - check logs above"
+fi
+
+log "Core installation complete."
+echo ""
+echo "Next step: deploy a site"
+echo "  bash jstack.sh --install-site sites/<your-domain>"
+echo ""

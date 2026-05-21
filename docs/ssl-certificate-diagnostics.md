@@ -153,15 +153,6 @@ cd ~/jstack
 # Test the certificate check function manually
 cert_dir="nginx/certbot/conf/live/api.odysseyalive.com"
 test -f "$cert_dir/fullchain.pem" && echo "✓ Certificate found" || echo "✗ Certificate NOT found"
-
-# Run the HTTPS redirect script
-bash scripts/core/enable_https_redirects.sh
-
-# Expected output:
-# [timestamp] ✓ Certificate found for api.odysseyalive.com - enabling HTTPS
-# [timestamp] ✓ Certificate found for studio.odysseyalive.com - enabling HTTPS
-# [timestamp] ✓ Certificate found for n8n.odysseyalive.com - enabling HTTPS
-# [timestamp] ✓ Certificate found for chrome.odysseyalive.com - enabling HTTPS
 ```
 
 ## Next Steps
@@ -173,10 +164,7 @@ Once certificates are properly detected:
 docker-compose exec nginx nginx -s reload
 
 # Verify HTTPS is working
-curl -I https://api.odysseyalive.com
-curl -I https://studio.odysseyalive.com
-curl -I https://n8n.odysseyalive.com
-curl -I https://chrome.odysseyalive.com
+curl -I https://<your-site-domain>
 ```
 
 ## Reference: Volume Mount Structure

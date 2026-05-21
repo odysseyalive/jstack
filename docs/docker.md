@@ -1,316 +1,169 @@
-# Docker & Containers Guide
+# Docker & Containers
 
-JStack uses Docker to package each service in its own container. Think of containers like separate apartments in a building—each service has its own space but they can communicate when needed.
+jstack uses Docker to run nginx + certbot as the core stack, and each site
+under `sites/<domain>/` runs its own container(s). Sites can bring their own
+backing services (databases, queues, etc.) in their own `docker-compose.yml`.
 
-## Why Docker?
+## Containers you'll see
 
-**No conflicts:** Each service runs in isolation with its own dependencies
-**Easy updates:** Update one service without breaking others
-**Consistent environment:** Works the same on any Debian 12 server
-**Simple backup:** All your data is in organized folders
+The core stack:
 
-## Understanding Your Containers
+- `jstack_nginx_1` — reverse proxy on 80/443
+- `jstack_certbot_1` — Let's Encrypt renewal loop
 
-### What's Running
-- See all containers and their status
+Plus one or more site containers (defined under `sites/<domain>/` or in your
+local `docker-compose.override.yml`).
+
+## Essential commands
+
+### Status
+
 ```bash
-docker-compose ps
+docker-compose ps                        # service status from jstack's compose
+docker ps                                # all running containers
+docker stats                             # live CPU/memory
 ```
-- See resource usage
-```bash
-docker stats
-```
-- See which ports are exposed
-```bash
-docker-compose port [service-name]
-```
 
-### Container Names in JStack
-- `jstack-nginx` - Web server and reverse proxy
-- `jstack-n8n` - Automation workflows
-- `jstack-supabase-db` - PostgreSQL database
-- `jstack-supabase-*` - Supabase microservices
-- `jstack-chrome` - Headless browser
+### Start / stop / restart
 
-## Essential Docker Commands
-
-### Starting and Stopping
-- Start all services
 ```bash
-./jstack.sh up
-```
-- Start all services (docker-compose)
-```bash
-docker-compose up -d
-```
-- Stop all services
-```bash
+./jstack.sh up                           # start core + sites
 ./jstack.sh down
-```
-- Stop all services (docker-compose)
-```bash
-docker-compose down
-```
-- Restart specific service
-```bash
-docker-compose restart nginx
+./jstack.sh restart
+docker-compose restart nginx             # restart just nginx
 ```
 
-### Checking Logs
-- View logs for all services
+### Logs
+
 ```bash
-docker-compose logs
-```
-- View logs for specific service
-```bash
-docker-compose logs n8n
-```
-- Follow logs in real-time
-```bash
-docker-compose logs -f supabase-db
-```
-- View last 50 lines
-```bash
-docker-compose logs --tail=50 nginx
+docker-compose logs                      # all core services
+docker-compose logs -f nginx             # follow nginx logs
+docker-compose logs --tail=50 certbot
 ```
 
-### Getting Into Containers
-- Open shell in NGINX container
+For a site:
+
+```bash
+docker-compose -f sites/<domain>/docker-compose.yml logs -f
+```
+
+### Shell into a container
+
 ```bash
 docker-compose exec nginx /bin/bash
-```
-- Run one-off command in container
-```bash
-docker-compose exec supabase-db psql -U postgres
-```
-- Check NGINX configuration
-```bash
-docker-compose exec nginx nginx -t
+docker-compose exec nginx nginx -t       # validate nginx config
 ```
 
-## Data Persistence - Where Your Stuff Lives
+## Data persistence
 
-JStack maps container data to your workspace so nothing gets lost:
-```bash
-./data/supabase/     # Database files
+Anything mounted to your workspace survives container restarts/recreates:
+
 ```
-```bash
-./data/n8n/          # Workflow data
-```
-```bash
-./data/chrome/       # Browser cache/data
-```
-```bash
-./nginx/conf.d/      # Website configs
-```
-```bash
-./nginx/ssl/         # SSL certificates
-```
-```bash
-./logs/              # Application logs
+./nginx/conf.d/             # Site nginx configs
+./nginx/certbot/conf/       # Let's Encrypt certs
+./nginx/logs/               # Access + error logs
+./sites/<domain>/           # Site source + data
 ```
 
-**Key insight:** Even if you delete all containers, your data stays safe in these folders.
+Anything in a named Docker volume (or only inside a container layer) does NOT.
 
-## Container Lifecycle Management
+## Network
 
-### Updating Services
-- Pull latest images
-```bash
-docker-compose pull
-```
-- Recreate containers with new images
-```bash
-docker-compose up -d --force-recreate
+All core + site containers share a single Docker bridge network. nginx can
+proxy to any other container by its container name:
+
+```nginx
+proxy_pass http://my-site-container:3000;
 ```
 
-### Rebuilding After Changes
-- Rebuild and restart everything
-```bash
-docker-compose down
-```
-```bash
-docker-compose up -d --build
-```
-
-### Cleaning Up
-- Remove stopped containers
-```bash
-docker container prune
-```
-- Remove unused images (frees disk space)
-```bash
-docker image prune
-```
-- Remove unused volumes (be careful!)
-```bash
-docker volume prune
-```
-
-## Network Communication
-- View networks
 ```bash
 docker network ls
-```
-- Inspect JStack network
-```bash
 docker network inspect jstack_default
 ```
 
-**Internal hostnames:**
-- `nginx` - Web server
-- `n8n` - Automation service
-- `supabase-db` - Database
-- `chrome` - Browser service
+## Lifecycle
 
-This means n8n can connect to the database using `supabase-db:5432` instead of external IPs.
+### Update images
 
-## Resource Management
-### Monitor Resource Usage
-- Real-time stats
 ```bash
-docker stats
+docker-compose pull
+docker-compose up -d --force-recreate
 ```
-- Container details
+
+### Rebuild
+
 ```bash
-docker-compose top
+docker-compose down
+docker-compose up -d --build
 ```
 
-### Limit Resources (edit docker-compose.yml)
-```yaml
-services:
-  n8n:
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
+### Cleanup
+
+```bash
+docker container prune                   # stopped containers
+docker image prune                       # unused images
+docker volume prune                      # unused volumes — careful
+docker system prune -a                   # full cleanup
 ```
 
-## Troubleshooting Docker Issues
+## Troubleshooting
 
-### Container Won't Start
-- Check what's wrong
+### Container won't start
+
 ```bash
 docker-compose logs [service-name]
-```
-- Check if ports are already used
-```bash
 netstat -tlnp | grep :80
-```
-```bash
 netstat -tlnp | grep :443
 ```
 
-### Permission Issues
-- Fix workspace permissions
+### Permission issues
+
 ```bash
 ./scripts/core/fix_workspace_permissions.sh
-```
-- Check file ownership
-```bash
-ls -la data/
+ls -la sites/<domain>/
 ```
 
-### Out of Disk Space
-- See disk usage
+### Out of disk
+
 ```bash
 df -h
-```
-- Clean up Docker
-```bash
 docker system prune -a
 ```
 
-### Database Connection Issues
-- Check if database is accepting connections
-```bash
-docker-compose exec supabase-db pg_isready
-```
-- Connect to database directly
-```bash
-docker-compose exec supabase-db psql -U postgres
-```
+## Adding services for a site
 
-## Docker Compose Commands Cheat Sheet
-- Start services in background
-```bash
-docker-compose up -d
-```
-- Stop and remove containers
-```bash
-docker-compose down
-```
-- View service status
-```bash
-docker-compose ps
-```
-- Follow logs for all services
-```bash
-docker-compose logs -f
-```
-- Restart specific service
-```bash
-docker-compose restart [service]
-```
-- Rebuild service from scratch
-```bash
-docker-compose up -d --build [service]
-```
-- Scale service (run multiple instances)
-```bash
-docker-compose up -d --scale n8n=2
-```
+If a site needs a database, queue, or anything else, declare it in the site's
+own `sites/<domain>/docker-compose.yml`:
 
-## Security Best Practices
-- Rootless containers: JStack services run as non-root users where possible
-- Network isolation: Containers only expose necessary ports
-- Volume mounting: Only specific directories are accessible
-- No privileged mode: Containers can't access host system features
-
-## Backup Strategy
-- Regular backups
-```bash
-./jstack.sh --backup
-```
-- Data folders
-```bash
-cp -r data/ nginx/ logs/ backups/
-```
-- Docker configs
-```bash
-cp docker-compose.yml .env backups/
-```
-
-## Advanced Tips
-### Custom Environment Variables (create .env in project root)
-```bash
-N8N_BASIC_AUTH_USER=yourusername
-```
-```bash
-N8N_BASIC_AUTH_PASSWORD=yourpassword
-```
-```bash
-SUPABASE_USER=dbuser
-```
-```bash
-SUPABASE_PASSWORD=dbpassword
-```
-### Adding New Services (edit docker-compose.yml)
 ```yaml
 services:
-  your-app:
-    image: your-app:latest
-    ports:
-      - "3000:3000"
-    volumes:
-      - "./data/your-app:/app/data"
-```
-### Health Checks
-- Check status
-```bash
-docker-compose ps
-```
-# Look for "healthy" status in output
+  my-site-app:
+    build: .
+    environment:
+      - DATABASE_URL=postgres://postgres@my-site-db:5432/mydb
 
-Remember: Containers are temporary, data is permanent. Focus on managing your data, and let Docker handle the infrastructure.
+  my-site-db:
+    image: postgres:16
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+```
+
+The compose file gets included in `bash jstack.sh up` automatically via
+`--install-site`.
+
+## Security defaults
+
+- Containers run as non-root where possible
+- Only nginx exposes ports to the host (80/443)
+- Sites talk to each other and to backing services via the internal docker
+  network — they don't need host-port mappings unless you want external access
+
+## Backup
+
+```bash
+./jstack.sh --backup                     # built-in backup
+cp -r nginx/conf.d nginx/certbot/conf sites/ backups/   # manual
+```
+
+Sites with their own databases should run their own pg_dump / mysqldump on a
+schedule (see [automation.md](automation.md)).

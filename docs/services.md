@@ -1,168 +1,69 @@
-# Service Architecture Guide
+# Service Architecture
 
-JStack gives you four powerful services that work together to create your AI Second Brain. Here's what each one does and how to manage them.
+jstack has two containers and nothing else built-in: **nginx** and **certbot**.
+Everything else (n8n, databases, headless browsers, etc.) is the responsibility
+of an individual site under `sites/<domain>/` — that site brings its own
+containers in its own `docker-compose.yml`.
 
-## The Four Core Services
+## nginx — reverse proxy
 
-### 🤖 n8n - Your Automation Brain
-**What it does:** Creates workflows that connect your apps, automate tasks, and process data while you sleep.
+**Role:** Listens on 80/443, routes traffic to your sites, handles TLS
+termination.
 
-**Access:** `https://n8n.yourdomain.com` (replace with your actual domain)
-**Default credentials:** Set during installation
+- Active site configs: `nginx/conf.d/`
+- Cert volume: `nginx/certbot/conf` (mounted at `/etc/letsencrypt`)
+- Logs: `nginx/logs/`
 
-**Common use cases:**
-- Auto-respond to emails based on keywords
-- Sync data between different apps
-- Generate reports and send them automatically
-- Monitor websites and alert you to changes
+Common ops:
 
-**Managing n8n:**
-- Check if n8n is running
 ```bash
-./jstack.sh status
+docker-compose exec nginx nginx -t        # validate config
+docker-compose exec nginx nginx -s reload # apply config without restart
+docker-compose restart nginx              # restart container
+docker-compose logs nginx                 # tail logs
 ```
-- Restart n8n if it's acting up
+
+## certbot — Let's Encrypt automation
+
+**Role:** Acquires and renews SSL certs. Renewal loop runs every 12h inside
+the container.
+
 ```bash
-docker-compose restart n8n
+docker-compose exec certbot certbot certificates       # list certs + expiry
+docker-compose exec certbot certbot renew --dry-run    # test renewal
 ```
-- View n8n logs
+
+## Per-site services
+
+If your site needs a database, a queue, or any other service, bundle it into
+the site's own `sites/<domain>/docker-compose.yml`. The site's compose file
+joins the same docker network as nginx automatically — nginx can proxy to it
+by container name.
+
+Example site structure:
+
+```
+sites/my-site.com/
+├── Dockerfile
+├── docker-compose.yml      # defines my-site-app + any backing services (postgres, redis, etc.)
+├── .env                    # DOMAIN, PORT, CONTAINER
+└── app/                    # site source
+```
+
+`bash jstack.sh --install-site sites/my-site.com` will:
+
+1. Bring up the site's compose.
+2. Generate `nginx/conf.d/my-site.com.conf` pointing at the site's container.
+3. Acquire a Let's Encrypt cert for `my-site.com`.
+
+See [site-templates.md](site-templates.md) for ready-to-copy templates
+(static, LAMP, Node).
+
+## Quick health checks
+
 ```bash
-docker-compose logs n8n
-```
-
-**Data location:** Your workflows are stored in `data/n8n/` - back this up!
-
-### 🗄️ Supabase - Your Database Powerhouse
-**What it does:** Stores all your data securely with a built-in admin dashboard and APIs.
-
-**Access:** `https://studio.yourdomain.com` (replace with your actual domain)
-**Default credentials:** Set during installation
-
-**What you'll use it for:**
-- Store customer data, orders, content
-- Create real-time apps and dashboards
-- Manage user authentication
-- Run SQL queries and view data
-
-**Managing Supabase:**
-- Check database status
-```bash
-./jstack.sh status
-```
-- Restart Supabase stack
-```bash
-docker-compose restart supabase-db supabase-kong supabase-auth supabase-rest supabase-realtime supabase-storage supabase-meta
-```
-- View database logs
-```bash
-docker-compose logs supabase-db
-```
-
-**Data location:** Your database is stored in `data/supabase/` - this is critical to back up!
-
-### 🌐 NGINX - Your Web Traffic Director
-**What it does:** Routes web traffic, handles SSL certificates, and serves your websites.
-
-**Access:** Runs automatically in the background
-**Config location:** `nginx/conf.d/`
-
-**What it manages:**
-- SSL certificates for secure HTTPS
-- Domain routing to correct services
-- Security headers and rate limiting
-- Static file serving
-
-**Managing NGINX:**
-- Restart NGINX after config changes
-```bash
-docker-compose restart nginx
-```
-- Check NGINX configuration
-```bash
-docker-compose exec nginx nginx -t
-```
-- View access logs
-```bash
-docker-compose logs nginx
-```
-
-**Config files:** All your site configs are in `nginx/conf.d/` - customize these for your domains.
-
-### 🕷️ Chrome - Your Web Scraping Engine
-**What it does:** Runs a headless Chrome browser for automation, testing, and data extraction.
-
-**Access:** Used by n8n and other services (not directly accessed)
-**Port:** Internal container communication
-
-**Common uses:**
-- Screenshot websites automatically
-- Fill out forms and submit data
-- Extract data from web pages
-- Test your websites
-
-**Managing Chrome:**
-- Restart Chrome service
-```bash
-docker-compose restart chrome
-```
-- View Chrome logs
-```bash
-docker-compose logs chrome
-```
-
-**Data location:** Temporary data stored in `data/chrome/`
-
-## Service Dependencies
-
-Understanding how services connect helps with troubleshooting:
-
-```
-NGINX (Port 80/443) 
-├── Routes to n8n (Port 5678)
-├── Routes to Supabase Studio (Port 8000)
-└── Routes to your sites
-
-n8n workflows can:
-├── Connect to Supabase database
-├── Use Chrome for web automation
-└── Send data anywhere via webhooks
-
-Supabase provides:
-├── Database for n8n workflow data
-├── APIs for your sites
-└── Real-time data sync
-```
-
-## Quick Health Checks
-
-- Check all services at once
-```bash
-./jstack.sh status
-```
-- Check specific service status
-```bash
-docker-compose ps
-```
-- View logs for specific service
-```bash
+bash jstack.sh status                    # all services jstack knows about
+docker-compose ps                        # raw docker view
 docker-compose logs [service-name]
+bash jstack.sh restart                   # restart everything
 ```
-- Restart everything if something's broken
-```bash
-./jstack.sh restart
-```
-
-## Service URLs Cheat Sheet
-Replace `yourdomain.com` with your actual domain:
-- n8n Workflows: `https://n8n.yourdomain.com`
-- Supabase Studio: `https://studio.yourdomain.com`
-- Your Main Site: `https://yourdomain.com`
-- API Endpoints: `https://api.yourdomain.com`
-
-## Next Steps
-- New to automation? Start with simple n8n workflows
-- Need a database? Explore Supabase's built-in table editor
-- Want to add sites? Check out [site-templates.md](site-templates.md)
-- Having issues? See [troubleshooting.md](troubleshooting.md)
-
-Your services are now working 24/7. Focus on building workflows and managing data—JStack handles the infrastructure.

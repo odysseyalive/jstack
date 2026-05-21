@@ -1,16 +1,14 @@
 # JStack Default Configuration
+#
+# Copied to jstack.config on first install. Edit jstack.config (NOT this file)
+# to customize. Only DOMAIN and EMAIL are required.
 
-# Domain and SSL
+# Base domain that nginx serves and Let's Encrypt certs are issued for.
 DOMAIN="example.com"
+# Contact email for Let's Encrypt registration and admin alerts.
 EMAIL="admin@example.com"
 
-# Service Subdomains
-# api.example.com
-# chrome.example.com
-# n8n.example.com
-# studio.example.com
-
-# SSL Certificate Details
+# SSL certificate metadata (for any self-signed fallback certs).
 SSL_COUNTRY="US"
 SSL_STATE="Oregon"
 SSL_CITY="Portland"
@@ -19,17 +17,6 @@ SSL_ORG_UNIT="Development"
 
 # Ports
 NGINX_PORT=443
-SUPABASE_DB_PORT=5432
-SUPABASE_API_PORT=8000
-SUPABASE_STUDIO_PORT=3001
-N8N_PORT=5678
-CHROME_PORT=3000
-
-# Supabase Configuration
-SUPABASE_DB="postgres"
-
-# n8n
-N8N_ENV="production"
 
 # Dry-run and backup
 DRY_RUN=false
@@ -37,5 +24,3 @@ BACKUP_ENABLED=true
 
 # Debug
 DEBUG=false
-
-# Add more configuration options as needed

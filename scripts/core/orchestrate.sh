@@ -4,8 +4,8 @@
 
 set -e
 
-COMPOSE_FILE="$(dirname "$0")/../../docker-compose.yml"
-## Removed SITE_TEMPLATES_DIR reference
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+COMPOSE_FILE="$REPO_ROOT/docker-compose.yml"
 
 usage() {
   echo "Usage: $0 [up|down|restart|status] [service/template]"
@@ -23,20 +23,15 @@ main() {
   fi
   ACTION="$1"; shift
   TARGET="$1"
+
   case "$ACTION" in
     up)
-  for DIR in "$(dirname "$0")/../../data/supabase" "$(dirname "$0")/../../data/n8n" "$(dirname "$0")/../../data/chrome" "$(dirname "$0")/../../nginx/conf.d" "$(dirname "$0")/../../nginx/ssl"; do
+      for DIR in "$REPO_ROOT/nginx/conf.d" "$REPO_ROOT/nginx/ssl"; do
         if [ ! -d "$DIR" ]; then
           log "Creating missing directory: $DIR"
           mkdir -p "$DIR"
         fi
       done
-      # Fix potential Kong configuration directory issue
-      KONG_YML_PATH="$(dirname "$0")/../../data/supabase/kong.yml"
-      if [ -d "$KONG_YML_PATH" ]; then
-        log "Removing problematic kong.yml directory: $KONG_YML_PATH"
-        rm -rf "$KONG_YML_PATH"
-      fi
       if [ -z "$TARGET" ]; then
         log "Starting all services via Docker Compose..."
         docker-compose -f "$COMPOSE_FILE" up -d

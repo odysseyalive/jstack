@@ -15,9 +15,6 @@ CLAUDE.md
 data/
 nginx/htpasswd
 
-# Supabase edge functions (separate repo)
-supabase/
-
 # Custom apps (separate repos)
 apps/
 
@@ -36,9 +33,6 @@ CLAUDE.md
 node_modules/
 dist/
 *.log
-
-# External repositories (cloned during installation)
-n8n-mcp-proxy/
 
 # Docker artifacts
 **/docker-volumes/
@@ -64,4 +58,3 @@ sites/
 logs/
 backups/
 tests/unit/
-supabase/

@@ -19,7 +19,7 @@ fi
 
 WORKSPACE="$(dirname "$0")/../.."
 # Fix permissions for workspace-managed directories
-for DIR in "$WORKSPACE/data/supabase" "$WORKSPACE/data/n8n" "$WORKSPACE/data/chrome" "$WORKSPACE/nginx/conf.d" "$WORKSPACE/nginx/ssl" "$WORKSPACE/backups" "$WORKSPACE/logs"; do
+for DIR in "$WORKSPACE/nginx/conf.d" "$WORKSPACE/nginx/ssl" "$WORKSPACE/backups" "$WORKSPACE/logs"; do
   if [ -d "$DIR" ]; then
     # Validate DIR
     if [[ "$DIR" != $(realpath "$WORKSPACE"/*) ]]; then

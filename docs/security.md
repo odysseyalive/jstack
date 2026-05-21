@@ -161,10 +161,7 @@ sudo ufw delete 3
 ## Container Security
 - See what user containers run as
 ```bash
-docker-compose exec n8n whoami
-```
-```bash
-docker-compose exec supabase-db whoami
+docker-compose exec nginx whoami
 ```
 - View Docker networks
 ```bash
@@ -176,10 +173,8 @@ docker network inspect jstack_default
 ```
 - Check volume permissions
 ```bash
-ls -la data/
-```
-```bash
 ls -la nginx/
+ls -la sites/
 ```
 - Fix permissions if needed
 ```bash
@@ -187,19 +182,8 @@ ls -la nginx/
 ```
 
 ## Security Best Practices
-- Update n8n/Supabase credentials
-```bash
-export N8N_BASIC_AUTH_USER="your-secure-username"
-```
-```bash
-export N8N_BASIC_AUTH_PASSWORD="your-long-secure-password"
-```
-```bash
-export SUPABASE_USER="your-db-username"
-```
-```bash
-export SUPABASE_PASSWORD="your-long-secure-db-password"
-```
+- Rotate site-specific credentials in each site's `.env` or secret manager,
+  then `docker-compose -f sites/<domain>/docker-compose.yml up -d` to apply.
 - Apply changes
 ```bash
 docker-compose up -d
@@ -315,18 +299,10 @@ sudo fail2ban-client set sshd banip 192.168.1.200
 ```bash
 passwd
 ```
-- Reset n8n/database credentials and apply changes
+- Rotate credentials for any affected site
 ```bash
-export N8N_BASIC_AUTH_USER="newuser"
-```
-```bash
-export N8N_BASIC_AUTH_PASSWORD="newpassword"
-```
-```bash
-export SUPABASE_PASSWORD="newdbpassword"
-```
-```bash
-docker-compose up -d
+nano sites/<domain>/.env             # update secrets
+docker-compose -f sites/<domain>/docker-compose.yml up -d
 ```
 
 ## Certificate Automation

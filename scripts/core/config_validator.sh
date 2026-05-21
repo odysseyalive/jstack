@@ -14,7 +14,7 @@ usage() {
 
 validate_config() {
   echo "Validating $CONFIG_FILE..."
-  REQUIRED_FIELDS=(DOMAIN EMAIL NGINX_PORT SUPABASE_PORT N8N_PORT CHROME_PORT SUPABASE_DB SUPABASE_USER SUPABASE_PASSWORD N8N_ENV N8N_BASIC_AUTH_USER N8N_BASIC_AUTH_PASSWORD)
+  REQUIRED_FIELDS=(DOMAIN EMAIL NGINX_PORT)
   for field in "${REQUIRED_FIELDS[@]}"; do
     if ! grep -q "^$field=" "$CONFIG_FILE"; then
       echo "Config missing required field: $field"

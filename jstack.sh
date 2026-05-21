@@ -9,11 +9,15 @@ SCRIPTS_CORE="$(dirname "$0")/scripts/core"
 SCRIPTS_SERVICES="$(dirname "$0")/scripts/services"
 
 show_usage() {
-  echo "Usage: $0 [--dry-run|--install|--backup|--reset|--uninstall|--repair|--debug|--install-site <site_dir>|--functions <cmd>|--workflows <cmd>] <action> [args]"
+  echo "Usage: $0 [flags] <action> [args]"
+  echo ""
+  echo "Flags:"
+  echo "  --install                       Run core install (nginx + certbot + base-domain cert)"
+  echo "  --install-site <site_dir>       Deploy a site container behind nginx + SSL"
+  echo "  --dry-run|--backup|--reset|--uninstall|--repair|--debug"
+  echo ""
   echo "Actions: up, down, restart, status, deploy, backup, restore, validate, propagate, diagnostics, compliance, monitor, template, launch"
   echo "Deploy: deploy <site-domain>  - Restart a site container after rebuild (e.g., deploy odysseyalive.com)"
-  echo "Edge Functions: --functions list|new|import|edit|delete|restart|logs [args]"
-  echo "n8n Workflows: --workflows list|view|export|search|stats|tree [args]"
   exit 1
 }
 
@@ -26,8 +30,6 @@ parse_flags() {
   REPAIR=false
   DEBUG=false
   INSTALL_SITE=""
-  FUNCTIONS_CMD=""
-  WORKFLOWS_CMD=""
   while [[ "$1" == --* ]]; do
     case "$1" in
     --dry-run) DRY_RUN=true ;;
@@ -40,20 +42,6 @@ parse_flags() {
     --install-site)
       shift
       INSTALL_SITE="$1"
-      ;;
-    --functions)
-      shift
-      FUNCTIONS_CMD="$1"
-      shift
-      ARGS=("$@")
-      return
-      ;;
-    --workflows)
-      shift
-      WORKFLOWS_CMD="$1"
-      shift
-      ARGS=("$@")
-      return
       ;;
     *) show_usage ;;
     esac
@@ -91,18 +79,8 @@ run_service_script() {
 
 main() {
   parse_flags "$@"
-  if [ -n "$FUNCTIONS_CMD" ]; then
-    # Handle edge functions management
-    bash "$SCRIPTS_CORE/manage_edge_functions.sh" "$FUNCTIONS_CMD" "${ARGS[@]}"
-    exit $?
-  fi
-  if [ -n "$WORKFLOWS_CMD" ]; then
-    # Handle n8n workflow management
-    bash "$SCRIPTS_CORE/manage_n8n_workflows.sh" "$WORKFLOWS_CMD" "${ARGS[@]}"
-    exit $?
-  fi
   if [ "$INSTALL" = true ]; then
-    # Full stack installation
+    # Core install: nginx + certbot + base-domain cert
     run_core_script install_dependencies
     run_core_script full_stack_install
     ./jstack.sh up
@@ -157,23 +135,22 @@ main() {
     else
       echo "Setting up nginx and SSL for $SITE_DOMAIN..."
 
-      # Use our robust SSL system to generate config and handle SSL
+      # Use our nginx + SSL helpers
       source "$(dirname "$0")/scripts/core/setup_service_subdomains_ssl.sh"
 
-      # Generate nginx config for the site
+      # Phase 1: write HTTP-only proxy config (with ACME location) and reload
       if generate_site_nginx_config "$SITE_DOMAIN" "$SITE_PORT" "$SITE_CONTAINER"; then
-        echo "✓ Nginx config created for $SITE_DOMAIN"
+        echo "✓ HTTP nginx config created for $SITE_DOMAIN"
+        docker-compose -f "$(dirname "$0")/docker-compose.yml" exec -T nginx nginx -s reload >/dev/null 2>&1 || true
 
-        # Add domain to SSL certificate
+        # Phase 2: acquire cert for the site domain
         if install_site_ssl_certificate "$SITE_DOMAIN"; then
-          echo "✓ SSL certificate configured for $SITE_DOMAIN"
-
-          # Enable HTTPS redirects for this site
-          echo "Enabling HTTPS redirects for $SITE_DOMAIN..."
-          bash "$(dirname "$0")/scripts/core/enable_https_redirects.sh"
-          echo "✓ HTTPS redirects enabled for $SITE_DOMAIN"
+          # Phase 3: rewrite config to include HTTPS + redirect
+          upgrade_site_to_https "$SITE_DOMAIN" "$SITE_PORT" "$SITE_CONTAINER"
+          docker-compose -f "$(dirname "$0")/docker-compose.yml" exec -T nginx nginx -s reload >/dev/null 2>&1 || true
+          echo "✓ HTTPS enabled for $SITE_DOMAIN"
         else
-          echo "⚠ SSL setup failed, but site will work with certificate warnings"
+          echo "⚠ SSL acquisition failed; site stays HTTP-only (re-run --install-site to retry)"
         fi
       else
         echo "ERROR: Failed to generate nginx config for $SITE_DOMAIN"

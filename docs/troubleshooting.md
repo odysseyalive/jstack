@@ -65,10 +65,11 @@ docker-compose logs
 docker-compose logs nginx
 ```
 ```bash
-docker-compose logs n8n
+docker-compose logs certbot
 ```
+For a site:
 ```bash
-docker-compose logs supabase-db
+docker-compose -f sites/<domain>/docker-compose.yml logs
 ```
 **Common fixes:**
 - Port already in use
@@ -120,62 +121,24 @@ docker-compose restart nginx
 **Advanced certificate diagnostics:**
 For detailed troubleshooting of certificate symlink issues, permission problems, and volume mount verification, see the [SSL Certificate Diagnostics Guide](ssl-certificate-diagnostics.md).
 
-### Can't Access n8n or Supabase
-- Check service URLs:
-  - n8n: `https://n8n.yourdomain.com`
-  - Supabase: `https://studio.yourdomain.com`
-- Check if domain resolves to your server
+### Can't access a site
+- Check the site's domain resolves to your server
 ```bash
-nslookup n8n.yourdomain.com
+dig +short <site-domain>
 ```
+- Check the nginx config exists and is valid
 ```bash
-dig yourdomain.com
+ls nginx/conf.d/
+docker-compose exec nginx nginx -t
 ```
-- Check NGINX routing
+- Check the site's container is running
 ```bash
-docker-compose exec nginx cat /etc/nginx/conf.d/n8n.yourdomain.com.conf
+docker-compose -f sites/<domain>/docker-compose.yml ps
+docker-compose -f sites/<domain>/docker-compose.yml logs
 ```
-**Reset credentials:**
-- Check current environment
+- Reload nginx after config changes
 ```bash
-grep N8N_BASIC_AUTH docker-compose.yml
-```
-- Set new credentials
-```bash
-export N8N_BASIC_AUTH_USER="newuser"
-```
-```bash
-export N8N_BASIC_AUTH_PASSWORD="newpass"
-```
-```bash
-docker-compose up -d n8n
-```
-
-### Database Connection Errors
-- Is database running?
-```bash
-docker-compose ps supabase-db
-```
-- Can we connect?
-```bash
-docker-compose exec supabase-db pg_isready
-```
-- Check database logs
-```bash
-docker-compose logs supabase-db
-```
-**Fix database issues:**
-- Restart database
-```bash
-docker-compose restart supabase-db
-```
-- Check disk space (common cause)
-```bash
-df -h
-```
-- Restore from backup if corrupted
-```bash
-./jstack.sh --restore backup-filename.tar.gz
+docker-compose exec nginx nginx -s reload
 ```
 
 ### Permission Issues
@@ -254,38 +217,6 @@ cp nginx/conf.d/default.conf nginx/conf.d/yourdomain.com.conf
 ```
 # Edit with your domain name as needed
 
-### Chrome/Puppeteer Issues
-- Is Chrome running?
-```bash
-docker-compose ps chrome
-```
-- Check Chrome logs
-```bash
-docker-compose logs chrome
-```
-- Restart Chrome
-```bash
-docker-compose restart chrome
-```
-
-### n8n Workflow Problems
-**Common workflow issues:**
-- Check connection settings in n8n interface
-- Increase timeout values in workflow settings
-- Restart n8n if workflows are complex
-- Verify Supabase credentials
-- Restart n8n service
-```bash
-docker-compose restart n8n
-```
-- Clear n8n cache (stops all workflows temporarily)
-```bash
-docker-compose exec n8n rm -rf /home/node/.n8n/cache
-```
-```bash
-docker-compose restart n8n
-```
-
 ### System Resource Issues
 - Check which container is using CPU
 ```bash
@@ -316,10 +247,7 @@ sudo netstat -tlnp
 ```
 - Test internal container communication
 ```bash
-docker-compose exec n8n ping supabase-db
-```
-```bash
-docker-compose exec n8n ping chrome
+docker-compose exec nginx ping <site-container-name>
 ```
 - Check Docker networks
 ```bash
@@ -341,6 +269,9 @@ docker system prune -a
 ```bash
 ./jstack.sh --install
 ```
+Sites under `sites/<domain>/` need to be re-deployed via
+`./jstack.sh --install-site sites/<domain>` after a reset.
+
 - Restore from backup
 ```bash
 ls -la backups/
@@ -348,15 +279,9 @@ ls -la backups/
 ```bash
 ./jstack.sh --restore backups/backup-2024-01-15.tar.gz
 ```
-- Rebuild single service
+- Rebuild a site
 ```bash
-docker-compose stop n8n
-```
-```bash
-docker-compose rm n8n
-```
-```bash
-docker-compose up -d n8n
+docker-compose -f sites/<domain>/docker-compose.yml up -d --build
 ```
 
 ## Getting Help
