@@ -10,7 +10,8 @@ SCRIPTS_SERVICES="$(dirname "$0")/scripts/services"
 
 show_usage() {
   echo "Usage: $0 [--dry-run|--install|--backup|--reset|--uninstall|--repair|--debug|--install-site <site_dir>|--functions <cmd>|--workflows <cmd>] <action> [args]"
-  echo "Actions: up, down, restart, status, backup, restore, validate, propagate, diagnostics, compliance, monitor, template, launch"
+  echo "Actions: up, down, restart, status, deploy, backup, restore, validate, propagate, diagnostics, compliance, monitor, template, launch"
+  echo "Deploy: deploy <site-domain>  - Restart a site container after rebuild (e.g., deploy odysseyalive.com)"
   echo "Edge Functions: --functions list|new|import|edit|delete|restart|logs [args]"
   echo "n8n Workflows: --workflows list|view|export|search|stats|tree [args]"
   exit 1
@@ -183,6 +184,27 @@ main() {
     exit 0
   fi
   case "$ACTION" in
+  deploy)
+    # Deploy/restart a site container after rebuild
+    SITE_NAME="${ARGS[0]}"
+    if [ -z "$SITE_NAME" ]; then
+      echo "Usage: jstack.sh deploy <site-domain>"
+      echo "Example: jstack.sh deploy odysseyalive.com"
+      exit 1
+    fi
+    SITE_DIR="$(dirname "$0")/sites/$SITE_NAME"
+    if [ ! -d "$SITE_DIR" ]; then
+      echo "Site directory $SITE_DIR does not exist."
+      exit 2
+    fi
+    if [ ! -f "$SITE_DIR/docker-compose.yml" ]; then
+      echo "No docker-compose.yml found in $SITE_DIR."
+      exit 2
+    fi
+    echo "Restarting $SITE_NAME..."
+    docker-compose -f "$SITE_DIR/docker-compose.yml" restart
+    echo "✓ $SITE_NAME deployed"
+    ;;
   up | down | restart | status)
     run_core_script orchestrate "$ACTION" "${ARGS[@]}"
     ;;

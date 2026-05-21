@@ -11,6 +11,10 @@ nginx/htpasswd
 nginx/conf.d/*.conf
 nginx/certbot/
 
+# claude
+.claude/
+CLAUDE.md
+
 # Node.js artifacts
 node_modules/
 dist/
@@ -23,6 +27,7 @@ n8n-mcp-proxy/
 **/docker-volumes/
 **/backup/
 **/.docker/
+docker-compose.override.yml
 
 # System files
 .DS_Store
