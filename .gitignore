@@ -7,6 +7,23 @@ nginx/ssl/*.key
 nginx/certbot/conf/*
 nginx/htpasswd
 
+# Claude Code configuration (machine-specific)
+.claude/
+CLAUDE.md
+
+# Service data and credentials
+data/
+nginx/htpasswd
+
+# Supabase edge functions (separate repo)
+supabase/
+
+# Custom apps (separate repos)
+apps/
+
+# Server-specific docker compose overrides
+docker-compose.override.yml
+
 # Ignore generated nginx configs (created dynamically by install script)
 nginx/conf.d/*.conf
 nginx/certbot/
