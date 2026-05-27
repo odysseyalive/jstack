@@ -34,33 +34,33 @@ main() {
       done
       if [ -z "$TARGET" ]; then
         log "Starting all services via Docker Compose..."
-        docker-compose -f "$COMPOSE_FILE" up -d
+        docker compose -f "$COMPOSE_FILE" up -d
       else
         log "Starting $TARGET via Docker Compose..."
-        docker-compose -f "$COMPOSE_FILE" up -d "$TARGET"
+        docker compose -f "$COMPOSE_FILE" up -d "$TARGET"
       fi
       ;;
     down)
       if [ -z "$TARGET" ]; then
         log "Stopping all services via Docker Compose..."
-        docker-compose -f "$COMPOSE_FILE" down
+        docker compose -f "$COMPOSE_FILE" down
       else
         log "Stopping $TARGET via Docker Compose..."
-        docker-compose -f "$COMPOSE_FILE" stop "$TARGET"
+        docker compose -f "$COMPOSE_FILE" stop "$TARGET"
       fi
       ;;
     restart)
       if [ -z "$TARGET" ]; then
         log "Restarting all services via Docker Compose..."
-        docker-compose -f "$COMPOSE_FILE" restart
+        docker compose -f "$COMPOSE_FILE" restart
       else
         log "Restarting $TARGET via Docker Compose..."
-        docker-compose -f "$COMPOSE_FILE" restart "$TARGET"
+        docker compose -f "$COMPOSE_FILE" restart "$TARGET"
       fi
       ;;
     status)
       log "Showing status for all services via Docker Compose..."
-      docker-compose -f "$COMPOSE_FILE" ps
+      docker compose -f "$COMPOSE_FILE" ps
       ;;
     *)
       usage

@@ -100,7 +100,7 @@ install_site_ssl_certificate() {
     log "⚠ No real email configured — using unsafe registration"
   fi
 
-  if docker-compose -f "$REPO_ROOT/docker-compose.yml" run --rm --entrypoint="" certbot \
+  if docker compose -f "$REPO_ROOT/docker-compose.yml" run --rm --entrypoint="" certbot \
     certbot certonly --webroot -w /var/www/certbot $email_arg \
     -d "$site_domain" --rsa-key-size 2048 --agree-tos --non-interactive >/dev/null 2>&1; then
     log "✓ Certificate acquired for $site_domain"

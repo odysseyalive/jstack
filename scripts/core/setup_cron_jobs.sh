@@ -16,7 +16,7 @@ setup_ssl_renewal_cron() {
   log "Setting up SSL certificate renewal cron job..."
   
   # Create cron job for SSL renewal (daily at 2 AM)
-  CRON_SSL="0 2 * * * /usr/bin/certbot renew --quiet && cd \"$JSTACK_ROOT\" && docker-compose restart nginx"
+  CRON_SSL="0 2 * * * /usr/bin/certbot renew --quiet && cd \"$JSTACK_ROOT\" && docker compose restart nginx"
   
   # Check if cron job already exists
   if ! crontab -l 2>/dev/null | grep -q "certbot renew"; then

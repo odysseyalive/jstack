@@ -29,15 +29,15 @@ chmod 600 ./nginx/ssl/*.key
 log "SSL certificate setup completed."
 
 log "Restarting Docker services to apply SSL certificates..."
-if command -v docker-compose >/dev/null 2>&1; then
+if docker compose version >/dev/null 2>&1; then
   # Source environment files if they exist
   [ -f ".env" ] && set -a && source .env && set +a
   [ -f ".env.secrets" ] && set -a && source .env.secrets && set +a
 
-  docker-compose down
-  docker-compose up -d
+  docker compose down
+  docker compose up -d
   log "✓ Docker services restarted successfully"
 else
-  log "ERROR: docker-compose not found, please restart services manually"
+  log "ERROR: docker compose (v2 plugin) not found, please restart services manually"
   exit 1
 fi

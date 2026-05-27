@@ -139,7 +139,7 @@ if [ -n "$DOMAIN" ]; then
 fi
 
 log "Bringing up core services (nginx + certbot)..."
-run_docker_command docker-compose -f "$COMPOSE_FILE" up -d
+run_docker_command docker compose -f "$COMPOSE_FILE" up -d
 log "✓ Core services up"
 
 # Acquire base-domain certificate (apex). Service subdomains acquire their own
@@ -162,7 +162,7 @@ acquire_base_cert() {
     log "⚠ No email configured, using unsafe registration for $subdomain"
   fi
 
-  docker-compose -f "$COMPOSE_FILE" run --rm --entrypoint="" certbot \
+  docker compose -f "$COMPOSE_FILE" run --rm --entrypoint="" certbot \
     certbot certonly --webroot -w /var/www/certbot $email_arg \
     -d "$subdomain" --rsa-key-size 2048 --agree-tos || \
     log "⚠ Failed to acquire certificate for $subdomain (you can retry later)"
@@ -184,11 +184,11 @@ docker run --rm -v "$REPO_ROOT/nginx/certbot/conf:/etc/letsencrypt" alpine sh -c
 
 # Reload nginx
 log "Reloading nginx..."
-if docker-compose -f "$COMPOSE_FILE" exec -T nginx nginx -s reload >/dev/null 2>&1; then
+if docker compose -f "$COMPOSE_FILE" exec -T nginx nginx -s reload >/dev/null 2>&1; then
   log "✓ Nginx reloaded"
 else
   log "⚠ Failed to reload nginx, restarting..."
-  docker-compose -f "$COMPOSE_FILE" restart nginx >/dev/null 2>&1 || true
+  docker compose -f "$COMPOSE_FILE" restart nginx >/dev/null 2>&1 || true
 fi
 
 # Setup fail2ban for SSH and NGINX protection

@@ -66,8 +66,8 @@ deploy_template() {
   fi
   # Deploy site using docker-compose if compose file exists
   if [ -f "$TEMPLATE_PATH/docker-compose.yml" ]; then
-    log "Deploying site template $NAME via docker-compose..."
-    docker-compose -f "$TEMPLATE_PATH/docker-compose.yml" up -d
+    log "Deploying site template $NAME via docker compose..."
+    docker compose -f "$TEMPLATE_PATH/docker-compose.yml" up -d
     log "Site template $NAME deployed."
   else
     log "No docker-compose.yml found for $NAME. Cannot deploy."

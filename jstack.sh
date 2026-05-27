@@ -103,12 +103,12 @@ main() {
     fi
     export DBUSER
     export DBPASS
-    # Deploy site via docker-compose
+    # Deploy site via docker compose
     if [ -f "$SITE_DIR/docker-compose.yml" ]; then
       if [ "$DRY_RUN" = true ]; then
-        echo "[DRY-RUN] Would run: DBUSER=**** DBPASS=**** docker-compose -f $SITE_DIR/docker-compose.yml up -d"
+        echo "[DRY-RUN] Would run: DBUSER=**** DBPASS=**** docker compose -f $SITE_DIR/docker-compose.yml up -d"
       else
-        DBUSER="$DBUSER" DBPASS="$DBPASS" docker-compose -f "$SITE_DIR/docker-compose.yml" up -d
+        DBUSER="$DBUSER" DBPASS="$DBPASS" docker compose -f "$SITE_DIR/docker-compose.yml" up -d
       fi
     else
       echo "No docker-compose.yml found in $SITE_DIR."
@@ -141,13 +141,13 @@ main() {
       # Phase 1: write HTTP-only proxy config (with ACME location) and reload
       if generate_site_nginx_config "$SITE_DOMAIN" "$SITE_PORT" "$SITE_CONTAINER"; then
         echo "✓ HTTP nginx config created for $SITE_DOMAIN"
-        docker-compose -f "$(dirname "$0")/docker-compose.yml" exec -T nginx nginx -s reload >/dev/null 2>&1 || true
+        docker compose -f "$(dirname "$0")/docker-compose.yml" exec -T nginx nginx -s reload >/dev/null 2>&1 || true
 
         # Phase 2: acquire cert for the site domain
         if install_site_ssl_certificate "$SITE_DOMAIN"; then
           # Phase 3: rewrite config to include HTTPS + redirect
           upgrade_site_to_https "$SITE_DOMAIN" "$SITE_PORT" "$SITE_CONTAINER"
-          docker-compose -f "$(dirname "$0")/docker-compose.yml" exec -T nginx nginx -s reload >/dev/null 2>&1 || true
+          docker compose -f "$(dirname "$0")/docker-compose.yml" exec -T nginx nginx -s reload >/dev/null 2>&1 || true
           echo "✓ HTTPS enabled for $SITE_DOMAIN"
         else
           echo "⚠ SSL acquisition failed; site stays HTTP-only (re-run --install-site to retry)"
@@ -179,7 +179,7 @@ main() {
       exit 2
     fi
     echo "Restarting $SITE_NAME..."
-    docker-compose -f "$SITE_DIR/docker-compose.yml" restart
+    docker compose -f "$SITE_DIR/docker-compose.yml" restart
     echo "✓ $SITE_NAME deployed"
     ;;
   up | down | restart | status)

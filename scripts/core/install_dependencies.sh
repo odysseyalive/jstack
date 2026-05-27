@@ -44,8 +44,17 @@ check_sudo
 install_if_missing "Docker" "docker" "apt-get update && apt-get install -y docker.io"
 check_docker_group
 
-# Docker Compose
-install_if_missing "Docker Compose" "docker-compose" "apt-get update && apt-get install -y docker-compose"
+# Docker Compose v2 (plugin). Note: the legacy `docker-compose` (v1 Python)
+# package is broken with current Docker images — do NOT install it. v2 is
+# invoked as `docker compose` (two words) and ships as the
+# `docker-compose-plugin` apt package on Debian/Ubuntu.
+if ! docker compose version >/dev/null 2>&1; then
+  log "Docker Compose v2 not found. Installing docker-compose-plugin..."
+  sudo bash -c "apt-get update && apt-get install -y docker-compose-plugin"
+  log "Docker Compose v2 installed."
+else
+  log "Docker Compose v2 already installed."
+fi
 
 # Certbot (for SSL certificate management)
 install_if_missing "Certbot" "certbot" "apt-get update && apt-get install -y certbot"
