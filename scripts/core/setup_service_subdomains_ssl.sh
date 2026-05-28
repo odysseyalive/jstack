@@ -12,7 +12,7 @@
 
 set -e
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CONFIG_FILE="$REPO_ROOT/jstack.config"
 if [ -f "$CONFIG_FILE" ]; then
   # shellcheck disable=SC1090
