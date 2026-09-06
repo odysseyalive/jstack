@@ -1,60 +1,83 @@
-# Ignore user config and secrets
+# ---------------------------------------------------------------------------
+# jstack .gitignore
+# This repo is deployed in place on each server, so the working tree always
+# contains machine-specific state. Anything below is local-only and must never
+# reach the shared repo.
+# ---------------------------------------------------------------------------
+
+# --- User config and secrets ---
 .env
+.env.*
+!.env.example
 .env.secrets
 jstack.config
 site-templates/*/.env
+nginx/htpasswd
+
+# --- TLS material ---
 nginx/ssl/*.key
-nginx/certbot/conf/*
-nginx/htpasswd
-
-# Claude Code configuration (machine-specific)
-.claude/
-CLAUDE.md
-
-# Service data and credentials
-data/
-nginx/htpasswd
-
-# Custom apps (separate repos)
-apps/
-
-# Server-specific docker compose overrides
-docker-compose.override.yml
-
-# Ignore generated nginx configs (created dynamically by install script)
-nginx/conf.d/*.conf
+nginx/ssl/*.pem
+nginx/ssl/*.crt
 nginx/certbot/
+nginx/certbot/conf/*
 
-# claude
+# --- Claude Code configuration (machine-specific) ---
 .claude/
 CLAUDE.md
 
-# Node.js artifacts
-node_modules/
-dist/
-*.log
-
-# Docker artifacts
-**/docker-volumes/
-**/backup/
-**/.docker/
+# --- Server-specific compose overrides ---
 docker-compose.override.yml
+docker-compose.*.local.yml
 
-# System files
-.DS_Store
-Thumbs.db
+# --- Generated nginx site configs (written by the install script) ---
+nginx/conf.d/*.conf
 
-# Editor files
-.vscode/
-.idea/
-
-# Build/test output
-coverage/
-*.out
-
-# Ignore generated sites and runtime/output
-data/
+# --- Generated sites, runtime state, and output ---
+apps/
 sites/
+data/
 logs/
 backups/
 tests/unit/
+
+# --- Local backup / scratch files ---
+# Ad-hoc copies made before edits on a live server, e.g.
+#   docker-compose.yml.bak-2026-08-27
+#   nginx/nginx.conf.watchman-bak-20260619
+*.bak
+*.bak-*
+*-bak-*
+*.backup
+*.orig
+*.rej
+*.save
+*.old
+*~
+*.tmp
+*.swp
+*.swo
+.#*
+#*#
+*.local
+*.local.*
+
+# --- Docker artifacts ---
+**/docker-volumes/
+**/backup/
+**/.docker/
+
+# --- Node.js artifacts ---
+node_modules/
+dist/
+.next/
+*.log
+
+# --- Build / test output ---
+coverage/
+*.out
+
+# --- Editor and OS files ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

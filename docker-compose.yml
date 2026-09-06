@@ -22,7 +22,7 @@ services:
 
   certbot:
     image: certbot/certbot
-    restart: "no"
+    restart: unless-stopped
     volumes:
       - ./nginx/certbot/conf:/etc/letsencrypt
       - ./nginx/certbot/www:/var/www/certbot
