@@ -116,6 +116,11 @@ upgrade_site_to_https() {
   local site_domain="$1"
   local site_port="$2"
   local site_container="$3"
+  # watchman 2026-09-08 (#833): extra origins for the CSP connect-src directive, e.g.
+  # "https://foohook.example.com wss://foohook.example.com" for a site that talks to a
+  # Convex/websocket backend on its own subdomain. Export or set it before calling;
+  # defaults to empty, which leaves connect-src at 'self' only.
+  local csp_connect_extra="${csp_connect_extra:-}"
 
   if [ -z "$site_domain" ] || [ -z "$site_port" ]; then
     log "ERROR: upgrade_site_to_https requires domain and port"
@@ -154,10 +159,17 @@ server {
     ssl_certificate /etc/letsencrypt/live/${site_domain}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;
 
-    add_header X-Frame-Options SAMEORIGIN;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+    # 'always' is load-bearing: without it nginx drops these headers on every 4xx/5xx,
+    # which is most scanner traffic. Matches the watchman 2026-06-19 hardened vhosts.
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Report-only: observe violations in the browser console, then promote to an
+    # enforcing Content-Security-Policy once the site is known clean.
+    add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'${csp_connect_extra:+ $csp_connect_extra}; frame-ancestors 'self'; base-uri 'self'; form-action 'self'" always;
 
     location / {
         proxy_pass ${proxy_target};

@@ -23,6 +23,8 @@ nginx/certbot/conf/*
 
 # --- Claude Code configuration (machine-specific) ---
 .claude/
+.claude-backups/
+.censusignore
 CLAUDE.md
 
 # --- Server-specific compose overrides ---
