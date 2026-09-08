@@ -12,7 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "2.58.0",
-    "dotenv": "17.2.3",
+    "dotenv": "17.4.2",
     "jsonwebtoken": "9.0.2",
     "node-fetch": "3.3.2",
     "pg": "8.16.3"
