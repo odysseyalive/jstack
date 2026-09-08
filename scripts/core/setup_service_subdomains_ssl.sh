@@ -63,12 +63,19 @@ server {
     listen 80;
     server_name ${site_domain};
 
+    # watchman 2026-09-08 (#868): resolve the upstream lazily at REQUEST time. A
+    # parse-time hostname makes nginx refuse to START whenever the named container is
+    # not yet up, which takes down EVERY vhost, not just this one.
+    # See PAT-2026-05-27-nginx-resolver-for-dynamic-upstreams.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
     location /.well-known/acme-challenge/ {
         alias /var/www/certbot/.well-known/acme-challenge/;
     }
 
     location / {
-        proxy_pass ${proxy_target};
+        set \$upstream_site ${proxy_target};
+        proxy_pass \$upstream_site;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -171,8 +178,22 @@ server {
     # enforcing Content-Security-Policy once the site is known clean.
     add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'${csp_connect_extra:+ $csp_connect_extra}; frame-ancestors 'self'; base-uri 'self'; form-action 'self'" always;
 
+    # watchman 2026-09-08 (#868): resolve the upstream lazily at REQUEST time. A
+    # parse-time hostname makes nginx refuse to START whenever the named container is
+    # not yet up, which takes down EVERY vhost, not just this one.
+    # See PAT-2026-05-27-nginx-resolver-for-dynamic-upstreams.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
+    # watchman 2026-09-08 (#840): per-IP request/connection cap. Requires the 'perip'
+    # and 'conperip' zones declared in the http block of nginx/nginx.conf; they are,
+    # and nothing under scripts/ regenerates that file. Sized ~7x above the measured
+    # legitimate peak (43 req/min for one IP); burst absorbs a full page load.
+    limit_req zone=perip burst=50 nodelay;
+    limit_conn conperip 20;
+
     location / {
-        proxy_pass ${proxy_target};
+        set \$upstream_site ${proxy_target};
+        proxy_pass \$upstream_site;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
