@@ -190,6 +190,9 @@ main() {
     ;;
   validate)
     run_core_script config_validator validate
+    # #868: a parse-time upstream in a generated vhost stops nginx from starting
+    # at all, so this belongs in every validate run, not just after a site install.
+    run_core_script check_nginx_upstreams
     ;;
   propagate)
     run_core_script config_validator propagate
