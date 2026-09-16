@@ -193,6 +193,8 @@ main() {
     # #868: a parse-time upstream in a generated vhost stops nginx from starting
     # at all, so this belongs in every validate run, not just after a site install.
     run_core_script check_nginx_upstreams
+    # #906: a server block without the $f2b_banned guard serves banned IPs.
+    run_core_script check_nginx_ban_guard
     ;;
   propagate)
     run_core_script config_validator propagate
