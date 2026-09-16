@@ -191,10 +191,6 @@ server {
     limit_req zone=perip burst=50 nodelay;
     limit_conn conperip 20;
 
-    # watchman 2026-09-15 (#841): layer-7 fail2ban ban. Requires the geo \$f2b_banned
-    # block in nginx/conf.d/00-f2b-geo.conf (traffic arrives via Cloudflare, so nft bans never match).
-    if (\$f2b_banned) { return 403; }
-
     location / {
         set \$upstream_site ${proxy_target};
         proxy_pass \$upstream_site;

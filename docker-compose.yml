@@ -13,7 +13,6 @@ services:
       - ./nginx/certbot/www:/var/www/certbot
       - ./nginx/htpasswd:/etc/nginx/htpasswd:ro
       - ./nginx/logs:/var/log/nginx
-    command: /bin/sh -c "rm -f /var/log/nginx/*.log && exec nginx -g 'daemon off;'"
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
