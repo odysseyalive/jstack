@@ -21,6 +21,17 @@
 #   * resolver, but only when the block proxies. A parse-time upstream hostname makes
 #     nginx refuse to START when the container is down, taking every vhost with it.
 #     See PAT-2026-05-27-nginx-resolver-for-dynamic-upstreams.
+#   * the source-map guard `location ~* \.map$ { access_log off; return 404; }`, also
+#     only when the block proxies. watchman 2026-09-08 (#848): multiple networks were
+#     seen fetching a6dad97d9634a72d.js.map from apps.odysseyalive.com, and a .map file
+#     hands an attacker the unminified source of the bundle. Both generator profiles
+#     emit it; this asserts it, because a PROMOTEd directive nobody checks drifts back
+#     out on the next hand-edit.
+#
+#     EXPECT THIS TO GO RED against the live nginx/conf.d TODAY, and that is correct:
+#     on 2026-09-18 appshook, skulhook and y were generated before the guard existed and
+#     do not carry it. The red clears at the cutover that regenerates them, not by
+#     weakening this assertion.
 #
 # NOT asserted here: the `if ($f2b_banned) { return 403; }` guard. That invariant
 # belongs to check_nginx_ban_guard.sh, which covers both the 80 and the 443 blocks.
@@ -137,8 +148,14 @@ OFFENDERS=$(awk '
                    "limit_req zone=perip burst=50 nodelay;")
               want(seen("(^|\n)[ \t]*limit_conn[ \t]+conperip[ \t;]"),
                    "limit_conn conperip 20;")
-              if (seen("(^|\n)[ \t]*proxy_pass[ \t]"))
+              if (seen("(^|\n)[ \t]*proxy_pass[ \t]")) {
                 want(seen("(^|\n)[ \t]*resolver[ \t]"), "resolver 127.0.0.11 valid=10s ipv6=off;   (block proxies)")
+                # location ~* \.map$ { ... }. The `[^\n]*` absorbs the escaped dot so
+                # this regex needs no backslash of its own, and it still cannot match a
+                # location whose pattern does not end in .map.
+                want(seen("(^|\n)[ \t]*location[ \t]+~\\*[^\n]*\\.map"),
+                     "location ~* \\.map$ { access_log off; return 404; }   (block proxies)")
+              }
             }
             if (miss != "") printf "%s:%d  server_name %s\n%s", FILENAME, start, name, miss
           }

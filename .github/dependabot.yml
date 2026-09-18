@@ -25,3 +25,35 @@ updates:
     directory: "/site-templates/node-mdx-tailwind/site-root"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/sites/apps.odysseyalive.com"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/sites/odysseyalive.com"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/sites/skul.odysseyalive.com"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/sites/apps.odysseyalive.com"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/sites/odysseyalive.com/odyssey-alive"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/sites/odysseyalive.com/odyssey-alive/agenda"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/sites/skul.odysseyalive.com"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/sites/skul.odysseyalive.com/.claude/skills/inform-precheck/runtime-test"
+    schedule:
+      interval: "weekly"

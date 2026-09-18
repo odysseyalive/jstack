@@ -17,7 +17,8 @@
 #   3. Back up      — copy the live file to nginx/conf.d-backups/<UTC-timestamp>/, verify
 #                     it readable and byte-identical. No backup, no change.
 #   4. Apply        — write the new file, preserving the live file's mode and conf.d's
-#                     ownership (see _match_conf_dir_perms below).
+#                     ownership (_match_conf_dir_perms, in scripts/core/nginx_conf_perms.sh,
+#                     shared with the site generator).
 #   5. Syntax gate  — `nginx -t` in the container. Fails -> restore, re-test, exit non-zero.
 #                     NOTHING is reloaded on a failed syntax gate.
 #   6. Reload       — only after the syntax gate passes.
@@ -68,6 +69,15 @@ PROBE_TIMEOUT="${PROBE_TIMEOUT:-15}"
 PROBE_ATTEMPTS="${PROBE_ATTEMPTS:-3}"
 PROBE_INTERVAL="${PROBE_INTERVAL:-2}"
 
+# _match_conf_dir_perms. Shared with setup_service_subdomains_ssl.sh, which writes into
+# the same directory and needs the same answer about ownership and mode. It was a second
+# copy of that function here until 2026-09-18, kept while a fence stopped this script
+# sourcing a file another agent was editing; the fence is gone and two copies of one
+# function is the drift class this script exists to prevent one level up. Source-only:
+# it sets no shell options and runs nothing, so it cannot disturb `set -euo pipefail`.
+# shellcheck source=scripts/core/nginx_conf_perms.sh
+. "$REPO_ROOT/scripts/core/nginx_conf_perms.sh"
+
 log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
@@ -110,18 +120,6 @@ fi
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-# Same contract as setup_service_subdomains_ssl.sh:62 _match_conf_dir_perms(): the file
-# must end up owned like the rest of conf.d, so a root run does not leave a root-owned
-# file the operator cannot edit. One deviation, deliberate: that helper hardcodes 644,
-# and this one takes the mode of the file it is REPLACING. nginx/conf.d holds both 644
-# and 600 vhosts on this host (odysseyalive.com.conf is 600); forcing 644 here would
-# silently widen a file an operator had tightened. New files still default to 644.
-_match_conf_dir_perms() {
-  local nginx_conf_dir="$1" file="$2" mode="${3:-644}"
-  chmod "$mode" "$file"
-  if [ "$(id -u)" -eq 0 ]; then chown --reference="$nginx_conf_dir" "$file"; fi
-}
 
 sha256_of() {
   sha256sum "$1" | awk '{print $1}'
