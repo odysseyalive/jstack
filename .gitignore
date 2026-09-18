@@ -34,6 +34,9 @@ docker-compose.*.local.yml
 # --- Generated nginx site configs (written by the install script) ---
 nginx/conf.d/*.conf
 
+# --- Live fail2ban ban list (rewritten on every ban/unban by jstack-nginx-geo) ---
+nginx/conf.d/f2b-banned.geo
+
 # --- Generated sites, runtime state, and output ---
 apps/
 sites/
