@@ -37,6 +37,11 @@ nginx/conf.d/*.conf
 # --- Live fail2ban ban list (rewritten on every ban/unban by jstack-nginx-geo) ---
 nginx/conf.d/f2b-banned.geo
 
+# --- Pre-change vhost backups (written by scripts/core/apply_vhost_change.sh) ---
+# Copies of generated per-host vhosts, so they carry the same host-specific
+# content nginx/conf.d/*.conf does and must not reach the public repository.
+nginx/conf.d-backups/
+
 # --- Generated sites, runtime state, and output ---
 apps/
 sites/

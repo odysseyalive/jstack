@@ -9,6 +9,21 @@
 #     Acquires a Let's Encrypt cert for the single given domain via the shared certbot.
 #   upgrade_site_to_https <domain> <port> [container]
 #     After cert acquisition, rewrites the config to HTTPS+proxy_pass and adds an HTTP→HTTPS redirect.
+#     Dispatches on the site's profile (see _site_profile below).
+#   upgrade_connector_site_to_https <domain> <port> [container]
+#     The `connector` profile: an SSE / Streamable-HTTP MCP endpoint (a claude.ai remote
+#     connector). Same hardening contract as the standard profile, different proxy tuning.
+#
+# PROFILES
+#   A site picks its profile with `SITE_PROFILE=<name>` in sites/<domain>/.env, or by
+#   exporting SITE_PROFILE before the call. Unset means `standard`.
+#     standard   — a website. Buffered proxy, 60s timeouts, websocket Upgrade header.
+#     connector  — an MCP/SSE endpoint. Unbuffered, 1h timeouts, Connection "" (SSE dies
+#                  under buffering and under a 60s read timeout), Cloudflare real-IP
+#                  restoration, server_tokens off, http2 on.
+#   Both profiles emit the SAME security directives, so check_vhost_hardening.sh and
+#   check_nginx_ban_guard.sh pass on either. A profile is a proxy-tuning variant, never a
+#   hardening exemption: a header added to one profile belongs in both.
 
 set -e
 
@@ -85,6 +100,34 @@ geo $f2b_banned {
 EOF
     _match_conf_dir_perms "$nginx_conf_dir" "$geo_conf"
   fi
+}
+
+# Which vhost profile a site gets: an exported SITE_PROFILE wins, otherwise the
+# SITE_PROFILE= line in sites/<domain>/.env, otherwise `standard`.
+#
+# The grep is ANCHORED. See PAT-2026-09-02-jstack-env-unanchored-grep: jstack.sh:118-120
+# reads this same .env with `grep -m1 PORT`, which matches the first line CONTAINING
+# "PORT" — a comment, or PLAYWRIGHT_MCP_PORT — and silently builds the vhost against the
+# wrong upstream. '^SITE_PROFILE=' cannot be won by a comment or by a longer key.
+#
+# An unrecognised profile name is NOT silently treated as `standard`: that would hand a
+# connector the buffered 60s proxy config and break its SSE stream with no error anywhere.
+_site_profile() {
+  local site_domain="$1"
+  if [ -n "${SITE_PROFILE:-}" ]; then
+    echo "$SITE_PROFILE"
+    return 0
+  fi
+  local site_env="$REPO_ROOT/sites/${site_domain}/.env"
+  if [ -f "$site_env" ]; then
+    local from_env
+    from_env="$(grep -m1 '^SITE_PROFILE=' "$site_env" | cut -d= -f2-)"
+    if [ -n "$from_env" ]; then
+      echo "$from_env"
+      return 0
+    fi
+  fi
+  echo "standard"
 }
 
 generate_site_nginx_config() {
@@ -186,6 +229,20 @@ upgrade_site_to_https() {
     return 1
   fi
 
+  local site_profile
+  site_profile="$(_site_profile "$site_domain")"
+  case "$site_profile" in
+    standard) ;;
+    connector)
+      upgrade_connector_site_to_https "$site_domain" "$site_port" "$site_container"
+      return
+      ;;
+    *)
+      log "ERROR: unknown SITE_PROFILE '$site_profile' for $site_domain (want: standard|connector)"
+      return 1
+      ;;
+  esac
+
   local cert_dir="$REPO_ROOT/nginx/certbot/conf/live/${site_domain}"
   if [ ! -f "$cert_dir/fullchain.pem" ] || [ ! -f "$cert_dir/privkey.pem" ]; then
     log "⚠ No cert found for $site_domain — leaving HTTP-only"
@@ -267,6 +324,182 @@ server {
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
+    }
+}
+EOF
+  _match_conf_dir_perms "$nginx_conf_dir" "$nginx_conf_dir/${site_domain}.conf"
+}
+
+# The `connector` profile: an MCP / SSE (Streamable-HTTP) endpoint fronting a claude.ai
+# remote connector. Dispatched to from upgrade_site_to_https when SITE_PROFILE=connector.
+#
+# Why this is a separate emitter and not a flag on the standard heredoc: SSE and a normal
+# website want OPPOSITE proxy settings. The standard block buffers, times out at 60s and
+# sets `Connection "upgrade"`. On a long-lived SSE GET those three are fatal — the stream
+# is withheld by the buffer, cut at 60s, and the hop-by-hop Connection header confuses a
+# non-websocket streaming upstream. Almost every proxy line differs, so a shared emitter
+# would be a conditional per line.
+#
+# What is NOT different: the hardening. Every add_header, the rate limits, the resolver
+# and the $f2b_banned guard are the same contract as the standard profile, so
+# check_vhost_hardening.sh and check_nginx_ban_guard.sh pass here too. Before 2026-09-18
+# these two vhosts were maintained by two copies of sites/<domain>/patch-nginx-sse.sh and
+# inherited nothing the generator gained: they were missing X-Frame-Options,
+# X-XSS-Protection and a CSP header at the moment this profile was written.
+#
+# Optional inputs (set or export before calling, same contract as csp_connect_extra):
+#   connector_label  — the upstream project name for the header comment, e.g.
+#                      "playwright-mcp". Cosmetic; defaults to "MCP".
+#   ORIGIN_CERT=1    — serve a Cloudflare Origin Certificate from
+#                      nginx/certbot/conf/cloudflare-origin/<domain>.{pem,key} instead of
+#                      the Let's Encrypt cert. Carried over from patch-nginx-sse.sh so
+#                      deleting that script loses no capability. Default 0 (Let's Encrypt).
+upgrade_connector_site_to_https() {
+  local site_domain="$1"
+  local site_port="$2"
+  local site_container="$3"
+  local connector_label="${connector_label:-MCP}"
+  local origin_cert="${ORIGIN_CERT:-0}"
+  local csp_connect_extra="${csp_connect_extra:-}"
+
+  if [ -z "$site_domain" ] || [ -z "$site_port" ]; then
+    log "ERROR: upgrade_connector_site_to_https requires domain and port"
+    return 1
+  fi
+
+  local cert_line key_line
+  if [ "$origin_cert" = "1" ]; then
+    local origin_dir="$REPO_ROOT/nginx/certbot/conf/cloudflare-origin"
+    if [ ! -f "$origin_dir/${site_domain}.pem" ] || [ ! -f "$origin_dir/${site_domain}.key" ]; then
+      log "⚠ ORIGIN_CERT=1 but no origin cert/key for $site_domain in $origin_dir — leaving config unchanged"
+      return 1
+    fi
+    cert_line="ssl_certificate     /etc/letsencrypt/cloudflare-origin/${site_domain}.pem;"
+    key_line="ssl_certificate_key /etc/letsencrypt/cloudflare-origin/${site_domain}.key;"
+  else
+    local cert_dir="$REPO_ROOT/nginx/certbot/conf/live/${site_domain}"
+    if [ ! -f "$cert_dir/fullchain.pem" ] || [ ! -f "$cert_dir/privkey.pem" ]; then
+      log "⚠ No cert found for $site_domain — leaving HTTP-only"
+      return 1
+    fi
+    cert_line="ssl_certificate     /etc/letsencrypt/live/${site_domain}/fullchain.pem;"
+    key_line="ssl_certificate_key /etc/letsencrypt/live/${site_domain}/privkey.pem;"
+  fi
+
+  local proxy_target
+  proxy_target=$(_proxy_target "$site_port" "$site_container")
+  local nginx_conf_dir="$REPO_ROOT/nginx/conf.d"
+  mkdir -p "$nginx_conf_dir"
+  _ensure_f2b_geo "$nginx_conf_dir"
+
+  log "Writing HTTPS connector config for $site_domain (SSE, proxy → $proxy_target)"
+  cat >"$nginx_conf_dir/${site_domain}.conf" <<EOF
+# ${site_domain} — ${connector_label} remote connector (claude.ai). SSE-tuned.
+# JStack site config (HTTPS, connector profile). Generated by
+# scripts/core/setup_service_subdomains_ssl.sh — edit the generator, not this file.
+server {
+    listen 80;
+    server_name ${site_domain};
+
+    # watchman 2026-09-16 (#906): layer-7 fail2ban ban (see conf.d/00-f2b-geo.conf).
+    if (\$f2b_banned) { return 403; }
+    location /.well-known/acme-challenge/ {
+        alias /var/www/certbot/.well-known/acme-challenge/;
+    }
+    location / { return 301 https://\$host\$request_uri; }
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${site_domain};
+
+    ${cert_line}
+    ${key_line}
+
+    server_tokens off;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy "no-referrer" always;
+
+    # watchman 2026-09-18 (#912): a connector vhost is a generated variant, not a
+    # hardening exemption. These three were absent for as long as this file was
+    # hand-maintained by patch-nginx-sse.sh. 'always' is load-bearing: without it nginx
+    # drops the header on every 4xx/5xx, which is most scanner traffic.
+    # Referrer-Policy stays "no-referrer" (the standard profile emits
+    # strict-origin-when-cross-origin) — a connector URL can carry a session-scoped path
+    # and there is no referrer this endpoint benefits from leaking.
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Report-only, exactly as the standard profile: it observes and never blocks, so it
+    # cannot break an OAuth consent page or a JSON/SSE response on this endpoint.
+    add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'${csp_connect_extra:+ $csp_connect_extra}; frame-ancestors 'self'; base-uri 'self'; form-action 'self'" always;
+
+    # Cloudflare real-IP restoration — effective when this record is PROXIED (orange),
+    # harmless when DNS-only (grey). Makes nginx log + allowlist the TRUE client IP
+    # instead of a Cloudflare edge IP. Refresh from https://www.cloudflare.com/ips-v4|v6.
+    set_real_ip_from 173.245.48.0/20;
+    set_real_ip_from 103.21.244.0/22;
+    set_real_ip_from 103.22.200.0/22;
+    set_real_ip_from 103.31.4.0/22;
+    set_real_ip_from 141.101.64.0/18;
+    set_real_ip_from 108.162.192.0/18;
+    set_real_ip_from 190.93.240.0/20;
+    set_real_ip_from 188.114.96.0/20;
+    set_real_ip_from 197.234.240.0/22;
+    set_real_ip_from 198.41.128.0/17;
+    set_real_ip_from 162.158.0.0/15;
+    set_real_ip_from 104.16.0.0/13;
+    set_real_ip_from 104.24.0.0/14;
+    set_real_ip_from 172.64.0.0/13;
+    set_real_ip_from 131.0.72.0/22;
+    set_real_ip_from 2400:cb00::/32;
+    set_real_ip_from 2606:4700::/32;
+    set_real_ip_from 2803:f800::/32;
+    set_real_ip_from 2405:b500::/32;
+    set_real_ip_from 2405:8100::/32;
+    set_real_ip_from 2a06:98c0::/29;
+    set_real_ip_from 2c0f:f248::/32;
+    real_ip_header CF-Connecting-IP;
+
+    # OPTIONAL defense-in-depth — restrict inbound to Anthropic's published ranges.
+    # Works on BOTH grey (direct source IP) and orange (restored via real_ip above).
+    # Verify current ranges at https://platform.claude.com/docs/en/api/ip-addresses.
+    #allow 160.79.104.0/21;
+    #allow 2607:6bc0::/48;
+    #deny all;
+
+    # Streamable HTTP + SSE: unbuffered, long-lived GET stream.
+    # watchman 2026-09-08 (#840): per-IP cap, sized ~7x above the measured
+    # legitimate peak of 43 req/min. burst=50 nodelay absorbs a page load.
+    # watchman 2026-09-08 (#868): resolve the upstream lazily at REQUEST time, not at
+    # config-parse time. A parse-time hostname makes nginx fail to start whenever the
+    # named container is not yet up - on 2026-09-08 that crash-looped nginx 9 times and
+    # took EVERY vhost down for 57s during a docker daemon restart.
+    # See PAT-2026-05-27-nginx-resolver-for-dynamic-upstreams.
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
+    limit_req zone=perip burst=50 nodelay;
+    limit_conn conperip 20;
+
+    # watchman 2026-09-15 (#841): layer-7 fail2ban ban (see conf.d/00-f2b-geo.conf).
+    if (\$f2b_banned) { return 403; }
+
+    location / {
+        set \$upstream_site ${proxy_target};
+        proxy_pass \$upstream_site;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_cache off;
+        chunked_transfer_encoding off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
     }
 }
 EOF

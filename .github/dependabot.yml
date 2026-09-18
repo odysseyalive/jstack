@@ -1,5 +1,12 @@
-# Written by wf-pin-check (claude-workforce). Entries are APPEND-ONLY:
-# nothing here is ever edited or reordered by the guard.
+# Dependency updates for the PUBLIC jstack repository.
+#
+# Only paths that EXIST in this repository belong here. `sites/` is gitignored
+# (it holds the operator's own sites, which are private), so an entry under it
+# both fails to resolve and publishes that operator's site names and internal
+# directory layout to anyone reading this file.
+#
+# 2026-09-18: eight such entries were removed for exactly that reason. Do not
+# re-add a path under `sites/`; a per-host site is updated in its own repository.
 version: 2
 updates:
   - package-ecosystem: "docker"
@@ -10,43 +17,11 @@ updates:
     directory: "/site-templates/node-mdx-tailwind"
     schedule:
       interval: "weekly"
-  - package-ecosystem: "docker"
-    directory: "/sites/apps.odysseyalive.com"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "docker"
-    directory: "/sites/odysseyalive.com"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "docker"
-    directory: "/sites/skul.odysseyalive.com"
-    schedule:
-      interval: "weekly"
   - package-ecosystem: "npm"
     directory: "/migration"
     schedule:
       interval: "weekly"
   - package-ecosystem: "npm"
     directory: "/site-templates/node-mdx-tailwind/site-root"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "npm"
-    directory: "/sites/apps.odysseyalive.com"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "npm"
-    directory: "/sites/odysseyalive.com/odyssey-alive"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "npm"
-    directory: "/sites/odysseyalive.com/odyssey-alive/agenda"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "npm"
-    directory: "/sites/skul.odysseyalive.com"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "npm"
-    directory: "/sites/skul.odysseyalive.com/.claude/skills/inform-precheck/runtime-test"
     schedule:
       interval: "weekly"
