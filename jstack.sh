@@ -114,9 +114,21 @@ main() {
       exit 2
     fi
     # Add NGINX config and SSL certificate
-    SITE_DOMAIN="$(grep -m1 DOMAIN "$SITE_DIR/.env" | cut -d'=' -f2)"
-    SITE_PORT="$(grep -m1 PORT "$SITE_DIR/.env" | cut -d'=' -f2)"
-    SITE_CONTAINER="$(grep -m1 CONTAINER "$SITE_DIR/.env" | cut -d'=' -f2 2>/dev/null || echo "")"
+    # ANCHORED '^KEY=', and `cut -f2-` rather than `-f2`. Until 2026-09-19 these three
+    # lines were `grep -m1 DOMAIN`/`PORT`/`CONTAINER`, which match the first line
+    # CONTAINING the substring: a comment, SUBDOMAIN=, or PLAYWRIGHT_MCP_PORT= /
+    # WEB_PORT= / SMTP_PORT=. sites/y.odysseyalive.com/.env carries PLAYWRIGHT_MCP_PORT
+    # and sites/skul.odysseyalive.com/.env carries SMTP_PORT, so the vhost below would
+    # be built against the wrong upstream and the site would 502 with nothing in any log
+    # pointing at the cause. See
+    # .claude/skills/awareness-ledger/ledger/patterns/PAT-2026-09-02-jstack-env-unanchored-grep.md
+    # `-f2-` keeps a value that itself contains '=' (API keys and base64 secrets do)
+    # instead of truncating it at the first one. Same shape as _site_env_value() in
+    # scripts/core/setup_service_subdomains_ssl.sh, which is the one place in the tree
+    # that already had this right.
+    SITE_DOMAIN="$(grep -m1 '^DOMAIN=' "$SITE_DIR/.env" | cut -d'=' -f2-)"
+    SITE_PORT="$(grep -m1 '^PORT=' "$SITE_DIR/.env" | cut -d'=' -f2-)"
+    SITE_CONTAINER="$(grep -m1 '^CONTAINER=' "$SITE_DIR/.env" | cut -d'=' -f2- 2>/dev/null || echo "")"
 
     if [ -z "$SITE_DOMAIN" ] || [ -z "$SITE_PORT" ]; then
       echo "Missing DOMAIN or PORT in $SITE_DIR/.env."

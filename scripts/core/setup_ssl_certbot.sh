@@ -31,7 +31,13 @@ log "Setting up SSL certificates with Certbot for all domains..."
 
 for SITE in "$SITE_DIR"/*; do
   if [ -d "$SITE" ]; then
-    DOMAIN=$(grep -m1 DOMAIN "$SITE/.env" | cut -d'=' -f2)
+    # ANCHORED, for the same reason the EMAIL line above stopped being a grep: an
+    # unanchored `grep -m1 DOMAIN` takes the first line CONTAINING "DOMAIN" -- a comment
+    # or a SUBDOMAIN= key -- and hands whatever that is to certbot as -d. A wrong -d is
+    # not a silent failure here, it is a failed issuance that counts against Let's
+    # Encrypt's 5-duplicate-certificates-per-week limit. `-f2-` keeps a value containing
+    # '='. See PAT-2026-09-02-jstack-env-unanchored-grep.
+    DOMAIN=$(grep -m1 '^DOMAIN=' "$SITE/.env" | cut -d'=' -f2-)
     if [ -n "$DOMAIN" ]; then
       log "Requesting SSL certificate for $DOMAIN..."
       sudo certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email "$EMAIL" --config-dir ./nginx/ssl --work-dir ./nginx/ssl --logs-dir ./nginx/ssl || log "Certbot failed for $DOMAIN."

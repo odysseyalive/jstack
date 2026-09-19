@@ -17,10 +17,10 @@ for SITE in "$SITE_DIR"/*; do
   if [ -d "$SITE" ]; then
     CONFIG_FILE="$SITE/site.config"
     if [ -f "$CONFIG_FILE" ]; then
-      DOMAIN=$(grep -m1 DOMAIN "$CONFIG_FILE" | cut -d'=' -f2)
-      PORT=$(grep -m1 PORT "$CONFIG_FILE" | cut -d'=' -f2)
-      PUBLIC_HTML=$(grep -m1 PUBLIC_HTML "$CONFIG_FILE" | cut -d'=' -f2)
-      SITE_ROOT=$(grep -m1 SITE_ROOT "$CONFIG_FILE" | cut -d'=' -f2)
+      DOMAIN=$(grep -m1 '^DOMAIN=' "$CONFIG_FILE" | cut -d'=' -f2-)
+      PORT=$(grep -m1 '^PORT=' "$CONFIG_FILE" | cut -d'=' -f2-)
+      PUBLIC_HTML=$(grep -m1 '^PUBLIC_HTML=' "$CONFIG_FILE" | cut -d'=' -f2-)
+      SITE_ROOT=$(grep -m1 '^SITE_ROOT=' "$CONFIG_FILE" | cut -d'=' -f2-)
       # Input validation
       if [[ "$DOMAIN" =~ [^a-zA-Z0-9._-] ]] || [[ "$PORT" =~ [^0-9] ]]; then
         echo "Error: Unsafe DOMAIN or PORT value. Aborting." >&2
