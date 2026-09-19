@@ -781,11 +781,24 @@ server {
         proxy_send_timeout 3600s;
 
         # The header-buffer half of the standard profile's promotion (F3, 2026-09-18).
-        # proxy_buffers and proxy_busy_buffers_size govern the BODY and nginx ignores
-        # them while proxy_buffering is off, so they are deliberately not emitted here;
-        # proxy_buffer_size still sizes the buffer the RESPONSE HEADER is read into, and
-        # an OAuth redirect or a long Set-Cookie over 4k is a 502 without it.
+        # proxy_buffer_size sizes the buffer the RESPONSE HEADER is read into; an OAuth
+        # redirect or a long Set-Cookie over 4k is a 502 without it.
+        #
+        # proxy_buffers MUST be raised alongside it even though proxy_buffering is off.
+        # nginx ignores these two at RUNTIME while buffering is off, but it VALIDATES
+        # them at config-parse time regardless: proxy_busy_buffers_size defaults to
+        # 2 x proxy_buffer_size (64k) while proxy_buffers stays at its default 8 4k
+        # (32k), and the constraint "busy < total minus one buffer" (28k) then fails.
+        # nginx does not just reject this vhost -- it REFUSES TO START, taking every
+        # other site down with it. Measured 2026-09-19: emitting proxy_buffer_size
+        # alone here failed `nginx -t` with
+        #   "proxy_busy_buffers_size" must be less than the size of all
+        #   "proxy_buffers" minus one buffer
+        # reported against nginx.conf's include line, which reads like a core config
+        # fault rather than a vhost one.
         proxy_buffer_size 32k;
+        proxy_buffers 16 32k;
+        proxy_busy_buffers_size 64k;
     }
 }
 EOF
