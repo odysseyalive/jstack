@@ -8,7 +8,15 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BACKUP_DIR="$REPO_ROOT/backups"
 LOG_DIR="$REPO_ROOT/logs"
 DOCKER_COMPOSE="$REPO_ROOT/docker-compose.yml"
-JSTACK_CONFIG="$REPO_ROOT/jstack.config.default"
+
+# Which config file to archive: jstack.config when the operator has one, else the
+# jstack.config.default template. Until 2026-09-19 this was hardcoded to the template,
+# so a full backup — including the nightly one setup_cron_jobs.sh installs — carried
+# DOMAIN=example.com and EMAIL=admin@example.com and no copy of the real values.
+# shellcheck source=scripts/core/jstack_config.sh
+. "$REPO_ROOT/scripts/core/jstack_config.sh"
+JSTACK_CONFIG="$(_jstack_config_file)"
+JSTACK_CONFIG_NAME="$(basename "$JSTACK_CONFIG")"
 
 usage() {
   echo "Usage: $0 [backup|restore|validate] [options]"
@@ -27,10 +35,10 @@ backup_full() {
   TS=$(date '+%Y%m%d_%H%M%S')
   FILE="$BACKUP_DIR/jstack_full_$TS.tar.gz"
   mkdir -p "$BACKUP_DIR"
-  log "Starting full backup to $FILE"
+  log "Starting full backup to $FILE (config: $JSTACK_CONFIG_NAME)"
   tar czf "$FILE" \
     -C "$REPO_ROOT" docker-compose.yml \
-    -C "$REPO_ROOT" jstack.config.default \
+    -C "$REPO_ROOT" "$JSTACK_CONFIG_NAME" \
     -C "$REPO_ROOT/nginx/conf.d" . \
     -C "$REPO_ROOT/nginx/certbot/conf" . \
     -C "$REPO_ROOT" sites

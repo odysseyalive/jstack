@@ -5,7 +5,23 @@
 set -e
 
 SITE_DIR="sites"
-EMAIL="$(grep -m1 EMAIL jstack.config.default | cut -d'=' -f2)"
+
+# EMAIL for the Let's Encrypt registration. It comes from jstack.config when the
+# operator has one, else the jstack.config.default template.
+#
+# Until 2026-09-19 this line was:
+#   EMAIL="$(grep -m1 EMAIL jstack.config.default | cut -d'=' -f2)"
+# which read the template rather than the real config AND matched the first line
+# CONTAINING "EMAIL" rather than one beginning "EMAIL=". In jstack.config.default that
+# first line is a comment, so EMAIL resolved to the literal string
+#   "# to customize. Only DOMAIN and EMAIL are required."
+# and that is what would have been handed to certbot as the registration address.
+# Sourcing removes both faults and the retained quotes in one move. Same defect class as
+# .claude/skills/awareness-ledger/ledger/patterns/PAT-2026-09-02-jstack-env-unanchored-grep.md
+#
+# shellcheck source=scripts/core/jstack_config.sh
+. "$(dirname "${BASH_SOURCE[0]}")/jstack_config.sh"
+_jstack_load_config
 
 log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"

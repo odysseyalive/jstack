@@ -4,7 +4,6 @@
 
 set -e
 
-CONFIG_FILE="$(dirname "$0")/jstack.config.default"
 SCRIPTS_CORE="$(dirname "$0")/scripts/core"
 SCRIPTS_SERVICES="$(dirname "$0")/scripts/services"
 
@@ -16,7 +15,7 @@ show_usage() {
   echo "  --install-site <site_dir>       Deploy a site container behind nginx + SSL"
   echo "  --dry-run|--backup|--reset|--uninstall|--repair|--debug"
   echo ""
-  echo "Actions: up, down, restart, status, deploy, backup, restore, validate, propagate, diagnostics, compliance, monitor, template, launch"
+  echo "Actions: up, down, restart, status, deploy, backup, restore, validate, diagnostics, compliance, monitor, template, launch"
   echo "Deploy: deploy <site-domain>  - Restart a site container after rebuild (e.g., deploy odysseyalive.com)"
   exit 1
 }
@@ -197,7 +196,15 @@ main() {
     run_core_script check_nginx_ban_guard
     ;;
   propagate)
-    run_core_script config_validator propagate
+    # Removed 2026-09-19. config_validator's propagate_config() looped over a TEMPLATES=
+    # key that no jstack config has ever defined, into a $SITE_TEMPLATES_DIR that had
+    # already been removed from that file — so `propagate` printed a progress line, did
+    # nothing, and exited 0. It fails here rather than through run_core_script so that
+    # it also fails under --dry-run, which would otherwise print "[DRY-RUN] Would run:"
+    # for an action that no longer exists and exit 0.
+    echo "ERROR: the 'propagate' action no longer exists." >&2
+    echo "It copied jstack.config into site-template .env files through a TEMPLATES= key that no jstack config defines, so it never copied anything and exited 0 anyway." >&2
+    exit 1
     ;;
   diagnostics)
     run_core_script diagnostics "${ARGS[@]}"
