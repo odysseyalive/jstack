@@ -96,6 +96,7 @@ jstack/
 - **[Configuration](docs/configuration.md)** — `jstack.config` reference
 - **[Docker layout](docs/docker.md)**
 - **[SSL & security](docs/security.md)**
+- **[Fleet operations](docs/fleet-operations.md)** — one change, every site: the generator as source of truth, profiles, drift verdicts, and the rollback-safe apply path
 - **[Site templates](docs/site-templates.md)**
 - **[Backup & recovery](docs/backup.md)**
 - **[Troubleshooting](docs/troubleshooting.md)**
