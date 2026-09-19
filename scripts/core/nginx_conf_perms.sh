@@ -30,8 +30,18 @@
 # Mode: defaults to 644 — correct for a file that did not exist before. For a file that
 # is REPLACING an existing vhost, pass that vhost's mode: nginx/conf.d holds both 644 and
 # 600 vhosts on this host (odysseyalive.com.conf is 600), and defaulting to 644 there
-# would silently widen a file an operator had deliberately tightened. Callers get that
-# mode from _conf_target_mode below.
+# would silently widen it. Callers get that mode from _conf_target_mode below.
+#
+# On that 600, since this comment used to assert more than it could support: it read the
+# mode as one "an operator had deliberately tightened". That was an inference, not a
+# record. It was investigated on 2026-09-19 and nobody can say who set it — three
+# hypotheses were tested and all three failed, and the mode predates every journal on
+# this machine. Preserving it is still the right behaviour, but for a different reason:
+# not because the tightening is known to be deliberate, but because its provenance is
+# unknown and widening on "we found no reason" would discard the only signal there is.
+# See .claude/skills/awareness-ledger/ledger/decisions/
+#     DEC-2026-09-19-vhost-0600-left-as-is.md — do not chmod it to satisfy a
+# consistency check; the record explains what was checked and what would reopen it.
 _match_conf_dir_perms() {
   local nginx_conf_dir="$1" file="$2" mode="${3:-644}"
   chmod "$mode" "$file"
