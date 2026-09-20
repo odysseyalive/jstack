@@ -23,6 +23,20 @@ nginx/certbot/conf/*
 
 # --- Claude Code configuration (machine-specific) ---
 .claude/
+# ...except the awareness ledger. Everything else under .claude/ is machine-specific
+# and reproducible; the ledger is neither. It is the only durable record of decisions
+# and defects whose evidence is gitignored elsewhere in this tree, and the reason it is
+# tracked from 2026-09-20 is that PAT-2026-09-19-flat-tar-backup-unrestorable
+# established this host has no working backups -- so an untracked ledger had no second
+# copy anywhere. Git is now that copy. Each path is re-included in turn because git does
+# not descend into an excluded directory, so a lone negation for the leaf would not fire.
+!.claude/
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/awareness-ledger/
+.claude/skills/awareness-ledger/*
+!.claude/skills/awareness-ledger/ledger/
 .claude-backups/
 .censusignore
 CLAUDE.md
