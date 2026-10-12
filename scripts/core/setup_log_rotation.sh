@@ -23,21 +23,12 @@ fi
 # Create logrotate configuration
 log "Creating logrotate configuration at $LOGROTATE_CONF..."
 
+# No stanza for logs/*.log or sites/*/logs/*.log: those belong to the jstack user and
+# are rotated AS that user by scripts/core/site_logs.sh rotate (setup_cron_jobs.sh).
+# Until 2026-10-10 a logs/*.log stanza lived here, and this script run under sudo wrote
+# it with $USER=root: `create 0644 root root` recreated every rotated log as root, and
+# the backup's `tee` into logs/ failed from then on.
 sudo tee "$LOGROTATE_CONF" > /dev/null <<EOF
-# JStack Application Logs
-$JSTACK_DIR/logs/*.log {
-    daily
-    missingok
-    rotate 7
-    compress
-    delaycompress
-    notifempty
-    create 0644 $USER $USER
-    dateext
-    dateformat -%Y%m%d
-    maxsize 10M
-}
-
 # NGINX Logs (managed via Docker volume)
 $JSTACK_DIR/nginx/logs/*.log {
     daily
@@ -91,8 +82,8 @@ fi
 
 log "✓ Log rotation configured successfully"
 log "Configuration details:"
-log "  - Application logs (logs/*.log): Daily rotation, 7 days retention, max 10MB"
-log "    Files: backup_restore.log, site_template_lifecycle.log (created on-demand)"
+log "  - Application and site logs (logs/*.log, sites/*/logs/*.log): rotated as the"
+log "    jstack user by scripts/core/site_logs.sh rotate, not here"
 log "  - NGINX logs (nginx/logs/*.log): Daily rotation, 14 days retention, max 50MB"
 log "    Files: access.log, error.log"
 log "  - n8n logs (data/n8n/*.log): Weekly rotation, 4 weeks retention, max 25MB"

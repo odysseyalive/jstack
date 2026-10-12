@@ -2,6 +2,50 @@
 
 Your data is valuable. JStack makes backing up and restoring your entire infrastructure simple and reliable.
 
+## The nightly full backup (as of 2026-10-10)
+
+The jstack user's crontab runs `scripts/core/backup_restore.sh backup --full` at 03:00,
+writing to `backups/cron.log`. It runs as that user, never root. Root-owned files are
+read through a throwaway container. One archive, `backups/jstack_full_<ts>.tar.gz`
+(mode 600 in a 700 directory), holds:
+
+- `docker-compose.yml`, `jstack.config`, `nginx/conf.d/`, and `sites/` without
+  `node_modules`, `.next`, `.next-prev`, `trivy-cache`, live Postgres data
+  directories and scratch `tmp/` dirs
+- `sites/<site>/db-dumps/<db>.pgdump`: `pg_dump -Fc` of each Convex site's Postgres,
+  which includes the function env store (JWT keys, ADMIN_USER, SMTP_*)
+- `sites/<site>/db-dumps/convex-export.zip`: `convex export --include-file-storage`.
+  It does NOT carry the env store, so the pgdump is needed too.
+- `nginx/certbot-conf.tar`: the whole certbot tree, root-owned, private keys 0600
+
+The run validates its own archive: gzip, member roots, each pgdump through
+`pg_restore -l`, each export through the site's `convex_zip_check`, and the certbot tar
+listing. A failed check fails the run.
+
+**Restore** (rehearse into a scratch copy, never the live tree):
+
+```bash
+mkdir -p /tmp/drill/scripts/core
+cp scripts/core/backup_restore.sh scripts/core/jstack_config.sh /tmp/drill/scripts/core/
+cp jstack.config /tmp/drill/
+bash /tmp/drill/scripts/core/backup_restore.sh restore backups/jstack_full_<ts>.tar.gz
+```
+
+The restore unpacks the certbot tar through a container, so the keys come back
+root-owned. It does not load databases; that's a per-site decision. To load a dump
+into a stopped site's fresh Postgres:
+
+```bash
+docker exec -i <site>-convex-postgres-1 pg_restore -U convex -d <db> --clean --if-exists \
+  < sites/<site>/db-dumps/<db>.pgdump
+```
+
+Drill of 2026-10-10: both pgdumps loaded into a throwaway `postgres` container with
+no errors, and the certbot tree came back root-owned with keys at 0600. Importing an
+export zip into a fresh Convex backend has not been rehearsed yet.
+
+The sections below predate this script and describe `jstack.sh --backup`.
+
 ## Manual Backups
 - Run a full backup
 ```bash

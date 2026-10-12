@@ -2,7 +2,13 @@
 # JStack Backup & Restore Script
 # Location: scripts/core/backup_restore.sh
 
-set -e
+# -E carries the ERR trap into functions; pipefail makes a failed dump or tar inside a
+# pipeline fail the run instead of being masked by the command after it.
+set -eE -o pipefail
+trap 'echo "[$(date "+%Y-%m-%d %H:%M:%S")] FAILED: line $LINENO: $BASH_COMMAND (exit $?)" >&2' ERR
+# Scratch directories (the backup stage, validate's extraction dir) never outlive the run.
+STAGE="" VALIDATE_TMP=""
+trap 'rm -rf ${STAGE:+"$STAGE"} ${VALIDATE_TMP:+"$VALIDATE_TMP"}' EXIT
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BACKUP_DIR="$REPO_ROOT/backups"
@@ -26,9 +32,108 @@ usage() {
   exit 1
 }
 
+# The log file is best-effort. Until 2026-10-10 this was `echo | tee -a`, and logs/ was
+# root-owned while the nightly cron ran as jarvis: tee failed on the first call, `set -e`
+# ended the run before tar, and no archive was ever written. A log that cannot be written
+# must never cost the backup, so the line always reaches stdout (cron sends it to
+# backups/cron.log) and the file append is allowed to fail.
 log() {
-  mkdir -p "$LOG_DIR"
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_DIR/backup_restore.log"
+  local line
+  line="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+  echo "$line"
+  { mkdir -p "$LOG_DIR" && echo "$line" >> "$LOG_DIR/backup_restore.log"; } 2>/dev/null || true
+}
+
+# Databases are dumped, never copied raw: a tar of a running Postgres data directory is
+# not a consistent database. Each entry is
+#   <site>|pg|<container>|<user>|<database>   pg_dump -Fc through `docker exec`
+#   <site>|convex-export|<backend url>         `convex export --include-file-storage`
+# Convex sites get both. The export is the one Convex itself restores from; the pg_dump
+# is the whole database, system tables included, and costs nothing extra to keep.
+# Dumps are staged under backups/ and enter the archive as sites/<site>/db-dumps/, so
+# they ride under the sites/ root the restore contract already accepts, and no
+# plaintext dump sits in a live site directory between runs.
+# The URL is explicit because apps' .env carries no CONVEX_SELF_HOSTED_URL (its host
+# port is 3220, sites/apps.odysseyalive.com/docker-compose.yml:110).
+DB_DUMPS=(
+  "apps.odysseyalive.com|pg|odyssey-apps-convex-postgres-1|convex|odyssey_apps"
+  "apps.odysseyalive.com|convex-export|http://127.0.0.1:3220"
+  "skul.odysseyalive.com|pg|odyssey-skul-convex-postgres-1|convex|odyssey_skul"
+  "skul.odysseyalive.com|convex-export|http://127.0.0.1:3210"
+)
+
+# Live database directories the dumps replace, scratch dirs that churn while tar reads
+# them, and build output or caches that are rebuilt from what is still archived
+# (.next-prev is apps' previous build, kept for release-swap; trivy-cache is a scanner's
+# vulnerability database, 1.4G on 2026-10-10 and re-downloaded on demand).
+# data/convex-postgres stays IN: it is the backend's file storage on Postgres, it is
+# small, and the export that also carries it has never been restored.
+TAR_EXCLUDES=(
+  --exclude='sites/*/data/postgres'
+  --exclude='sites/*/data/*/tmp'
+  --exclude='sites/*/.tmp'
+  --exclude='*/node_modules'
+  --exclude='*/.next'
+  --exclude='*/.next-prev'
+  --exclude='*/trivy-cache'
+)
+
+# cron's PATH reaches /usr/bin/node, which is v18 on this host, and the convex CLI dies
+# on it at load (`Invalid flags supplied to RegExp constructor 'v'`, measured
+# 2026-10-10). Use nvm's default node when there is one.
+_convex_path() {
+  local alias_file="$HOME/.nvm/alias/default" ver
+  if [ -r "$alias_file" ]; then
+    ver="$(cat "$alias_file")"
+    if [ -x "$HOME/.nvm/versions/node/v${ver#v}/bin/node" ]; then
+      echo "$HOME/.nvm/versions/node/v${ver#v}/bin:$PATH"
+      return
+    fi
+  fi
+  echo "$PATH"
+}
+
+# stage_dumps <stage dir>: write every DB_DUMPS entry under <stage>/sites/<site>/db-dumps/.
+stage_dumps() {
+  local stage="$1" entry site kind rest out site_dir
+  for entry in "${DB_DUMPS[@]}"; do
+    IFS='|' read -r site kind rest <<< "$entry"
+    site_dir="$REPO_ROOT/sites/$site"
+    out="$stage/sites/$site/db-dumps"
+    mkdir -p "$out"
+    case "$kind" in
+      pg)
+        local container user db
+        IFS='|' read -r container user db <<< "$rest"
+        log "Dumping $site Postgres ($db in $container)"
+        docker exec "$container" pg_dump -U "$user" -d "$db" -Fc > "$out/$db.pgdump"
+        ;;
+      convex-export)
+        log "Exporting $site Convex ($rest)"
+        mkdir -p "$site_dir/.tmp"
+        ( cd "$site_dir" && PATH="$(_convex_path)" CONVEX_SELF_HOSTED_URL="$rest" \
+            CONVEX_TMPDIR="$site_dir/.tmp" ./node_modules/.bin/convex export \
+            --include-file-storage --path "$out/convex-export.zip" ) > /dev/null
+        ;;
+      *)
+        log "Unknown dump kind '$kind' for $site"
+        exit 2
+        ;;
+    esac
+  done
+}
+
+# The certbot tree is root-owned (the certbot container renews as root, every 12h,
+# docker-compose.yml:28) and its private keys and accounts/ are root-only, so jarvis
+# cannot tar it. A throwaway container reads it through a READ-ONLY mount and streams
+# a tar that keeps root ownership and 0600 modes. Nothing is chmod'ed: the recursive
+# 755 in fix_certbot_permissions.sh made every private key world-readable.
+stage_certbot() {
+  local stage="$1"
+  mkdir -p "$stage/nginx"
+  log "Streaming nginx/certbot/conf through a read-only container"
+  docker run --rm -v "$REPO_ROOT/nginx/certbot/conf:/c:ro" alpine tar -C / -cf - c \
+    > "$stage/nginx/certbot-conf.tar"
 }
 
 # ONE archive contract, shared by every function in this file: members are stored as
@@ -53,17 +158,53 @@ log() {
 # A single `-C "$REPO_ROOT"` with tree-shaped member names fixes both halves at once:
 # every member carries its own prefix, so nginx/conf.d and nginx/certbot/conf stay
 # distinguishable, and the archive can only be put back where it came from.
+#
+# The staged dumps and certbot tar join from a second -C, and that is safe for the same
+# reason: the stage directory is laid out with the archive's own prefixes
+# (sites/<site>/db-dumps/..., nginx/certbot-conf.tar), and each is named as a file, so
+# no member is ever `./`.
 backup_full() {
   TS=$(date '+%Y%m%d_%H%M%S')
   FILE="$BACKUP_DIR/jstack_full_$TS.tar.gz"
+  # The archive holds TLS private keys, database dumps and every site's .env: owner-only.
+  umask 077
   mkdir -p "$BACKUP_DIR"
+  chmod 700 "$BACKUP_DIR"
+  # One run at a time: a second run would race the first for the stage and the archive.
+  exec 9> "$BACKUP_DIR/.lock"
+  if ! flock -n 9; then
+    log "Another backup is running (backups/.lock is held); not starting a second."
+    exit 2
+  fi
+  STAGE="$BACKUP_DIR/.stage-$TS"
+  mkdir -p "$STAGE"
   log "Starting full backup to $FILE (config: $JSTACK_CONFIG_NAME)"
-  tar czf "$FILE" -C "$REPO_ROOT" \
+  stage_dumps "$STAGE"
+  stage_certbot "$STAGE"
+  # The staged FILES join the archive, never their directories: the stage was made
+  # under umask 077, and a `sites/` member at 0700 would reset the live sites/ to 0700
+  # on restore (found in the 2026-10-10 restore drill), locking out nginx's workers.
+  local staged=()
+  mapfile -t staged < <(cd "$STAGE" && find sites nginx -type f)
+  # Exit 1 from GNU tar means a file changed while it was read (a live site writes
+  # logs and caches all night); the archive is still complete and validate_backup
+  # below is the judge. 2 and up is a real failure.
+  local rc=0
+  tar czf "$FILE" -C "$REPO_ROOT" "${TAR_EXCLUDES[@]}" \
+    --warning=no-file-changed --ignore-failed-read \
     docker-compose.yml \
     "$JSTACK_CONFIG_NAME" \
     nginx/conf.d \
-    nginx/certbot/conf \
-    sites
+    sites \
+    -C "$STAGE" --no-recursion \
+    "${staged[@]}" || rc=$?
+  if [ "$rc" -gt 1 ]; then
+    log "tar failed (exit $rc); removing the partial archive $FILE"
+    rm -f "$FILE"
+    exit 2
+  fi
+  log "Full backup written: $FILE ($(du -h "$FILE" | cut -f1))"
+  validate_backup "$FILE"
   log "Full backup completed: $FILE"
 }
 
@@ -147,6 +288,21 @@ restore_backup() {
   # construction, so extracting at / scattered them across the filesystem.
   log "Restoring from backup $FILE into $REPO_ROOT"
   tar xzf "$FILE" -C "$REPO_ROOT"
+  # The certbot tree went in as a root-owned tar (stage_certbot); it comes back the
+  # same way, through a container, so the keys are root-owned 0600 again and the
+  # certbot container can renew them.
+  if [ -f "$REPO_ROOT/nginx/certbot-conf.tar" ]; then
+    log "Restoring nginx/certbot/conf through a container (root-owned, modes kept)"
+    mkdir -p "$REPO_ROOT/nginx/certbot/conf"
+    docker run --rm -i -v "$REPO_ROOT/nginx/certbot/conf:/c" alpine tar -C / -xpf - \
+      < "$REPO_ROOT/nginx/certbot-conf.tar"
+    rm -f "$REPO_ROOT/nginx/certbot-conf.tar"
+  fi
+  # Databases are never loaded by a restore: that is a decision, per site, about
+  # which copy wins. The dumps are left in sites/<site>/db-dumps/ for the runbook.
+  if ls "$REPO_ROOT"/sites/*/db-dumps >/dev/null 2>&1; then
+    log "Database dumps restored to sites/*/db-dumps/ and NOT loaded; load them by hand."
+  fi
   log "Restore completed."
 }
 
@@ -169,6 +325,55 @@ validate_backup() {
   fi
   _assert_restorable "$FILE"
   log "Backup $FILE restorable under $REPO_ROOT: OK"
+  case "$(basename "$FILE")" in
+    jstack_full_*) _validate_full_contents "$FILE" ;;
+  esac
+}
+
+# A full archive must also carry what backup_full staged, and each piece must be
+# readable by the tool that would restore it. A dump that is present but empty, or an
+# export taken without file storage, would otherwise pass every check above.
+_validate_full_contents() {
+  local file="$1" tmp entry site kind rest member toc
+  VALIDATE_TMP="$(mktemp -d "$BACKUP_DIR/.validate-XXXXXX")"
+  tmp="$VALIDATE_TMP"
+  for entry in "${DB_DUMPS[@]}"; do
+    IFS='|' read -r site kind rest <<< "$entry"
+    case "$kind" in
+      pg)
+        local container user db
+        IFS='|' read -r container user db <<< "$rest"
+        member="sites/$site/db-dumps/$db.pgdump"
+        tar xzf "$file" -C "$tmp" "$member"
+        # Captured first: under pipefail, `pg_restore -l | grep -q` reads as a failure
+        # when grep exits at its first match and pg_restore dies of SIGPIPE.
+        toc="$(docker exec -i "$container" pg_restore -l < "$tmp/$member")"
+        if ! grep -q 'TABLE DATA' <<< "$toc"; then
+          log "Backup $file: $member does not list as a Postgres dump with table data"
+          exit 2
+        fi
+        ;;
+      convex-export)
+        member="sites/$site/db-dumps/convex-export.zip"
+        tar xzf "$file" -C "$tmp" "$member"
+        # shellcheck source=/dev/null
+        . "$REPO_ROOT/sites/$site/scripts/lib/convex-zip.sh"
+        if ! UNZIP_DISABLE_ZIPBOMB_DETECTION=TRUE convex_zip_check "$tmp/$member"; then
+          log "Backup $file: $member fails its check: $CONVEX_ZIP_ERROR"
+          exit 2
+        fi
+        log "  $member: $CONVEX_ZIP_TABLES tables, $CONVEX_ZIP_FILES stored files"
+        ;;
+    esac
+  done
+  tar xzf "$file" -C "$tmp" nginx/certbot-conf.tar
+  local listing
+  listing="$(tar tf "$tmp/nginx/certbot-conf.tar")"
+  if ! grep -qx 'c/accounts/' <<< "$listing" || ! grep -q '^c/live/' <<< "$listing"; then
+    log "Backup $file: nginx/certbot-conf.tar is missing accounts/ or live/"
+    exit 2
+  fi
+  log "Backup $file contents (dumps, exports, certbot): OK"
 }
 
 main() {

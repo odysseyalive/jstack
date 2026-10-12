@@ -175,11 +175,14 @@ if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "example.com" ]; then
   acquire_base_cert "$DOMAIN"
 fi
 
-# Fix certificate file permissions
+# Fix certificate file permissions. Private keys stay 0600: the old `chmod -R 755` here
+# made every TLS private key world-readable (fixed 2026-10-10).
 log "Fixing certificate file permissions..."
 docker run --rm -v "$REPO_ROOT/nginx/certbot/conf:/etc/letsencrypt" alpine sh -c \
   "chown -R 1000:1000 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null || true; \
-   chmod -R 755 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null || true" \
+   find /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal -type d -exec chmod 755 {} + 2>/dev/null; \
+   find /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal -type f -exec chmod 644 {} + 2>/dev/null; \
+   find /etc/letsencrypt/archive -type f -name 'privkey*.pem' -exec chmod 600 {} + 2>/dev/null || true" \
   >/dev/null 2>&1 || log "⚠ Failed to fix cert permissions (run scripts/core/fix_certbot_permissions.sh manually if needed)"
 
 # Reload nginx

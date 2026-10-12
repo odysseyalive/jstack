@@ -1,5 +1,15 @@
+# Docker keeps only a bounded buffer of each container's output (json-file, 3 x 10m);
+# jstack copies it into sites/<site>/logs/<service>.log every 5 minutes
+# (scripts/core/site_logs.sh). Every service carries `logging: *default-logging`.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   node-app:
+    logging: *default-logging
     build: .
     restart: unless-stopped
     ports:

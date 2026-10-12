@@ -20,10 +20,20 @@ if [ ! -d "$CERTBOT_CONF/archive" ]; then
   exit 1
 fi
 
+# Directories 755 and certificates 644, but private keys 0600. Until 2026-10-10 this was
+# `chmod -R 755` over all three trees, which made every TLS private key world-readable.
+# The chown to 1000 already gives the jstack user access to the keys; nobody else needs it.
+# $1 is the letsencrypt root as the command running it sees it.
+safe_modes() {
+  echo "find $1/archive $1/live $1/renewal -type d -exec chmod 755 {} + && \
+find $1/archive $1/live $1/renewal -type f -exec chmod 644 {} + && \
+find $1/archive -type f -name 'privkey*.pem' -exec chmod 600 {} +"
+}
+
 # Use Docker container with root privileges to fix permissions
 # This works without sudo since the user is in the docker group
 log "Using Docker to fix certificate ownership and permissions..."
-if docker run --rm -v "$(pwd)/nginx/certbot/conf:/etc/letsencrypt" alpine sh -c "chown -R 1000:1000 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null && chmod -R 755 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null"; then
+if docker run --rm -v "$(pwd)/nginx/certbot/conf:/etc/letsencrypt" alpine sh -c "chown -R 1000:1000 /etc/letsencrypt/archive /etc/letsencrypt/live /etc/letsencrypt/renewal 2>/dev/null && $(safe_modes /etc/letsencrypt) 2>/dev/null"; then
   log "✓ Certificate ownership and permissions fixed via Docker"
 else
   log "⚠ Docker-based fix failed, attempting sudo method..."
@@ -31,12 +41,12 @@ else
   # Fallback to sudo if Docker approach fails
   if sudo -n true 2>/dev/null; then
     sudo chown -R "${USER}:${USER}" "$CERTBOT_CONF/archive" "$CERTBOT_CONF/live" "$CERTBOT_CONF/renewal" 2>/dev/null || true
-    sudo chmod -R 755 "$CERTBOT_CONF/archive" "$CERTBOT_CONF/live" "$CERTBOT_CONF/renewal" 2>/dev/null || true
+    sudo sh -c "$(safe_modes "$CERTBOT_CONF")" 2>/dev/null || true
     log "✓ Certificate permissions fixed via sudo"
   else
     log "ERROR: Both Docker and sudo methods failed"
     log "Please run: sudo chown -R $USER:$USER nginx/certbot/conf/{archive,live,renewal}"
-    log "Then run: sudo chmod -R 755 nginx/certbot/conf/{archive,live,renewal}"
+    log "Then run: sudo sh -c \"$(safe_modes nginx/certbot/conf)\""
     exit 1
   fi
 fi
