@@ -1,0 +1,13 @@
+# watchman 2026-10-27: email once when crowdsec-nginx-geo-sync fails. The sync runs every
+# 30s, so the start limit caps this at one email per 6h instead of one per failed run.
+[Unit]
+Description=Alert that crowdsec-nginx-geo-sync failed
+StartLimitIntervalSec=6h
+StartLimitBurst=1
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/watchman
+Environment=HOME=/root
+Environment=PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/bin/bash -c '{ systemctl status crowdsec-nginx-geo-sync.service --no-pager -l -n 40; } | bash /root/watchman/lib/wm send_report "[watchman] crowdsec-nginx-geo-sync FAILED on $(hostname)"'

@@ -114,15 +114,27 @@ _proxy_target() {
 # declared in conf.d/00-f2b-geo.conf. conf.d/*.conf is gitignored, so a fresh clone has
 # neither that file nor the fail2ban-maintained list it includes, and nginx -t would fail
 # with "unknown variable". Create both if missing; never overwrite existing ones.
+#
+# The same geo block also includes crowdsec-banned.geo, written on the host by
+# crowdsec-nginx-geo-sync from CrowdSec's local decisions. Its list is created even when
+# 00-f2b-geo.conf already exists: a host whose conf has the include but lacks the list
+# would fail nginx -t just the same.
 _ensure_f2b_geo() {
   local nginx_conf_dir="$1"
   local geo_conf="$nginx_conf_dir/00-f2b-geo.conf"
   local geo_list="$nginx_conf_dir/f2b-banned.geo"
+  local cs_list="$nginx_conf_dir/crowdsec-banned.geo"
 
   if [ ! -f "$geo_list" ]; then
     log "Creating empty fail2ban ban list $geo_list"
     : >"$geo_list"
     _match_conf_dir_perms "$nginx_conf_dir" "$geo_list"
+  fi
+
+  if [ ! -f "$cs_list" ]; then
+    log "Creating empty CrowdSec ban list $cs_list"
+    : >"$cs_list"
+    _match_conf_dir_perms "$nginx_conf_dir" "$cs_list"
   fi
 
   if [ ! -f "$geo_conf" ]; then
@@ -136,11 +148,13 @@ _ensure_f2b_geo() {
 # Most web traffic arrives from Cloudflare edge IPs, so a firewall (nft) ban on the
 # client IP never matches a packet. geo evaluates the realip-restored address, i.e.
 # the true client behind Cloudflare. fail2ban's jstack-nginx-geo action maintains
-# f2b-banned.geo; every public server block does
-# `if ($f2b_banned) { return 403; }` - removing this file makes nginx refuse to start.
+# f2b-banned.geo and crowdsec-nginx-geo-sync maintains crowdsec-banned.geo; every
+# public server block does `if ($f2b_banned) { return 403; }` - removing either file
+# makes nginx refuse to start.
 geo $f2b_banned {
     default 0;
     include /etc/nginx/conf.d/f2b-banned.geo;
+    include /etc/nginx/conf.d/crowdsec-banned.geo;
 }
 EOF
     _match_conf_dir_perms "$nginx_conf_dir" "$geo_conf"

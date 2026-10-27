@@ -1,0 +1,12 @@
+# watchman 2026-10-27: mirror CrowdSec's local web bans into jstack nginx (layer-7 403s).
+# Plan: /root/watchman/plan/crowdsec-nginx-enforcement-2026-10-27.md
+[Unit]
+Description=Sync CrowdSec ban decisions into jstack nginx geo list
+After=docker.service crowdsec.service
+Wants=crowdsec.service
+OnFailure=crowdsec-nginx-geo-sync-alert.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/crowdsec-nginx-geo-sync
+TimeoutStartSec=180

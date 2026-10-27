@@ -1,0 +1,11 @@
+# watchman 2026-10-27: see crowdsec-nginx-geo-sync.service.
+[Unit]
+Description=Run crowdsec-nginx-geo-sync every 30s
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=30s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

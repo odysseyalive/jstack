@@ -1,0 +1,1 @@
+# Never blocked by crowdsec-nginx-geo-sync. One IP or CIDR per line.

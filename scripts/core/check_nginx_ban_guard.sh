@@ -48,6 +48,21 @@ if ! grep -qE '^\s*geo\s+\$f2b_banned\b' "${CONFS[@]}"; then
   FAILED=1
 fi
 
+# CrowdSec's decisions are enforced only if the geo map includes its list, and the list
+# must exist or nginx -t fails. Comments are stripped so a commented-out include fails.
+if ! sed 's/#.*//' "${CONFS[@]}" | grep -qE '^\s*include\s+\S*/crowdsec-banned\.geo\s*;'; then
+  echo ""
+  echo "FAIL: the geo \$f2b_banned map does not include crowdsec-banned.geo."
+  echo "CrowdSec web bans are not enforced at layer 7."
+  FAILED=1
+fi
+
+if [ ! -f "$CONF_DIR/crowdsec-banned.geo" ]; then
+  echo ""
+  echo "FAIL: $CONF_DIR/crowdsec-banned.geo is missing; nginx -t will fail on the include."
+  FAILED=1
+fi
+
 # Walk each file tracking brace depth; for every top-level `server {` block, report
 # its opening line and server_name when it neither tests $f2b_banned nor returns 444.
 # Comments are stripped first so a commented-out guard does not count.
